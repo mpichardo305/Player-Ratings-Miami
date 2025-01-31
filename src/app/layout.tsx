@@ -14,6 +14,15 @@ const geistMono = Geist_Mono({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <meta property="og:title" content="Player Ratings Miami" />
+        <meta property="og:description" content="Rate and track local soccer players!" />
+        <meta property="og:image" content="https://player-ratings-miami.vercel.app/social-preview.jpg" />
+        <meta property="og:url" content="https://player-ratings-miami.vercel.app" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://player-ratings-miami.vercel.app/social-preview.jpg" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
