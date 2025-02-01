@@ -20,15 +20,15 @@ console.log(selectedGroupId);
       return;
     }
 
-    if (!selectedGroupId) {
-      setMessage("Please select a group first.");
-      return;
-    }
+    // if (!selectedGroupId) {
+    //   setMessage("Please select a group first.");
+    //   return;
+    // }
 
     const response = await fetch("/api/add-player", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, groupId: selectedGroupId }),
+      body: JSON.stringify({ name, groupId: '299af152-1d95-4ca2-84ba-43328284c38e' }),
     });
 
     const data = await response.json();

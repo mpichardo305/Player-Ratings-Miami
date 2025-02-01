@@ -53,7 +53,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
     };
 
     fetchGroups();
-  }, [sessionUserId, onGroupSelect]);
+  }, [sessionUserId, onGroupSelect, setGroups, setSelectedGroupId]);
 
   // Check admin status for the selected group
   useEffect(() => {
