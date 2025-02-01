@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/app/utils/supabaseClient";
 import PhoneAuth from "@/app/components/PhoneAuth";
-import Players from "@/app/components/Players";
+import Players from "@/app/pages/players";
 
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);

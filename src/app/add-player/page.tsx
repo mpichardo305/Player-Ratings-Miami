@@ -1,72 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { GroupContext } from "@/app/context/GroupContext"; 
 export default function AddPlayer() {
-  const supabase = createClientComponentClient();
   const router = useRouter();
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
-  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState("");
-
-  useEffect(() => {
-    const fetchGroups = async () => {
-      // Fetch session first since it's not available in this page
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error || !session?.access_token) {
-        console.error("❌ Error fetching session or no access token found:", error);
-        return;
-      }
+  const groupContext = useContext(GroupContext);
+  if (!groupContext) {
+    throw new Error('Group context is undefined');
+  }
   
-      console.log("✅ Retrieved session in add-player page:", session);
-      console.log("✅ Sending token in API call:", session.access_token);
-  
-      try {
-        const response = await fetch("/api/get-user-groups", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${session.access_token}`,  // Use fetched token
-            "Content-Type": "application/json",
-          },
-        });
-  
-        if (!response.ok) {
-          console.error("❌ Error fetching groups:", response.status, response.statusText);
-          return;
-        }
-  
-        const data = await response.json();
-        console.log("✅ Response from get-user-groups API:", data);
-        
-        setGroups(data.groups);
-        if (data.groups.length > 0) {
-          setSelectedGroup(data.groups[0].id);
-        }
-      } catch (error) {
-        console.error("❌ Error making request to get-user-groups API:", error);
-      }
-    };
-  
-    fetchGroups(); // Fetch session and then fetch groups
-  }, []);
-
+  const { selectedGroupId } = groupContext;
+console.log(selectedGroupId);
   const handleAddPlayer = async () => {
     if (!name.trim()) {
       setMessage("Player name is required.");
       return;
     }
-    if (!selectedGroup) {
-      setMessage("Please select a group.");
+
+    if (!selectedGroupId) {
+      setMessage("Please select a group first.");
       return;
     }
 
     const response = await fetch("/api/add-player", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, groupId: selectedGroup }),
+      body: JSON.stringify({ name, groupId: selectedGroupId }),
     });
 
     const data = await response.json();
@@ -94,22 +56,6 @@ export default function AddPlayer() {
             className="w-full px-4 py-2 text-white bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
-
-        <div className="mt-4">
-          <select
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            className="w-full px-4 py-2 text-white bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value="">Select the group to add player</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <button
           onClick={handleAddPlayer}
           className="w-full mt-4 bg-green-500 text-white font-semibold py-2 rounded-lg hover:bg-green-600 transition duration-200"
