@@ -91,7 +91,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
       }
 
       // Merge ratings into players
-      const playersWithRatings = approvedPlayers.map((player) => {
+      const playersWithRatings = approvedPlayers.reverse().map((player) => {
         const playerRatings = ratingsData?.filter((r) => r.player_id === player.id) || [];
         const sum = playerRatings.reduce((acc, curr) => acc + curr.rating, 0);
         const avg = playerRatings.length > 0 ? Math.ceil(sum / playerRatings.length) : 0;
