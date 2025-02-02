@@ -3,19 +3,26 @@ import { supabase } from "@/app/utils/supabaseClient";
 
 export async function POST(req: Request) {
   try {
-    const { name, groupId } = await req.json();
+    const { name, groupId, phone } = await req.json();
 
-    if (!name || !groupId) {
+    if (!name || !groupId || !phone) {
       return NextResponse.json(
-        { error: "Name and group are required" },
+        { error: "Name, group and phone number are required" },
         { status: 400 }
       );
     }
 
+    // Sanitize phone number - remove non-numeric characters
+    const sanitizedPhone = phone.replace(/\D/g, '');
+
     // Insert new player into the players table
     const { data: playerData, error: playerError } = await supabase
       .from("players")
-      .insert([{ name, status: "pending" }])
+      .insert([{ 
+        name, 
+        status: "pending",
+        phone: sanitizedPhone
+      }])
       .select()
       .single();
 

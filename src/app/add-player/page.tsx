@@ -3,9 +3,13 @@
 import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { GroupContext } from "@/app/context/GroupContext"; 
+import PhoneInput from "react-phone-number-input/input";
+import 'react-phone-number-input/style.css'
+
 export default function AddPlayer() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState('')
   const [message, setMessage] = useState("");
   const groupContext = useContext(GroupContext);
   if (!groupContext) {
@@ -20,25 +24,22 @@ console.log(selectedGroupId);
       return;
     }
 
-    // if (!selectedGroupId) {
-    //   setMessage("Please select a group first.");
-    //   return;
-    // }
-
-    const response = await fetch("/api/add-player", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, groupId: '299af152-1d95-4ca2-84ba-43328284c38e' }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setMessage(`✅ Player request submitted for ${name}`);
-      setName(""); // Clear input
-      // setShowBackButton(true)
-    } else {
-      setMessage(`❌ Error: ${data.error}`);
+    try {
+      const response = await fetch("/api/add-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, groupId: '299af152-1d95-4ca2-84ba-43328284c38e', phone }),
+      });
+      
+      if (response.ok) {
+        setMessage("Player added successfully!");
+        setName("");
+        setPhone("");
+      } else {
+        setMessage("Failed to add player.");
+      }
+    } catch (error) {
+      setMessage("Error adding player.");
     }
   };
 
@@ -56,6 +57,15 @@ console.log(selectedGroupId);
             className="w-full px-4 py-2 text-white bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
+        <div className="mt-4">
+          <PhoneInput
+            placeholder="Enter phone number"
+            value={phone}
+            onChange={(value) => setPhone(value ?? '')}
+            defaultCountry="US"
+            className="w-full px-4 py-2 text-white bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+    </div>
         <button
           onClick={handleAddPlayer}
           className="w-full mt-4 bg-green-500 text-white font-semibold py-2 rounded-lg hover:bg-green-600 transition duration-200"
