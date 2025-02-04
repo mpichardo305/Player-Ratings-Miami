@@ -138,6 +138,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
 
   // Function to upsert a rating
   const handleRate = async (playerId: number, rating: number) => {
+    console.log("playerId", playerId)
     // Prevent rating yourself if needed
     if (playerId === parseInt(sessionUserId)) {
       console.warn("🚫 You can't rate yourself!");
@@ -149,7 +150,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
       .from("ratings")
       .upsert(
         { player_id: playerId, user_id: sessionUserId, rating },
-        { onConflict: 'unique_player_user_rating' }
+        { onConflict: "player_id, user_id" }
       );
 
     if (error) {

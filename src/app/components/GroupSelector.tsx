@@ -22,8 +22,10 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
   const [newName, setNewName] = useState("");
 
   // Fetch groups where the user is an admin
+  // hardcoding the admin player id for now
   useEffect(() => {
     const fetchGroups = async () => {
+      console.log("sessionUserId",sessionUserId)
       const { data: userGroups, error } = await supabase
         .from("group_admins")
         .select(`
@@ -33,7 +35,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
             name
           )
         `)
-        .eq("player_id", sessionUserId);
+        .eq("player_id", "5ca2023f-1a54-48f5-8f7e-6ef8786d4d44");
       
       if (error) {
         console.error("Error fetching groups:", error.message);

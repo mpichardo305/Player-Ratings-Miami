@@ -12,28 +12,28 @@ interface ApprovePlayerRequest {
 export async function POST(req: Request) {
   try {
     const body: ApprovePlayerRequest = await req.json();
-    const { name, groupId, phone, userId } = body;
+    const { id, groupId } = body;
 
     // Validate request
-    if (!name || !groupId || !phone || !userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    // if (!name || !groupId || !phone || !userId) {
+    //   return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    // }
 
     // 1. Create/Get Player
-    const playerRes = await fetch(`${req.headers.get('origin')}/api/players`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, phone })
-    });
+    // const playerRes = await fetch(`${req.headers.get('origin')}/api/players`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({ name, phone })
+    // });
 
-    if (!playerRes.ok) {
-      const error = await playerRes.json();
-      return NextResponse.json({ error: error.message }, { status: playerRes.status });
-    }
+    // if (!playerRes.ok) {
+    //   const error = await playerRes.json();
+    //   return NextResponse.json({ error: error.message }, { status: playerRes.status });
+    // }
 
-    const playerData = await playerRes.json();
+    // const playerData = await playerRes.json();
 
     // 2. Add to Group
     const membershipRes = await fetch(`${req.headers.get('origin')}/api/groups/membership`, {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        playerId: playerData.playerId,
+        playerId: id,
         groupId
       })
     });
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        playerId: playerData.playerId
+        playerId: id
       })
     });
 

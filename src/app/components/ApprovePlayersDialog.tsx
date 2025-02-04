@@ -74,13 +74,19 @@ export default function ApprovePlayers({
     fetchPendingPlayers();
   }, [groupId]);
 
-  const handleApprove = async (playerId: string) => {
+  const handleApprove = async (player) => {
+      const response = await fetch("/api/approve-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...player, groupId: '299af152-1d95-4ca2-84ba-43328284c38e'}),
+      });
+
     if (!isGroupAdmin || !groupId || !isValidUUID(groupId)) return;
 
     const { error } = await supabase
       .from("group_memberships")
       .update({ status: "approved" })
-      .eq("player_id", playerId)
+      .eq("player_id", player.id)
       .eq("group_id", groupId)
       .eq("status", "pending");
 
@@ -88,7 +94,7 @@ export default function ApprovePlayers({
       console.error("Error approving player:", error);
       return;
     }
-    setPendingPlayers((players) => players.filter((p) => p.id !== playerId));
+    setPendingPlayers((players) => players.filter((p) => p.id !== player.id));
     onApprove();
   };
 
@@ -106,7 +112,7 @@ export default function ApprovePlayers({
       console.error("Error declining player:", error);
       return;
     }
-    setPendingPlayers((prev) => prev.filter((p) => p.id !== playerId));
+    setPendingPlayers((prev) => prev.filter((p) => p.id !== player.id));
   };
 
   return (
@@ -132,7 +138,7 @@ export default function ApprovePlayers({
                 >
                   <span className="text-white">{player.name}</span>
                   <button
-                    onClick={() => handleApprove(player.id)}
+                    onClick={() => handleApprove(player)}
                     className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600"
                   >
                     Approve
