@@ -51,26 +51,17 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       }
 
       const validGroups = userGroups
-      ?.filter((ug): ug is { group_id: string; groups: Group[] } => 
-        ug?.groups !== null && 
-        Array.isArray(ug?.groups) && 
-        'group_id' in ug
-      )
-      .map(ug => ug.groups);
+        ?.filter((ug): ug is UserGroup => ug?.groups !== null)
+        .map(ug => ug.groups);
 
-      if (!validGroups) {
-        console.error("No valid groups found");
-        return;
-      }
-
-    setGroups(validGroups);
+      setGroups(validGroups || []);
     
     if (validGroups.length > 0) {
       onGroupSelect(validGroups[0]);
     }
 
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error("Error fetching groups:", error);
   } finally {
     setIsLoading(false);
   }
