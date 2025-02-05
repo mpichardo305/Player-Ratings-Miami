@@ -1,9 +1,8 @@
-
 import { NextResponse } from "next/server";
 import { supabase } from "@/app/utils/supabaseClient";
 
 interface ApprovePlayerRequest {
-  userId: string;
+  id: string;
   name: string;
   groupId: string;
   phone: string;
@@ -14,7 +13,7 @@ export async function POST(req: Request) {
     const body: ApprovePlayerRequest = await req.json();
     const { id, groupId } = body;
 
-    // 2. Add to Group
+    // 1. Add to Group
     const membershipRes = await fetch(`${req.headers.get('origin')}/api/groups/membership`, {
       method: 'POST',
       headers: {
@@ -26,12 +25,18 @@ export async function POST(req: Request) {
       })
     });
 
-    if (!membershipRes.ok && membershipRes.status !== 409) { // 409 means already in group, which is OK
-      const error = await membershipRes.json();
+    if (!membershipRes.ok && membershipRes.status !== 409) {
+      const membershipText = await membershipRes.text();
+      let error;
+      try {
+        error = JSON.parse(membershipText);
+      } catch {
+        error = { message: membershipText };
+      }
       return NextResponse.json({ error: error.message }, { status: membershipRes.status });
     }
 
-    // 3. Approve and Send Invite
+    // 2. Approve and Send Invite
     const approvalRes = await fetch(`${req.headers.get('origin')}/api/players/approve`, {
       method: 'POST',
       headers: {
@@ -42,12 +47,26 @@ export async function POST(req: Request) {
       })
     });
 
+    const approvalText = await approvalRes.text();
+    console.log('Approval Response:', approvalRes.status, approvalRes.headers.get('content-type'), approvalText);
+
     if (!approvalRes.ok) {
-      const error = await approvalRes.json();
+      let error;
+      try {
+        error = JSON.parse(approvalText);
+      } catch {
+        error = { message: approvalText };
+      }
       return NextResponse.json({ error: error.message }, { status: approvalRes.status });
     }
 
-    const approvalData = await approvalRes.json();
+    let approvalData;
+    try {
+      approvalData = JSON.parse(approvalText);
+    } catch (e) {
+      console.error('Failed to parse approval response:', e);
+      return NextResponse.json({ error: "Invalid response from approval service" }, { status: 500 });
+    }
 
     return NextResponse.json({
       message: "Player approved and invite sent successfully",

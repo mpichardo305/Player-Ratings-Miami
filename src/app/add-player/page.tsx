@@ -32,11 +32,11 @@ console.log(selectedGroupId);
       });
       
       if (response.ok) {
-        setMessage("Player added successfully!");
+        setMessage(`${name}`+ " has been requested to join the group.");
         setName("");
         setPhone("");
       } else {
-        setMessage("Failed to add player.");
+        setMessage("Failed to add "+`${name}`+".");
       }
     } catch (error) {
       setMessage("Error adding player.");
