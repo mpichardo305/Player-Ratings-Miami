@@ -74,7 +74,7 @@ export default function ApprovePlayers({
     fetchPendingPlayers();
   }, [groupId]);
 
-  const handleApprove = async (player) => {
+  const handleApprove = async (player: Player) => {
       const response = await fetch("/api/approve-player", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
