@@ -9,6 +9,11 @@ export type Group = {
   name: string;
 };
 
+interface UserGroup {
+  group_id: string;
+  groups: Group;
+}
+
 type GroupSelectorProps = {
   sessionUserId: string;
   onGroupSelect: (group: Group) => void;
@@ -46,7 +51,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       }
 
       const validGroups = userGroups
-      ?.filter((ug): ug is { groups: Group } => ug.groups !== null)
+      ?.filter((ug): ug is UserGroup => ug.groups !== null && 'group_id' in ug)
       .map(ug => ug.groups);
 
       if (!validGroups) {
