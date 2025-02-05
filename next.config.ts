@@ -1,10 +1,12 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   env: {
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  },
+  experimental: {
+    serverActions: true,
   }
-};
+}
 
-export default nextConfig;
+module.exports = nextConfig
