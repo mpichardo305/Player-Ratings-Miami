@@ -145,7 +145,10 @@ const handleDecline = async (playerId: string, groupId: string) => {
                     Approve
                   </button>
                   <button
-                    onClick={() => handleDecline(player.id, groupId)}
+                      onClick={() => {
+                        if (!groupId) return;
+                        handleDecline(player.id, groupId);
+                      }}
                     className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
                   >
                     Decline
