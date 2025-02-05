@@ -59,6 +59,9 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
     if (validGroups.length > 0) {
       setSelectedGroupId(validGroups[0].id);
       onGroupSelect(validGroups[0]);
+    }else{
+      setSelectedGroupId('');
+      onGroupSelect(null);
     }
 
   } catch (error) {
