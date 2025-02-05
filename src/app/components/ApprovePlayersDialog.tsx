@@ -98,22 +98,23 @@ export default function ApprovePlayers({
     onApprove();
   };
 
-  const handleDecline = async (playerId: string) => {
-    if (!groupId || !isValidUUID(groupId)) return;
+const handleDecline = async (playerId: string, groupId: string) => {
+  if (!isGroupAdmin || !isValidUUID(groupId)) return;
 
-    const { error } = await supabase
-      .from("group_memberships")
-      .update({ status: "declined" })
-      .eq("player_id", playerId)
-      .eq("group_id", groupId)
-      .eq("status", "pending");
+  const { error } = await supabase
+    .from("group_memberships")
+    .delete()
+    .eq("player_id", playerId)
+    .eq("group_id", groupId)
+    .eq("status", "pending");
 
-    if (error) {
-      console.error("Error declining player:", error);
-      return;
-    }
-    setPendingPlayers((prev) => prev.filter((p) => p.id !== player.id));
-  };
+  if (error) {
+    console.error("Error declining player:", error);
+    return;
+  }
+  setPendingPlayers((prev) => prev.filter((p) => p.id !== playerId));
+};
+
 
   return (
     <div className="flex flex-col items-center bg-gray-900 min-h-screen p-6">
@@ -144,7 +145,7 @@ export default function ApprovePlayers({
                     Approve
                   </button>
                   <button
-                    onClick={() => handleDecline(player.id)}
+                    onClick={() => handleDecline(player.id, groupId)}
                     className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
                   >
                     Decline
