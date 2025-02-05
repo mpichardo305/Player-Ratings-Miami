@@ -11,7 +11,10 @@ interface Group {
 
 interface UserGroup {
   group_id: string;
-  groups: Group;
+  groups: {
+    id: string;
+    name: string;
+  };
 }
 
 type GroupSelectorProps = {
