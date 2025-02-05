@@ -51,17 +51,13 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       }
 
       const validGroups = userGroups
-        ?.filter((ug): ug is UserGroup => 
-          ug?.groups !== null && 
-          typeof ug.groups === 'object' &&
-          'id' in ug.groups &&
-          'name' in ug.groups
-        )
-        .map(ug => ug.groups);
+  ?.filter((ug: UserGroup) => ug.groups)
+  .map((ug: UserGroup) => ug.groups)
+  .flat() || [];
 
-      setGroups(validGroups || []);
-    
+    setGroups(validGroups);
     if (validGroups.length > 0) {
+      setSelectedGroupId(validGroups[0].id);
       onGroupSelect(validGroups[0]);
     }
 
