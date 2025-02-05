@@ -61,7 +61,6 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       onGroupSelect(validGroups[0]);
     }else{
       setSelectedGroupId('');
-      onGroupSelect('');
     }
 
   } catch (error) {
