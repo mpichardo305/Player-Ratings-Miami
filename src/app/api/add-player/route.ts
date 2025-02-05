@@ -15,6 +15,21 @@ export async function POST(req: Request) {
     // Sanitize phone number - remove non-numeric characters
     const sanitizedPhone = phone.replace(/\D/g, '');
 
+    // Check if phone number already exists - with more strict check
+    const { data: existingPlayer, error: searchError } = await supabase
+      .from("players")
+      .select("*")
+      .eq("phone", sanitizedPhone);
+
+    console.log('Existing player search result:', existingPlayer); // Debug log
+
+    // Check if any players were found (array length > 0)
+    if (existingPlayer && existingPlayer.length > 0) {
+      return NextResponse.json(
+        { error: "A player with this phone number already exists" },
+        { status: 409 }
+      );
+    }
     // Insert new player into the players table
     const { data: playerData, error: playerError } = await supabase
       .from("players")

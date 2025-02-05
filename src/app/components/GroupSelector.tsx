@@ -20,12 +20,15 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch groups where the user is an admin
-  // hardcoding the admin player id for now
+  // hardcoding the admin player id for now but should be sessionUserId
   useEffect(() => {
     const fetchGroups = async () => {
       console.log("sessionUserId",sessionUserId)
+      setIsLoading(true);
+      try {
       const { data: userGroups, error } = await supabase
         .from("group_admins")
         .select(`
@@ -35,7 +38,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
             name
           )
         `)
-        .eq("player_id", "5ca2023f-1a54-48f5-8f7e-6ef8786d4d44");
+        .eq("player_id", "3e0a04fb-6e4b-41ee-899f-a7f1190b57f5");
       
       if (error) {
         console.error("Error fetching groups:", error.message);
@@ -43,19 +46,29 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       }
 
       const validGroups = userGroups
-        ?.filter(ug => ug.groups)
-        .map(ug => ug.groups)
-        .flat() || [];
+      ?.filter((ug): ug is { groups: Group } => ug.groups !== null)
+      .map(ug => ug.groups);
 
-      setGroups(validGroups);
-      if (validGroups.length > 0) {
-        setSelectedGroupId(validGroups[0].id);
-        onGroupSelect(validGroups[0]);
+      if (!validGroups) {
+        console.error("No valid groups found");
+        return;
       }
-    };
+
+    setGroups(validGroups);
+    
+    if (validGroups.length > 0) {
+      onGroupSelect(validGroups[0]);
+    }
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
     fetchGroups();
-  }, [sessionUserId, onGroupSelect, setGroups, setSelectedGroupId]);
+  }, [sessionUserId, onGroupSelect, setSelectedGroupId]);
 
   // Check admin status for the selected group
   useEffect(() => {

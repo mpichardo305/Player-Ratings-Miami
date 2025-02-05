@@ -154,7 +154,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
       );
 
     if (error) {
-      console.error("❌ Error upserting rating:", error);
+      console.error("Error: 🚫 You can't rate yourself!", error);
     } else {
       console.log("✅ Rating submitted successfully!");
       // Refresh data immediately without showing loading state

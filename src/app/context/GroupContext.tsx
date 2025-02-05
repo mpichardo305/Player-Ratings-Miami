@@ -2,40 +2,48 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Group } from '../components/GroupSelector';
 
+type Group = {
+  id: string;
+  name: string;
+};
+
 type GroupContextType = {
-  selectedGroupId: string;
-  setSelectedGroupId: (id: string) => void;
   currentGroup: Group | null;
+  selectedGroupId: string | null;
+  setSelectedGroupId: (id: string) => void;
   setCurrentGroup: (group: Group | null) => void;
 };
 
 export const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
 export function GroupProvider({ children }: { children: React.ReactNode }) {
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('selectedGroupId') || '';
-    }
-    return '';
-  });
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
+  // Safe initialization after mount
   useEffect(() => {
-    if (selectedGroupId) {
-      localStorage.setItem('selectedGroupId', selectedGroupId);
+    setIsClient(true);
+    const savedGroup = localStorage.getItem('currentGroup');
+    if (savedGroup) {
+      setCurrentGroup(JSON.parse(savedGroup));
     }
-  }, [selectedGroupId]);
+  }, []);
 
-  const updateSelectedGroup = (id: string) => {
-    setSelectedGroupId(id);
-  };
+  // Safe storage updates
+  useEffect(() => {
+    if (isClient && currentGroup) {
+      localStorage.setItem('currentGroup', JSON.stringify(currentGroup));
+    }
+  }, [currentGroup, isClient]);
+
+  // Only render content after client-side hydration
+  if (!isClient) {
+    return null; // or a loading placeholder
+  }
 
   return (
-    <GroupContext.Provider value={{
-      selectedGroupId,
-      setSelectedGroupId: updateSelectedGroup,
-      currentGroup,
-      setCurrentGroup
+    <GroupContext.Provider value={{ 
+      currentGroup
     }}>
       {children}
     </GroupContext.Provider>
