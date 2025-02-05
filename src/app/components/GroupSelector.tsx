@@ -128,7 +128,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
   return (
     <div className="mb-4">
       <select
-        value={selectedGroupId}
+        value={selectedGroupId || ''}
         onChange={handleGroupChange}
         className="bg-gray-700 text-white p-2 rounded"
       >
