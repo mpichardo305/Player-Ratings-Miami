@@ -4,7 +4,7 @@ import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 
 
-export type Group = {
+interface Group = {
   id: string;
   name: string;
 };
@@ -51,7 +51,11 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       }
 
       const validGroups = userGroups
-      ?.filter((ug): ug is UserGroup => ug.groups !== null && 'group_id' in ug)
+      ?.filter((ug): ug is { group_id: string; groups: Group[] } => 
+        ug?.groups !== null && 
+        Array.isArray(ug?.groups) && 
+        'group_id' in ug
+      )
       .map(ug => ug.groups);
 
       if (!validGroups) {
