@@ -13,6 +13,7 @@ export const GroupContext = createContext<GroupContextType | undefined>(undefine
 
 export function GroupProvider({ children }: { children: React.ReactNode }) {
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   // Safe initialization after mount
