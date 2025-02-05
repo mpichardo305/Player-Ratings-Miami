@@ -2,11 +2,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Group } from '../components/GroupSelector';
 
-type Group = {
-  id: string;
-  name: string;
-};
-
 type GroupContextType = {
   currentGroup: Group | null;
   selectedGroupId: string | null;
