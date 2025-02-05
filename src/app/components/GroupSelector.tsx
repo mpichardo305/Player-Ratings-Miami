@@ -11,10 +11,7 @@ interface Group {
 
 interface UserGroup {
   group_id: string;
-  groups: {
-    id: string;
-    name: string;
-  };
+  groups: Group;
 }
 
 type GroupSelectorProps = {
@@ -54,9 +51,9 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       }
 
       const validGroups = userGroups
-  ?.filter((ug: UserGroup) => ug.groups)
-  .map((ug: UserGroup) => ug.groups)
-  .flat() || [];
+      ?.filter(ug => ug.groups)
+      .map(ug => ug.groups)
+      .flat() || [];
 
     setGroups(validGroups);
     if (validGroups.length > 0) {
