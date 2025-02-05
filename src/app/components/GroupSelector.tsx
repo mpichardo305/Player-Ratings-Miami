@@ -59,8 +59,16 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
     if (validGroups.length > 0) {
       setSelectedGroupId(validGroups[0].id);
       onGroupSelect(validGroups[0]);
-    }else{
+    } else {
+      const emptyGroup: Group = {
+        id: '',
+        name: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: ''
+      };
       setSelectedGroupId('');
+      onGroupSelect(emptyGroup);
     }
 
   } catch (error) {
