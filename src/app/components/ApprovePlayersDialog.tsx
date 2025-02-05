@@ -75,7 +75,7 @@ export default function ApprovePlayers({
   }, [groupId]);
 
   const handleApprove = async (player: Player) => {
-      const response = await fetch("/api/player/approve-player", {
+      const response = await fetch("/api/approve-player", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...player, groupId: '299af152-1d95-4ca2-84ba-43328284c38e'}),
