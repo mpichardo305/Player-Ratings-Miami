@@ -60,7 +60,14 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
       setSelectedGroupId(validGroups[0].id);
       onGroupSelect(validGroups[0]);
     }else{
+      const emptyGroup: Group = {
+        id: '',
+        name: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: ''
       setSelectedGroupId('');
+      onGroupSelect(emptyGroup);
     }
 
   } catch (error) {
