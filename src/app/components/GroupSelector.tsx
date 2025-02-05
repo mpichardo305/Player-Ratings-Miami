@@ -62,10 +62,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
     } else {
       const emptyGroup: Group = {
         id: '',
-        name: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: ''
+        name: ''
       };
       setSelectedGroupId('');
       onGroupSelect(emptyGroup);
