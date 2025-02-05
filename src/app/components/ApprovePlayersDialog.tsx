@@ -98,7 +98,7 @@ export default function ApprovePlayers({
     onApprove();
   };
 
-  const handleDecline = async (playerId: string, groupId: string) => {
+  const handleDecline = async (playerId: string) => {
     if (!groupId || !isValidUUID(groupId)) return;
 
     const { error } = await supabase
@@ -144,7 +144,7 @@ export default function ApprovePlayers({
                     Approve
                   </button>
                   <button
-                    onClick={() => handleDecline(player.id, groupId)}
+                    onClick={() => handleDecline(player.id)}
                     className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
                   >
                     Decline
