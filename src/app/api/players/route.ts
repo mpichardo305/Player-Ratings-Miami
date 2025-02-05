@@ -8,7 +8,7 @@ interface CreatePlayerRequest {
   phone: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
     const { name, phone }: CreatePlayerRequest = await req.json();
     
