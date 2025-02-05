@@ -4,7 +4,7 @@ import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 
 
-interface Group = {
+interface Group {
   id: string;
   name: string;
 };
