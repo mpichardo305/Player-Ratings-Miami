@@ -39,7 +39,7 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
   return (
     <GroupContext.Provider value={{ 
       currentGroup,
-      selectedGroupId,
+      selectedGroupId: selectedGroupId,
       setSelectedGroupId,
       setCurrentGroup
     }}>
