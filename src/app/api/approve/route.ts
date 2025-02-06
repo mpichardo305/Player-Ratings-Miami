@@ -1,4 +1,7 @@
-// /app/api/players/approve/route.ts
+// /app/api/approve/route.ts
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { supabase } from "@/app/utils/supabaseClient";
 import twilioClient from "@/app/utils/twilioClient";

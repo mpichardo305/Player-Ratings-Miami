@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Approve and Send Invite
-    const approvalRes = await fetch(`${req.headers.get('origin')}/api/players/approve`, {
+    const approvalRes = await fetch(`${req.headers.get('origin')}/api/approve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
