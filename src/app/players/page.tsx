@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/app/hooks/useSession";
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
 import ApprovedPlayersList from "@/app/components/ApprovedPlayersList";
@@ -13,13 +13,48 @@ export default function Players() {
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (!session?.user) {
     return <div>Loading session...</div>;
   }
 
+  const handleLogout = async () => {
+    router.push("/logout");
+  };
+
   return (
-    <div className="min-h-screen bg-gray-600 p-4">
+    <div className="min-h-screen bg-gray-600 p-4 relative">
+      {/* Hamburger Menu Button */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="text-white p-2 rounded-lg hover:bg-gray-700"
+        >
+          {isMenuOpen ? (
+            <XMarkIcon className="h-6 w-6" />
+          ) : (
+            <Bars3Icon className="h-6 w-6" />
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40">
+          <div className="absolute right-0 top-0 h-full w-64 bg-gray-800 p-4 shadow-lg">
+            <div className="mt-16 flex flex-col space-y-4">
+              <button
+                onClick={handleLogout}
+                className="text-white hover:bg-gray-700 px-4 py-2 rounded-lg text-left"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold mb-2 text-white">Players</h1>
       
       <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} />
@@ -38,9 +73,9 @@ export default function Players() {
           {showApproveDialog && selectedGroup && (
             <ApprovePlayersDialog 
               onClose={() => setShowApproveDialog(false)} 
-              onApprove={() => {}}  // Hook up to refresh logic if needed
+              onApprove={() => {}}
               groupId={selectedGroup.id}
-              isGroupAdmin={true} // Pass the admin status from GroupSelector if needed
+              isGroupAdmin={true}
             />
           )}
           
@@ -49,15 +84,6 @@ export default function Players() {
       ) : (
         <p className="text-white">No groups found.</p>
       )}
-
-      <div className="flex justify-center mt-6">
-        <button
-          onClick={() => router.push("/add-player")}
-          className="bg-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-green-600 transition"
-        >
-          ➕ Add Player
-        </button>
-      </div>
     </div>
   );
 }
