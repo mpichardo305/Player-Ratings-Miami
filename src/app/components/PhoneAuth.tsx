@@ -1,11 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import router, { useRouter } from "next/router";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { supabase } from "@/app/utils/supabaseClient";
 
-export default function PhoneAuth() {
+interface PhoneAuthProps {
+  onSignupSuccess: (userId: string) => void;
+  inviteEmail?: string;
+}
+
+const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSignupSuccess, inviteEmail }) => {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [verification, setVerification] = useState(false);
@@ -42,6 +49,16 @@ export default function PhoneAuth() {
       window.location.reload(); // Refresh to reflect login
     }
     setLoading(false);
+  };
+
+  const handlePhoneVerified = async (userId: string) => {
+    if (inviteEmail) {
+      // If coming from invite flow, call the success handler
+      onSignupSuccess(userId);
+    } else {
+      // Regular signup flow
+      router.push("/dashboard");
+    }
   };
 
   return (
@@ -91,4 +108,12 @@ export default function PhoneAuth() {
       </div>
     </div>
   );
-}
+};
+
+const onSignupSuccess = (userId: string) => {
+  console.log("Signup successful for user:", userId);
+  // Redirect to the dashboard or any other page
+  router.push("/");
+};
+
+export default PhoneAuth;
