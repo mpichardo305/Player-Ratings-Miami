@@ -7,6 +7,7 @@ import { useSession } from "@/app/hooks/useSession";
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
 import ApprovedPlayersList from "@/app/components/ApprovedPlayersList";
 import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
+import InviteDialog from "@/app/components/InviteDialog";
 
 export default function Players() {
   const router = useRouter();
@@ -69,7 +70,11 @@ export default function Players() {
               Show Pending Players
             </button>
           )}
-          
+          {selectedGroup && (
+            <InviteDialog groupId={selectedGroup.id} onClose={() => setShowApproveDialog(false)}
+            />
+          )}
+
           {showApproveDialog && selectedGroup && (
             <ApprovePlayersDialog 
               onClose={() => setShowApproveDialog(false)} 
@@ -78,7 +83,6 @@ export default function Players() {
               isGroupAdmin={true}
             />
           )}
-          
           <ApprovedPlayersList sessionUserId={session.user.id} groupId={selectedGroup.id} />
         </>
       ) : (

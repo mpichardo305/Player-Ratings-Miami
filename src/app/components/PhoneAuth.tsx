@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import router, { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { supabase } from "@/app/utils/supabaseClient";
