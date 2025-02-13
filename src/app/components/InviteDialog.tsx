@@ -37,6 +37,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
     } catch (err) {
       console.error('Error creating invite:', err)
       setError('Failed to create invite')
+      setInviteUrl('')
     }
   }
 

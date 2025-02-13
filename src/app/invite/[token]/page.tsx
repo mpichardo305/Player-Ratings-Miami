@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '@/app/components/PhoneAuth'
 import { validateInvite } from '@/app/actions/invite'
@@ -18,8 +18,8 @@ interface Invite {
 
 export default function InvitePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+  const params = useParams()
+  const token = params.token as string
   const [invite, setInvite] = useState<Invite | null>(null)
   const [error, setError] = useState<string>('')
 
