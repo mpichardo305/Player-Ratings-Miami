@@ -7,7 +7,7 @@ import "react-phone-number-input/style.css";
 import { supabase } from "@/app/utils/supabaseClient";
 
 interface PhoneAuthProps {
-  onSignupSuccess: (userId: string) => void;
+  onSignupSuccess?: (userId: string) => void;
   inviteEmail?: string;
 }
 
@@ -52,12 +52,12 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSignupSuccess, inviteEmail }) =
   };
 
   const handlePhoneVerified = async (userId: string) => {
-    if (inviteEmail) {
+    if (inviteEmail && onSignupSuccess) {
       // If coming from invite flow, call the success handler
       onSignupSuccess(userId);
     } else {
       // Regular signup flow
-      router.push("/dashboard");
+      router.push("/");
     }
   };
 
@@ -108,12 +108,6 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSignupSuccess, inviteEmail }) =
       </div>
     </div>
   );
-};
-
-const onSignupSuccess = (userId: string) => {
-  console.log("Signup successful for user:", userId);
-  // Redirect to the dashboard or any other page
-  router.push("/");
 };
 
 export default PhoneAuth;
