@@ -97,9 +97,9 @@ export default function InvitePage() {
   return (
     <div className="max-w-md mx-auto p-6">
       {invite ? (
-        <div>
-          <h1 className="text-2xl font-bold mb-4">Complete Your Registration</h1>
-          <p className="mb-4">You've been invited to join the group.</p>
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
+          <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
+          <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
           <PhoneAuth onSignupSuccess={handleSignupSuccess} inviteEmail={invite.email} />
         </div>
       ) : (
