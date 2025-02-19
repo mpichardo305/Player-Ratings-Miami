@@ -28,7 +28,7 @@ export default function Home() {
   }, []);
 
   if (token && !session) {
-    return <InviteRegistration token={token} />;
+    return <InviteRegistration />;
   }
 
   return (

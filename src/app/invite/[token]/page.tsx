@@ -16,19 +16,19 @@ interface Invite {
   created_at: string
 }
 
-export default function InvitePage() {
-  const router = useRouter()
-  const params = useParams()
-  const token = params.token as string
-  const [invite, setInvite] = useState<Invite | null>(null)
-  const [error, setError] = useState<string>('')
+export default function InviteRegistration() {
+  const params = useParams();
+  const token = params?.token as string;
+  const router = useRouter();
+  const [invite, setInvite] = useState<Invite | null>(null);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     async function checkInvite() {
       if (!token) {
-        setError('Invalid invite link')
-        router.push('/')
-        return
+        setError('Invalid invite link');
+        router.push('/');
+        return;
       }
 
       const result = await validateInvite({ token })
