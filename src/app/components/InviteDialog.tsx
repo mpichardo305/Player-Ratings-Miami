@@ -13,6 +13,11 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   const [copyConfirmation, setCopyConfirmation] = useState(false)
 
   const createInvite = async () => {
+    if (inviteUrl) {
+      handleClose()
+      return
+    }
+
     try {
       console.log('Creating invite for groupId:', groupId)
       const response = await fetch('/api/create-invite', {
@@ -48,6 +53,13 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
     setTimeout(() => setCopyConfirmation(false), 2000) // Hide after 2 seconds
   }
 
+  const handleClose = () => {
+    console.log('Closing dialog...')
+    setInviteUrl('') 
+    setError('') 
+    onClose() 
+  }
+
   return (
     <div className="mt-4">
       <button 
@@ -59,35 +71,35 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
       
       {inviteUrl && (
         <div className="mt-4 p-4 bg-white rounded-lg">
-          <p className="mb-2">Invite URL:</p>
+          <p className="mb-2 text-lg">Invite URL:</p>
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <input 
-                type="text" 
-                value={inviteUrl} 
-                readOnly 
-                className="flex-1 p-2 border border-gray-500 rounded bg-gray-800 text-white"
-              />
-              <div className="relative">
+            <input 
+              type="text" 
+              value={inviteUrl} 
+              readOnly 
+              className="w-full p-2 border border-gray-500 rounded bg-gray-800 text-white"
+            />
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-1">
                 <button 
                   onClick={handleCopy}
-                  className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
+                  className="w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
                 >
                   Copy
                 </button>
                 {copyConfirmation && (
-                  <div className="absolute -bottom-8 left-0 right-0 text-center text-sm text-green-600">
+                  <div className="absolute -bottom-12 left-0 right-0 text-center text-lg font-semibold text-green-600 bg-green-100 p-2 rounded-md shadow-sm">
                     Link copied!
                   </div>
                 )}
               </div>
+              <button 
+                onClick={handleClose}
+                className="flex-1 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
+              >
+                Done
+              </button>
             </div>
-            <button 
-              onClick={onClose}
-              className="w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
-            >
-              Done
-            </button>
           </div>
         </div>
       )}
