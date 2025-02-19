@@ -10,6 +10,7 @@ interface InviteDialogProps {
 export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   const [inviteUrl, setInviteUrl] = useState('')
   const [error, setError] = useState('')
+  const [copyConfirmation, setCopyConfirmation] = useState(false)
 
   const createInvite = async () => {
     try {
@@ -41,6 +42,12 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
     }
   }
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(inviteUrl)
+    setCopyConfirmation(true)
+    setTimeout(() => setCopyConfirmation(false), 2000) // Hide after 2 seconds
+  }
+
   return (
     <div className="mt-4">
       <button 
@@ -53,18 +60,33 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
       {inviteUrl && (
         <div className="mt-4 p-4 bg-white rounded-lg">
           <p className="mb-2">Invite URL:</p>
-          <div className="flex items-center gap-2">
-            <input 
-              type="text" 
-              value={inviteUrl} 
-              readOnly 
-              className="flex-1 p-2 border border-gray-500 rounded bg-gray-800 text-white"
-            />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                value={inviteUrl} 
+                readOnly 
+                className="flex-1 p-2 border border-gray-500 rounded bg-gray-800 text-white"
+              />
+              <div className="relative">
+                <button 
+                  onClick={handleCopy}
+                  className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
+                >
+                  Copy
+                </button>
+                {copyConfirmation && (
+                  <div className="absolute -bottom-8 left-0 right-0 text-center text-sm text-green-600">
+                    Link copied!
+                  </div>
+                )}
+              </div>
+            </div>
             <button 
-              onClick={() => navigator.clipboard.writeText(inviteUrl)}
-              className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+              onClick={onClose}
+              className="w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
             >
-              Copy
+              Done
             </button>
           </div>
         </div>
