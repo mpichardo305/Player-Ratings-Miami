@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '@/app/components/PhoneAuth'
 import { validateInvite } from '@/app/actions/invite'
+import PlayerNameForm from '@/app/components/PlayerNameForm'
 
 interface Invite {
   id: string
@@ -22,6 +23,7 @@ export default function InviteRegistration() {
   const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
   const [error, setError] = useState<string>('');
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkInvite() {
@@ -45,8 +47,12 @@ export default function InviteRegistration() {
     checkInvite()
   }, [token, router])
 
-  const handleSignupSuccess = async (userId: string) => {
-    if (!invite) return;
+  const handleSignupSuccess = async (newUserId: string) => {
+    setUserId(newUserId)
+  }
+
+  const handleNameSubmit = async (name: string) => {
+    if (!invite || !userId) return;
 
     try {
       // Start a transaction
@@ -57,13 +63,14 @@ export default function InviteRegistration() {
 
       if (updateError) throw updateError;
 
-      // Create player record
+      // Create player record with name
       const { error: playerError } = await supabase
         .from('players')
         .insert({
           user_id: userId,
           email: invite.email,
-          is_admin: invite.is_admin
+          is_admin: invite.is_admin,
+          name: name
         });
 
       if (playerError) throw playerError;
@@ -82,12 +89,16 @@ export default function InviteRegistration() {
 
         if (membershipError) throw membershipError;
       }
+
+      // Use replace instead of push and add a fallback
+      try {
+        await router.replace('/');
+      } catch (e) {
+        window.location.href = '/';
+      }
     } catch (error) {
       console.error('Error completing signup:', error);
       setError('Failed to complete signup');
-    } finally {
-      // Always redirect, even if there were errors
-      router.push('/');
     }
   }
 
@@ -101,7 +112,11 @@ export default function InviteRegistration() {
         <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
           <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
           <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
-          <PhoneAuth onSignupSuccess={handleSignupSuccess} inviteEmail={invite.email} />
+          {!userId ? (
+            <PhoneAuth onSignupSuccess={handleSignupSuccess} inviteEmail={invite.email} />
+          ) : (
+            <PlayerNameForm onSubmit={handleNameSubmit} />
+          )}
         </div>
       ) : (
         <div>Validating invite...</div>
