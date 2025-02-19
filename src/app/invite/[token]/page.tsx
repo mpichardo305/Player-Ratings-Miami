@@ -46,16 +46,16 @@ export default function InviteRegistration() {
   }, [token, router])
 
   const handleSignupSuccess = async (userId: string) => {
-    if (!invite) return
+    if (!invite) return;
 
     try {
       // Start a transaction
       const { error: updateError } = await supabase
         .from('invites')
         .update({ used: true, used_by: userId })
-        .eq('id', invite.id)
+        .eq('id', invite.id);
 
-      if (updateError) throw updateError
+      if (updateError) throw updateError;
 
       // Create player record
       const { error: playerError } = await supabase
@@ -64,9 +64,9 @@ export default function InviteRegistration() {
           user_id: userId,
           email: invite.email,
           is_admin: invite.is_admin
-        })
+        });
 
-      if (playerError) throw playerError
+      if (playerError) throw playerError;
 
       // If admin, auto-approve group membership
       if (invite.is_admin) {
@@ -78,15 +78,16 @@ export default function InviteRegistration() {
             status: 'APPROVED',
             approved_at: new Date().toISOString(),
             auto_approved: true
-          })
+          });
 
-        if (membershipError) throw membershipError
+        if (membershipError) throw membershipError;
       }
-
-      router.push('/')
     } catch (error) {
-      console.error('Error completing signup:', error)
-      setError('Failed to complete signup')
+      console.error('Error completing signup:', error);
+      setError('Failed to complete signup');
+    } finally {
+      // Always redirect, even if there were errors
+      router.push('/');
     }
   }
 

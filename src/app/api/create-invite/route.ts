@@ -1,21 +1,19 @@
-import { NextResponse } from 'next/server'
+import { NextApiRequest, NextApiResponse } from 'next'
 import { createInvite } from '@/app/actions/invite'
 
-export async function POST(request: Request) {
-  try {
-    const { groupId } = await request.json()
-    console.log('Received groupId:', groupId)
-    
-    const result = await createInvite(groupId)
-    console.log('Result from createInvite:', result)
-    
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    const { groupId } = req.body
+    if (!groupId) {
+      return res.status(400).json({ error: 'groupId is required' })
     }
-    
-    return NextResponse.json(result.data, { status: 200 })
-  } catch (error) {
-    console.error('Error in POST handler:', error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    const result = await createInvite(groupId)
+    if (result.error) {
+      return res.status(500).json({ error: result.error })
+    }
+    return res.status(200).json(result.data)
+  } else {
+    res.setHeader('Allow', ['POST'])
+    res.status(405).end(`Method ${req.method} Not Allowed`)
   }
 }
