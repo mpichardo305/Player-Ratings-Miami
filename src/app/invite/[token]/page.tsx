@@ -15,6 +15,7 @@ interface Invite {
   is_admin: boolean
   used: boolean
   created_at: string
+  player_id: string | null  // Add this property
 }
 
 export default function InviteRegistration() {
@@ -24,9 +25,11 @@ export default function InviteRegistration() {
   const [invite, setInvite] = useState<Invite | null>(null);
   const [error, setError] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function checkInvite() {
+      console.log('Checking invite with token:', token);
       if (!token) {
         setError('Invalid invite link');
         router.push('/');
@@ -42,65 +45,117 @@ export default function InviteRegistration() {
       }
 
       setInvite(result.data)
+      setIsLoading(false);
     }
 
     checkInvite()
   }, [token, router])
 
+  useEffect(() => {
+    console.log('Debug - State Changes:', {
+      token,
+      userId,
+      invite: invite ? {
+        id: invite.id,
+        player_id: invite.player_id,
+        used: invite.used,
+        group_id: invite.group_id
+      } : null,
+      isLoading
+    });
+  }, [token, userId, invite, isLoading]);
+
   const handleSignupSuccess = async (newUserId: string) => {
-    setUserId(newUserId)
+    console.log('Signup success starting with userId:', newUserId);
+    try {
+      // 1. Set userId in state
+      setUserId(newUserId); // Check if this is actually updating the state
+      console.log('Set userId to:', newUserId);
+      
+      // 2. Create initial player record with phone
+      const { data: playerData, error: playerError } = await supabase
+        .from('players')
+        .insert({
+          phone: newUserId,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (playerError) {
+        console.error('Player creation error:', playerError);
+        throw playerError;
+      }
+
+      // Log successful player creation
+      console.log('Created player record:', playerData);
+
+      // 3. Update invite with player_id immediately after player creation
+      const { error: updateError } = await supabase
+        .from('invites')
+        .update({
+          player_id: playerData.id
+        })
+        .eq('id', invite?.id);
+
+      if (updateError) {
+        console.error('Invite update error:', updateError);
+        throw updateError;
+      }
+
+      // Log successful invite update
+      console.log('Updated invite, full state:', { userId: newUserId, playerData });
+    } catch (error) {
+      console.error('Error in handleSignupSuccess:', error);
+      setError('Failed to complete signup');
+    }
   }
 
   const handleNameSubmit = async (name: string) => {
     if (!invite || !userId) return;
 
     try {
-      // Start a transaction
+      // 1. Update existing player with name
+      const { data: playerData, error: playerError } = await supabase
+        .from('players')
+        .update({ 
+          name: name,
+          status: 'active'
+        })
+        .eq('player_id', invite.player_id)
+        .select()
+        .single();
+
+      if (playerError) throw playerError;
+
+      // 2. Mark invite as used
       const { error: updateError } = await supabase
         .from('invites')
-        .update({ used: true, used_by: userId })
+        .update({ used: true })
         .eq('id', invite.id);
 
       if (updateError) throw updateError;
 
-      // Create player record with name
-      const { error: playerError } = await supabase
-        .from('players')
+      // 3. Create group membership
+      const { error: membershipError } = await supabase
+        .from('group_memberships')
         .insert({
-          user_id: userId,
-          email: invite.email,
-          is_admin: invite.is_admin,
-          name: name
+          player_id: invite.player_id,
+          group_id: invite.group_id,
+          status: 'pending'
         });
 
-      if (playerError) throw playerError;
+      if (membershipError) throw membershipError;
 
-      // If admin, auto-approve group membership
-      if (invite.is_admin) {
-        const { error: membershipError } = await supabase
-          .from('group_memberships')
-          .insert({
-            player_id: userId,
-            group_id: invite.group_id,
-            status: 'APPROVED',
-            approved_at: new Date().toISOString(),
-            auto_approved: true
-          });
-
-        if (membershipError) throw membershipError;
-      }
-
-      // Use replace instead of push and add a fallback
-      try {
-        await router.replace('/');
-      } catch (e) {
-        window.location.href = '/';
-      }
+      console.log('Registration complete, redirecting...');
+      await router.replace('/');
     } catch (error) {
       console.error('Error completing signup:', error);
       setError('Failed to complete signup');
     }
   }
+
+  console.log('Render state:', { userId, invite, error });
 
   if (error) {
     return <div className="p-4 text-red-600">{error}</div>
@@ -108,6 +163,12 @@ export default function InviteRegistration() {
 
   return (
     <div className="max-w-md mx-auto p-6">
+      <div className="text-xs text-gray-500 mb-4">
+        Debug info: 
+        userId: {userId || 'none'}, 
+        invite: {invite ? 'loaded' : 'not loaded'},
+        error: {error || 'none'}
+      </div>
       {invite ? (
         <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
           <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
@@ -119,7 +180,7 @@ export default function InviteRegistration() {
           )}
         </div>
       ) : (
-        <div>Validating invite...</div>
+        <div>Validating invite... {isLoading ? 'Loading...' : 'Complete'}</div>
       )}
     </div>
   )
