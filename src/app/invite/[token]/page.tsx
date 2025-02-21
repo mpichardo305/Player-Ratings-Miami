@@ -15,7 +15,7 @@ interface Invite {
   is_admin: boolean
   used: boolean
   created_at: string
-  player_id: string | null  // Add this property
+  player_id: string  // Add this property
 }
 
 export default function InviteRegistration() {
@@ -23,33 +23,39 @@ export default function InviteRegistration() {
   const token = params?.token as string;
   const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
+  const [playerId, setPlayerId] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function checkInvite() {
-      console.log('Checking invite with token:', token);
-      if (!token) {
-        setError('Invalid invite link');
-        router.push('/');
-        return;
-      }
 
-      const result = await validateInvite({ token })
-      
-      if (result.error) {
-        setError(result.error)
-        router.push('/')
-        return
-      }
-
-      setInvite(result.data)
-      setIsLoading(false);
+  async function checkInvite() {
+    console.log('Checking invite with token:', token);
+    if (!token) {
+      setError('Invalid invite link');
+      router.push('/');
+      return;
     }
 
-    checkInvite()
-  }, [token, router])
+    const result = await validateInvite({ token })
+    console.log('Result from validateInvite:', result);
+    
+    if (result.error) {
+      setError(result.error)
+      router.push('/')
+      return
+    }
+
+    console.log('Invite data:', result.data);
+    setInvite(result.data as Invite)
+    setIsLoading(false);
+  }
+
+  useEffect(() => {
+    checkInvite();
+  }, [token, playerId, router])
+// need to do another useeffect to get the player id from the token? 
+// need to console log the result of the validateInvite function to see what it returns
 
   useEffect(() => {
     console.log('Debug - State Changes:', {
@@ -116,6 +122,7 @@ export default function InviteRegistration() {
 
     try {
       // 1. Update existing player with name
+      console.log('Updating player with name:', name);
       const { data: playerData, error: playerError } = await supabase
         .from('players')
         .update({ 
@@ -127,6 +134,8 @@ export default function InviteRegistration() {
         .single();
 
       if (playerError) throw playerError;
+      console.log('Updated:', playerData);
+
 
       // 2. Mark invite as used
       const { error: updateError } = await supabase
@@ -134,6 +143,7 @@ export default function InviteRegistration() {
         .update({ used: true })
         .eq('id', invite.id);
 
+      console.log('Marked invite as used:', invite.id);
       if (updateError) throw updateError;
 
       // 3. Create group membership
@@ -161,6 +171,11 @@ export default function InviteRegistration() {
     return <div className="p-4 text-red-600">{error}</div>
   }
 
+  if (isLoading) {
+    return <div>Validating invite... </div>
+  }
+
+  console.log('Invite:', invite);
   return (
     <div className="max-w-md mx-auto p-6">
       <div className="text-xs text-gray-500 mb-4">
@@ -169,19 +184,15 @@ export default function InviteRegistration() {
         invite: {invite ? 'loaded' : 'not loaded'},
         error: {error || 'none'}
       </div>
-      {invite ? (
         <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
           <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
           <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
           {!userId ? (
-            <PhoneAuth onSignupSuccess={handleSignupSuccess} inviteEmail={invite.email} />
+            <PhoneAuth onSignupSuccess={handleSignupSuccess} inviteEmail={invite?.email} />
           ) : (
             <PlayerNameForm onSubmit={handleNameSubmit} />
           )}
         </div>
-      ) : (
-        <div>Validating invite... {isLoading ? 'Loading...' : 'Complete'}</div>
-      )}
     </div>
   )
 }

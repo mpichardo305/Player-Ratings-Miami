@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/app/hooks/useSession";
@@ -13,6 +13,7 @@ export default function Players() {
   const router = useRouter();
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  // const [playerId, setPlayerId] = useState<string>();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
