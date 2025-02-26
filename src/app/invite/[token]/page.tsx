@@ -17,6 +17,7 @@ interface Invite {
   used: boolean
   created_at: string
   player_id: string
+  user_id: string;
 }
 
 export default function InviteRegistration() {
@@ -112,12 +113,14 @@ export default function InviteRegistration() {
       currentInvite = inviteData;
       setInvite(inviteData);
     } 
-      // 3. Create initial player record with phone
+      // 3. Create initial player record 
+      // need to get the phone from phone auth
       const { data: playerData, error: playerError } = await supabase
         .from('players')
         .insert({
-          phone: newUserId,
-          status: 'pending'
+          status: 'pending',
+          phone: null,
+          userId: newUserId
         })
         .select()
         .single();
@@ -169,7 +172,7 @@ export default function InviteRegistration() {
         .from('players')
         .update({ 
           name: name,
-          status: 'active'
+          status: 'approved'
         })
         .eq('id', currentInvite.player_id)
         .select()
