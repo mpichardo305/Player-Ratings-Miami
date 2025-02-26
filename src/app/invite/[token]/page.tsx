@@ -16,7 +16,7 @@ interface Invite {
   is_admin: boolean
   used: boolean
   created_at: string
-  player_id: string  // Add this property
+  player_id: string
 }
 
 export default function InviteRegistration() {
@@ -24,12 +24,23 @@ export default function InviteRegistration() {
   const token = params?.token as string;
   const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
-  // const [playerId, setPlayerId] = useState<string>('');
   const [nextPage, setnextPage] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    // Check for existing session when component mounts
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        // If user is already authenticated, trigger signup success flow
+        await handleSignupSuccess();
+      }
+    };
+    
+    checkSession();
+  }, []); // Run once on mount
 
   async function checkInvite() {
     console.log('Checking invite with token:', token);
@@ -57,8 +68,6 @@ export default function InviteRegistration() {
     checkInvite();
     
   }, [token, router])
-// need to do another useeffect to get the player id from the token? 
-// need to console log the result of the validateInvite function to see what it returns
 
   useEffect(() => {
     console.log('Debug - State Changes:', {
@@ -74,14 +83,36 @@ export default function InviteRegistration() {
     });
   }, [token, userId, invite, isLoading]);
 
-  const handleSignupSuccess = async (newUserId: string) => {
-    console.log('Signup success starting with userId:', newUserId);
+  const handleSignupSuccess = async () => {
     try {
+      // Get current user from session
+      const { data: { session } } = await supabase.auth.getSession();
+      const newUserId = session?.user?.id;
+
+      if (!newUserId) {
+        throw new Error('No user ID found in session');
+      }
+
       // 1. Set userId in state
-      setUserId(newUserId); // Check if this is actually updating the state
+      setUserId(newUserId);
       console.log('Set userId to:', newUserId);
-      
-      // 2. Create initial player record with phone
+
+    // 2. Fetch invite data if not already available
+    let currentInvite = invite;
+    if (!currentInvite) {
+      const { data: inviteData, error: inviteError } = await supabase
+        .from('invites')
+        .select('*')
+        .eq('token', token)
+        .single();
+
+      if (inviteError || !inviteData) {
+        throw new Error('Failed to fetch invite data');
+      }
+      currentInvite = inviteData;
+      setInvite(inviteData);
+    } 
+      // 3. Create initial player record with phone
       const { data: playerData, error: playerError } = await supabase
         .from('players')
         .insert({
@@ -96,65 +127,72 @@ export default function InviteRegistration() {
         throw playerError;
       }
 
-      // Log successful player creation
-      console.log('Created player record:', playerData);
-
-      // 3. Update invite with player_id immediately after player creation
+      // 4. Update invite with player_id
+      if (!currentInvite) throw new Error('No invite data available');
+      
       const { error: updateError } = await supabase
         .from('invites')
         .update({
-          player_id: playerData.id
+          player_id: playerData.id,
         })
-        .eq('id', invite?.id);
+        .eq('id', currentInvite.id);
 
       if (updateError) {
         console.error('Invite update error:', updateError);
         throw updateError;
       }
 
-      // Log successful invite update
       console.log('Updated invite, full state:', { userId: newUserId, playerData });
+      setnextPage(true);
     } catch (error) {
       console.error('Error in handleSignupSuccess:', error);
       setError('Failed to complete signup');
     }
-    setnextPage(true);
-  }
+  };
 
   const handleNameSubmit = async (name: string) => {
     if (!invite || !userId) return;
     try {
+      // Get the current invite data
+      const { data: currentInvite, error: inviteError } = await supabase
+        .from('invites')
+        .select('*')
+        .eq('token', token)
+        .single();
+
+      if (inviteError || !currentInvite) {
+        throw new Error('Failed to fetch invite data');
+      }
+
       // 1. Update existing player with name
-      console.log('Updating player with name:', name);
       const { data: playerData, error: playerError } = await supabase
         .from('players')
         .update({ 
           name: name,
           status: 'active'
         })
-        .eq('player_id', invite.player_id)
+        .eq('id', currentInvite.player_id)
         .select()
         .single();
 
       if (playerError) throw playerError;
-      console.log('Updated:', playerData);
-
+      console.log('Updated player:', playerData);
 
       // 2. Mark invite as used
       const { error: updateError } = await supabase
         .from('invites')
-        .update({ used: true })
-        .eq('id', invite.id);
+        .update({ used: 'TRUE' })
+        .eq('id', currentInvite.id);
 
-      console.log('Marked invite as used:', invite.id);
+      console.log('Marked invite as used:', currentInvite.id);
       if (updateError) throw updateError;
 
       // 3. Create group membership
       const { error: membershipError } = await supabase
         .from('group_memberships')
         .insert({
-          player_id: invite.player_id,
-          group_id: invite.group_id,
+          player_id: currentInvite.player_id,
+          group_id: currentInvite.group_id,
           status: 'pending'
         });
 
@@ -185,7 +223,7 @@ export default function InviteRegistration() {
           <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
             <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
             <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
-            <PhoneAuth onSignupSuccess={handleSignupSuccess} />
+            <PhoneAuth onVerificationSuccess={handleSignupSuccess}/>
           </div>
         ) : (
           <PlayerNameForm onSubmit={handleNameSubmit} />

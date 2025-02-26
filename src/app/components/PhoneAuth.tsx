@@ -7,11 +7,11 @@ import "react-phone-number-input/style.css";
 import { supabase } from "@/app/utils/supabaseClient";
 
 interface PhoneAuthProps {
-  onSignupSuccess?: (userId: string) => void;
-  inviteEmail?: string;
+  onVerificationSuccess?: () => void;
+  
 }
 
-const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSignupSuccess, inviteEmail }) => {
+const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess }) => {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -41,24 +41,22 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSignupSuccess, inviteEmail }) =
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.verifyOtp({ phone, token: code, type: "sms" });
+    const { error, data } = await supabase.auth.verifyOtp({ 
+      phone, 
+      token: code, 
+      type: "sms" 
+    });
 
     if (error) {
       setError(error.message);
     } else {
-      window.location.reload(); // Refresh to reflect login
+      if (onVerificationSuccess) {
+        onVerificationSuccess();
+      } else {
+        router.push("/");
+      }
     }
     setLoading(false);
-  };
-
-  const handlePhoneVerified = async (userId: string) => {
-    if (inviteEmail && onSignupSuccess) {
-      // If coming from invite flow, call the success handler
-      onSignupSuccess(userId);
-    } else {
-      // Regular signup flow
-      router.push("/");
-    }
   };
 
   return (
