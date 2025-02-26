@@ -41,21 +41,36 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess }) => {
     setLoading(true);
     setError("");
 
-    const { error, data } = await supabase.auth.verifyOtp({ 
-      phone, 
-      token: code, 
-      type: "sms" 
-    });
+    try {
+      const { error, data } = await supabase.auth.verifyOtp({ 
+        phone, 
+        token: code, 
+        type: "sms" 
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      if (onVerificationSuccess) {
-        onVerificationSuccess();
+      if (error) {
+        setError(error.message);
       } else {
-        router.push("/");
+        // Update user metadata with phone number
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { phone_number: phone }
+        });
+
+        if (updateError) {
+          console.error('Failed to update user metadata:', updateError);
+        }
+
+        if (onVerificationSuccess) {
+          onVerificationSuccess();
+        } else {
+          router.push("/");
+        }
       }
+    } catch (err) {
+      console.error('Verification error:', err);
+      setError('Failed to verify OTP');
     }
+    
     setLoading(false);
   };
 

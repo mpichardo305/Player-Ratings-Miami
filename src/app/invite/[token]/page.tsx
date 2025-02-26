@@ -89,6 +89,7 @@ export default function InviteRegistration() {
       // Get current user from session
       const { data: { session } } = await supabase.auth.getSession();
       const newUserId = session?.user?.id;
+      const phoneNumber = session?.user?.user_metadata?.phone_number;
 
       if (!newUserId) {
         throw new Error('No user ID found in session');
@@ -119,7 +120,7 @@ export default function InviteRegistration() {
         .from('players')
         .insert({
           status: 'pending',
-          phone: null,
+          phone: phoneNumber,
           userId: newUserId
         })
         .select()
