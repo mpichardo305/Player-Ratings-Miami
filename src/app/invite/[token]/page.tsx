@@ -6,6 +6,7 @@ import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '@/app/components/PhoneAuth'
 import { validateInvite } from '@/app/actions/invite'
 import PlayerNameForm from '@/app/components/PlayerNameForm'
+import { set } from 'lodash'
 
 interface Invite {
   id: string
@@ -23,7 +24,8 @@ export default function InviteRegistration() {
   const token = params?.token as string;
   const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
-  const [playerId, setPlayerId] = useState<string>('');
+  // const [playerId, setPlayerId] = useState<string>('');
+  const [nextPage, setnextPage] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +55,8 @@ export default function InviteRegistration() {
 
   useEffect(() => {
     checkInvite();
-  }, [token, playerId, router])
+    
+  }, [token, router])
 // need to do another useeffect to get the player id from the token? 
 // need to console log the result of the validateInvite function to see what it returns
 
@@ -115,11 +118,11 @@ export default function InviteRegistration() {
       console.error('Error in handleSignupSuccess:', error);
       setError('Failed to complete signup');
     }
+    setnextPage(true);
   }
 
   const handleNameSubmit = async (name: string) => {
     if (!invite || !userId) return;
-
     try {
       // 1. Update existing player with name
       console.log('Updating player with name:', name);
@@ -178,21 +181,15 @@ export default function InviteRegistration() {
   console.log('Invite:', invite);
   return (
     <div className="max-w-md mx-auto p-6">
-      <div className="text-xs text-gray-500 mb-4">
-        Debug info: 
-        userId: {userId || 'none'}, 
-        invite: {invite ? 'loaded' : 'not loaded'},
-        error: {error || 'none'}
-      </div>
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
-          <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
-          <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
-          {!userId ? (
-            <PhoneAuth onSignupSuccess={handleSignupSuccess} inviteEmail={invite?.email} />
-          ) : (
-            <PlayerNameForm onSubmit={handleNameSubmit} />
-          )}
-        </div>
+        {!nextPage ? (
+          <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
+            <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
+            <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
+            <PhoneAuth onSignupSuccess={handleSignupSuccess} />
+          </div>
+        ) : (
+          <PlayerNameForm onSubmit={handleNameSubmit} />
+        )}
     </div>
   )
 }

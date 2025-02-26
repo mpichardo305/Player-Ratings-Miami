@@ -4,24 +4,30 @@ import { supabase } from '@/app/utils/supabaseClient'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 
-// Add this function at the top of the file after the imports
-function genPlayerId(): string {
-  // Generate a shorter, more readable ID
-  // Format: P-XXXX where X is alphanumeric
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const idLength = 4;
-  let result = 'P-';
-  
-  for (let i = 0; i < idLength; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  
-  return result;
-}
-
 // Type for your action parameters
 interface ValidateInviteParams {
   token: string
+}
+
+interface PlayerIdPair {
+  uuid: string;
+  readableId: string;
+}
+
+function genPlayerId(): PlayerIdPair {
+  // Generate UUID for database
+  const uuid = uuidv4();
+  
+  // Generate readable reference (for display purposes)
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const idLength = 4;
+  let readableId = 'P-';
+  
+  for (let i = 0; i < idLength; i++) {
+    readableId += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return { uuid, readableId };
 }
 
 export async function validateInvite({ token }: ValidateInviteParams) {
@@ -71,32 +77,50 @@ export async function validateInvite({ token }: ValidateInviteParams) {
 
 export async function createInvite(groupId: string) {
   const token = uuidv4();
-  const playerId = genPlayerId(); // Generate the player ID
+  const { uuid: playerId } = genPlayerId();
 
   try {
-    console.log('Creating invite with:', {
+    console.log('Creating player and invite with:', {
       token,
       groupId,
       playerId
     });
 
-    const { data, error } = await supabase
+    // Start a Supabase transaction
+    const { data: playerData, error: playerError } = await supabase
+      .from('players')
+      .insert([{
+        id: playerId,
+        status: 'pending',
+      }])
+      .select()
+      .single();
+
+    if (playerError) throw playerError;
+
+    const { data: inviteData, error: inviteError } = await supabase
       .from('invites')
       .insert([{ 
         token, 
         used: false, 
         group_id: groupId, 
-        player_id: playerId 
-      }]);
+        player_id: playerData.id
+      }])
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error inserting invite:', error);
-      return { error: 'Failed to create invite' };
-    }
+    if (inviteError) throw inviteError;
 
-    return { data: { token, playerId } };
+    revalidatePath('/'); // Revalidate the players page cache
+
+    return { 
+      data: { 
+        token,
+        playerId: playerData.id
+      } 
+    };
   } catch (error) {
-    console.error('Error in createInvite function:', error);
+    console.error('Server action error:', error);
     return { error: 'Failed to create invite' };
   }
 }
