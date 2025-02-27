@@ -8,6 +8,7 @@ import { validateInvite } from '@/app/actions/invite'
 import PlayerNameForm from '@/app/components/PlayerNameForm'
 import { createInitialPlayer, updatePlayerName } from '@/app/db/playerQueries'
 import { createGroupMembership, markInviteAsUsed, updateInviteWithPlayer } from '@/app/db/inviteQueries'
+import { usePhoneNumber } from '@/app/hooks/usePhoneNumber'
 
 interface Invite {
   id: string
@@ -20,11 +21,6 @@ interface Invite {
   player_id: string
   user_id: string;
 }
-// consider replacing user.id with player id as it is confirmed the same uuid.
-const getPhoneNumberFromSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.user?.user_metadata?.phone_number;
-};
 
 export default function InviteRegistration() {
   const params = useParams();
@@ -92,12 +88,12 @@ export default function InviteRegistration() {
     });
   }, [token, userId, invite, isLoading]);
 
+  const { phoneNumber } = usePhoneNumber();
+
   const handleSignupSuccess = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const newUserId = session?.user?.id;
-      const phoneNumber = await getPhoneNumberFromSession();
-
       if (!newUserId) {
         throw new Error('No user ID found in session');
       }
@@ -126,10 +122,10 @@ export default function InviteRegistration() {
   };
 
   const handleNameSubmit = async (name: string) => {
-    const phoneNumber = await getPhoneNumberFromSession();
     if (!invite || !userId) return;
     try {
       // Use server actions instead of direct queries
+      if (!phoneNumber) throw new Error('Phone number is required');
       await updatePlayerName(invite.player_id, name, userId, phoneNumber);
       await markInviteAsUsed(invite.id);
       await createGroupMembership(invite.player_id, invite.group_id);

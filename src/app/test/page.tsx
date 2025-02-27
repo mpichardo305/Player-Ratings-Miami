@@ -1,11 +1,7 @@
 'use client'
 
-import PlayerNameForm from '../components/PlayerNameForm'
+import WaitingListPage from '../components/WaitingListPage'
 
 export default function TestPage() {
-  const handleSubmit = (name: string) => {
-    console.log('Name submitted:', name)
-  }
-
-  return <PlayerNameForm onSubmit={handleSubmit} />
+  return <WaitingListPage />
 }
