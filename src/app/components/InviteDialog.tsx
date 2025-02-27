@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 interface InviteDialogProps {
   groupId: string
-  // playerId: string
   onClose: () => void
 }
 
@@ -21,7 +20,6 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
 
     try {
       console.log('Creating invite for groupId:', groupId)
-      // console.log('Player id:', playerId)
       const response = await fetch('/api/create-invite', {
         method: 'POST',
         headers: {
@@ -52,7 +50,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(inviteUrl)
     setCopyConfirmation(true)
-    setTimeout(() => setCopyConfirmation(false), 2000) // Hide after 2 seconds
+    setTimeout(() => setCopyConfirmation(false), 2000)
   }
 
   const handleClose = () => {

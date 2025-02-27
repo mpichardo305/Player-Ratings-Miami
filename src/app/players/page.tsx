@@ -73,7 +73,7 @@ export default function Players() {
               Show Pending Players
             </button>
           )}
-          {selectedGroup && (
+          {selectedGroup && isGroupAdmin && (
             <InviteDialog groupId={selectedGroup.id} onClose={() => setShowApproveDialog(false)}
             />
           )}
