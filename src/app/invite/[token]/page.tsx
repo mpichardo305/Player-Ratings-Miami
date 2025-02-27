@@ -8,7 +8,7 @@ import { validateInvite } from '@/app/actions/invite'
 import PlayerNameForm from '@/app/components/PlayerNameForm'
 import { createInitialPlayer, updatePlayerName } from '@/app/db/playerQueries'
 import { createGroupMembership, markInviteAsUsed, updateInviteWithPlayer } from '@/app/db/inviteQueries'
-import { PhoneNumber } from 'react-phone-number-input'
+
 interface Invite {
   id: string
   token: string
@@ -20,7 +20,7 @@ interface Invite {
   player_id: string
   user_id: string;
 }
-
+// consider replacing user.id with player id as it is confirmed the same uuid.
 const getPhoneNumberFromSession = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.user?.user_metadata?.phone_number;
@@ -59,9 +59,15 @@ export default function InviteRegistration() {
     const result = await validateInvite(token)
     
     if (result.error) {
-      setError(result.error)
-      router.push('/')
-      return
+      if (result.error.includes('used')) {
+        setError('Sorry, this invite link has already been used.');
+      } else {
+        setError('Invalid or expired invite link');
+      }
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+      return;
     }
     setInvite(result.data as Invite)
     setIsLoading(false);
@@ -137,7 +143,14 @@ export default function InviteRegistration() {
   }
 
   if (error) {
-    return <div className="p-4 text-red-600">{error}</div>
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6">
+        <div className="p-4 text-center">
+          <p className="text-xl mb-2">{error}</p>
+          <p className="text-sm text-gray-400">Redirecting to home page...</p>
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) {
