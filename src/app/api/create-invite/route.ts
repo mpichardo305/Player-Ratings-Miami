@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createInvite } from '@/app/actions/invite'
+import { createInvite, validateInvite } from '@/app/actions/invite'
 
 export async function POST(request: Request) {
   try {
@@ -18,4 +18,18 @@ export async function POST(request: Request) {
     console.error('Error in POST handler:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
+}
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const token = searchParams.get('token')
+  
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Token is required' }, 
+      { status: 400 }
+    )
+  }
+
+  const result = await validateInvite(token)
+  return NextResponse.json(result)
 }

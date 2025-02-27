@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 interface InviteDialogProps {
   groupId: string
+  // playerId: string
   onClose: () => void
 }
 
@@ -20,6 +21,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
 
     try {
       console.log('Creating invite for groupId:', groupId)
+      // console.log('Player id:', playerId)
       const response = await fetch('/api/create-invite', {
         method: 'POST',
         headers: {

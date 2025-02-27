@@ -48,6 +48,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
       const { data: memberships, error: membershipsError } = await supabase
         .from("group_memberships")
         .select(`
+          status,
           players:players!inner (
             id,
             name,
@@ -64,8 +65,8 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
 
       // Extract & filter approved players
       const approvedPlayers: Player[] = memberships
+        .filter((m) => m.status === "approved")  
         .flatMap((m) => m.players ?? [])
-        .filter((pl) => pl.status === "approved")
         .map((pl) => ({
           ...pl,
           avg_rating: 0,
