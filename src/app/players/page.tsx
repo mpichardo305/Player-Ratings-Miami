@@ -8,14 +8,16 @@ import GroupSelector, { Group } from "@/app/components/GroupSelector";
 import ApprovedPlayersList from "@/app/components/ApprovedPlayersList";
 import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
 import InviteDialog from "@/app/components/InviteDialog";
+import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 
 export default function Players() {
   const router = useRouter();
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  // const [playerId, setPlayerId] = useState<string>();
+  
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? null);
 
   if (!session?.user) {
     return <div>Loading session...</div>;
@@ -63,7 +65,7 @@ export default function Players() {
       
       {selectedGroup ? (
         <>
-          {session && (
+          {session && isGroupAdmin && (
             <button
               onClick={() => setShowApproveDialog(true)}
               className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"

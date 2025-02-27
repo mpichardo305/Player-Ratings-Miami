@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
-
+import { useGroupAdmin } from '../hooks/useGroupAdmin';
 
 export interface Group {
   id: string;
@@ -22,7 +22,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
 
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const isGroupAdmin = useGroupAdmin(sessionUserId, selectedGroupId);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,25 +77,6 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
 
     fetchGroups();
   }, [sessionUserId, onGroupSelect, setSelectedGroupId]);
-
-  // Check admin status for the selected group
-  useEffect(() => {
-    if (!sessionUserId || !selectedGroupId) return;
-    const checkAdmin = async () => {
-      const { data, error } = await supabase
-        .from("group_admins")
-        .select("id")
-        .eq("player_id", sessionUserId)
-        .eq("group_id", selectedGroupId)
-        .maybeSingle();
-      if (error) {
-        console.error("Error checking admin status:", error);
-      }
-      setIsGroupAdmin(!!data);
-    };
-
-    checkAdmin();
-  }, [sessionUserId, selectedGroupId]);
 
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const groupId = e.target.value;
