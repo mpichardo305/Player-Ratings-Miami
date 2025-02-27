@@ -6,8 +6,9 @@ import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '@/app/components/PhoneAuth'
 import { validateInvite } from '@/app/actions/invite'
 import PlayerNameForm from '@/app/components/PlayerNameForm'
-import { set } from 'lodash'
-
+import { createInitialPlayer, updatePlayerName } from '@/app/db/playerQueries'
+import { createGroupMembership, markInviteAsUsed, updateInviteWithPlayer } from '@/app/db/inviteQueries'
+import { PhoneNumber } from 'react-phone-number-input'
 interface Invite {
   id: string
   token: string
@@ -19,6 +20,11 @@ interface Invite {
   player_id: string
   user_id: string;
 }
+
+const getPhoneNumberFromSession = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.user_metadata?.phone_number;
+};
 
 export default function InviteRegistration() {
   const params = useParams();
@@ -50,17 +56,13 @@ export default function InviteRegistration() {
       router.push('/');
       return;
     }
-
-    const result = await validateInvite({ token })
-    console.log('Result from validateInvite:', result);
+    const result = await validateInvite(token)
     
     if (result.error) {
       setError(result.error)
       router.push('/')
       return
     }
-
-    console.log('Invite data:', result.data);
     setInvite(result.data as Invite)
     setIsLoading(false);
   }
@@ -86,67 +88,30 @@ export default function InviteRegistration() {
 
   const handleSignupSuccess = async () => {
     try {
-      // Get current user from session
       const { data: { session } } = await supabase.auth.getSession();
       const newUserId = session?.user?.id;
-      const phoneNumber = session?.user?.user_metadata?.phone_number;
+      const phoneNumber = await getPhoneNumberFromSession();
 
       if (!newUserId) {
         throw new Error('No user ID found in session');
       }
 
-      // 1. Set userId in state
       setUserId(newUserId);
-      console.log('Set userId to:', newUserId);
 
-    // 2. Fetch invite data if not already available
-    let currentInvite = invite;
-    if (!currentInvite) {
-      const { data: inviteData, error: inviteError } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .single();
+      // Use validateInvite from server action
+            const result = await validateInvite(token);
+            if (result.error || !result.data) {
+              throw new Error('Failed to fetch invite data');
+            }
+            const inviteData = result.data as Invite;
+            setInvite(inviteData);
 
-      if (inviteError || !inviteData) {
-        throw new Error('Failed to fetch invite data');
-      }
-      currentInvite = inviteData;
-      setInvite(inviteData);
-    } 
-      // 3. Create initial player record 
-      // need to get the phone from phone auth
-      const { data: playerData, error: playerError } = await supabase
-        .from('players')
-        .insert({
-          status: 'pending',
-          phone: phoneNumber,
-          userId: newUserId
-        })
-        .select()
-        .single();
+      // Use server actions instead of direct Supabase queries
+      const { data: playerData, error: playerError } = await createInitialPlayer(newUserId, phoneNumber);
+      if (playerError) throw playerError;
 
-      if (playerError) {
-        console.error('Player creation error:', playerError);
-        throw playerError;
-      }
+      await updateInviteWithPlayer(inviteData.id, playerData.id);
 
-      // 4. Update invite with player_id
-      if (!currentInvite) throw new Error('No invite data available');
-      
-      const { error: updateError } = await supabase
-        .from('invites')
-        .update({
-          player_id: playerData.id,
-        })
-        .eq('id', currentInvite.id);
-
-      if (updateError) {
-        console.error('Invite update error:', updateError);
-        throw updateError;
-      }
-
-      console.log('Updated invite, full state:', { userId: newUserId, playerData });
       setnextPage(true);
     } catch (error) {
       console.error('Error in handleSignupSuccess:', error);
@@ -155,52 +120,13 @@ export default function InviteRegistration() {
   };
 
   const handleNameSubmit = async (name: string) => {
+    const phoneNumber = await getPhoneNumberFromSession();
     if (!invite || !userId) return;
     try {
-      // Get the current invite data
-      const { data: currentInvite, error: inviteError } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .single();
-
-      if (inviteError || !currentInvite) {
-        throw new Error('Failed to fetch invite data');
-      }
-
-      // 1. Update existing player with name
-      const { data: playerData, error: playerError } = await supabase
-        .from('players')
-        .update({ 
-          name: name,
-          status: 'approved'
-        })
-        .eq('id', currentInvite.player_id)
-        .select()
-        .single();
-
-      if (playerError) throw playerError;
-      console.log('Updated player:', playerData);
-
-      // 2. Mark invite as used
-      const { error: updateError } = await supabase
-        .from('invites')
-        .update({ used: 'TRUE' })
-        .eq('id', currentInvite.id);
-
-      console.log('Marked invite as used:', currentInvite.id);
-      if (updateError) throw updateError;
-
-      // 3. Create group membership
-      const { error: membershipError } = await supabase
-        .from('group_memberships')
-        .insert({
-          player_id: currentInvite.player_id,
-          group_id: currentInvite.group_id,
-          status: 'pending'
-        });
-
-      if (membershipError) throw membershipError;
+      // Use server actions instead of direct queries
+      await updatePlayerName(invite.player_id, name, userId, phoneNumber);
+      await markInviteAsUsed(invite.id);
+      await createGroupMembership(invite.player_id, invite.group_id);
 
       console.log('Registration complete, redirecting...');
       await router.replace('/');
@@ -209,8 +135,6 @@ export default function InviteRegistration() {
       setError('Failed to complete signup');
     }
   }
-
-  console.log('Render state:', { userId, invite, error });
 
   if (error) {
     return <div className="p-4 text-red-600">{error}</div>

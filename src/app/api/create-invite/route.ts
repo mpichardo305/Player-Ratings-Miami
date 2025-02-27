@@ -30,6 +30,6 @@ export async function GET(request: Request) {
     )
   }
 
-  const result = await validateInvite({ token })
+  const result = await validateInvite(token)
   return NextResponse.json(result)
 }
