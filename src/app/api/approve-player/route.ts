@@ -32,7 +32,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
-function updatePlayerStatus(id: string, phone: string) {
-  throw new Error("Function not implemented.");
-}
 

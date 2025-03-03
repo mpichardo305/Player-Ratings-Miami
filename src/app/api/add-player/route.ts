@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/app/utils/supabaseClient";
+import { PhoneFormatter } from "@/app/utils/PhoneFormatter";
 
 export async function POST(req: Request) {
   try {
@@ -12,14 +13,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Sanitize phone number - remove non-numeric characters
-    const sanitizedPhone = phone.replace(/\D/g, '');
+    // Use the PhoneFormatter to standardize and validate the phone number
+    const standardizedPhone = PhoneFormatter.standardize(phone);
+    
+    if (!PhoneFormatter.isValid(standardizedPhone)) {
+      return NextResponse.json(
+        { error: "Invalid phone number format" },
+        { status: 400 }
+      );
+    }
 
-    // Check if phone number already exists - with more strict check
+    // Check if phone number already exists
     const { data: existingPlayer, error: searchError } = await supabase
       .from("players")
       .select("*")
-      .eq("phone", sanitizedPhone);
+      .eq("phone", standardizedPhone);
 
     console.log('Existing player search result:', existingPlayer); // Debug log
 
@@ -36,7 +44,7 @@ export async function POST(req: Request) {
       .insert([{ 
         name, 
         status: "pending",
-        phone: sanitizedPhone
+        phone: standardizedPhone
       }])
       .select()
       .single();
