@@ -23,26 +23,7 @@ export default function Home() {
   
   const GROUP_ID = '299af152-1d95-4ca2-84ba-4332828438e'
 
-  useEffect(() => {
-    async function checkMembership() {
-      if (!phoneNumber) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const { isMember } = await checkPlayerMembership(phoneNumber, GROUP_ID)
-        setIsMember(isMember)
-      } catch (error) {
-        console.error('Error checking membership:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkMembership()
-  }, [phoneNumber])
-
+  // First useEffect for authentication
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -56,6 +37,28 @@ export default function Home() {
 
     return () => authListener?.subscription.unsubscribe();
   }, []);
+
+  // Second useEffect for membership check, dependent on both session and phoneNumber
+  useEffect(() => {
+    console.log('Current state:', { phoneNumber, session, isMember });
+    async function checkMembership() {
+      if (!phoneNumber || !session) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { isMember } = await checkPlayerMembership(phoneNumber, GROUP_ID);
+        setIsMember(isMember);
+      } catch (error) {
+        console.error('Error checking membership:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    checkMembership();
+  }, [phoneNumber, session]);
 
   if (isLoading) {
     return (
@@ -72,6 +75,9 @@ export default function Home() {
   if (!session) {
     return <PhoneAuth />
   }
-
+  // Check if phone number is verified
+  if (!phoneNumber) {
+    return <PhoneAuth />;
+  }
   return isMember ? <Players /> : <WaitingListPage />
 }
