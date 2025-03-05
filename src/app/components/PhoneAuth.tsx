@@ -53,7 +53,7 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess }) => {
       } else {
         // Update user metadata with phone number
         const { error: updateError } = await supabase.auth.updateUser({
-          data: { phone_number: phone }
+          data: { phone_number: phone, phone_verified: true }
         });
 
         if (updateError) {

@@ -21,7 +21,7 @@ export default function Home() {
   const token = params?.token as string;
 
   
-  const GROUP_ID = '299af152-1d95-4ca2-84ba-4332828438e'
+  const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
 
   // First useEffect for authentication
   useEffect(() => {
@@ -40,18 +40,42 @@ export default function Home() {
 
   // Second useEffect for membership check, dependent on both session and phoneNumber
   useEffect(() => {
-    console.log('Current state:', { phoneNumber, session, isMember });
+    console.log('=== Membership Check Effect Triggered ===');
+    console.log('Dependencies changed:', { 
+      phoneNumber, 
+      hasSession: !!session,
+      sessionPhone: session?.user?.phone,
+      currentIsMember: isMember 
+    });
+
     async function checkMembership() {
       if (!phoneNumber || !session) {
+        console.log('Skipping check - Missing requirements:', {
+          hasPhoneNumber: !!phoneNumber,
+          hasSession: !!session
+        });
         setIsLoading(false);
         return;
       }
 
       try {
-        const { isMember } = await checkPlayerMembership(phoneNumber, GROUP_ID);
-        setIsMember(isMember);
+        console.log('Calling checkPlayerMembership with:', {
+          phoneNumber,
+          GROUP_ID,
+          sessionId: session.user.id
+        });
+        
+        const result = await checkPlayerMembership(phoneNumber, GROUP_ID);
+        
+        console.log('Membership check complete:', {
+          result,
+          previousIsMember: isMember,
+          willUpdate: result.isMember !== isMember
+        });
+        
+        setIsMember(result.isMember);
       } catch (error) {
-        console.error('Error checking membership:', error);
+        console.error('Membership check failed:', error);
       } finally {
         setIsLoading(false);
       }
@@ -72,11 +96,15 @@ export default function Home() {
     return <InviteRegistration />;
   }
 
-  if (!session) {
-    return <PhoneAuth />
-  }
-  if (!phoneNumber) {
-    return <PhoneAuth />;
-  }
-  return isMember ? <Players /> : <WaitingListPage />
+  return (
+    <div>
+      {!session ? (
+        <>
+          <PhoneAuth />
+        </>
+      ) : (
+        !isMember ? <WaitingListPage/> : <Players />
+      )}
+    </div>
+  );
 }
