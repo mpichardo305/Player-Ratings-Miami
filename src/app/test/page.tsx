@@ -1,7 +1,7 @@
 'use client'
 
-import Players from '../players/page'
+import { CreateGame } from '../components/CreateGame'
 
 export default function TestPage() {
-  return <Players />
+  return <CreateGame />
 }
