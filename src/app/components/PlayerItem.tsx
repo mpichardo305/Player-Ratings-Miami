@@ -45,7 +45,7 @@ export default function PlayerItem({ player, onRate, isSelf }: PlayerItemProps) 
         ))}
       </div>
       <span className="text-gray-400">
-        {/* {totalVotes} {totalVotes === 1 ? 'rating' : 'ratings'} */}
+        {userRating} {userRating === 1 ? 'star' : 'stars'}
       </span>
     </div>
   );
