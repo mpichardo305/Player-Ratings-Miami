@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 
 type PlayerItemProps = {
   player: {
-    id: number;
+    id: string;
     name: string;
     avg_rating: number;
     ratings: Array<{ rating: number; user_id?: string }>;
     total_votes?: number; // Add this new field
   };
-  onRate: (playerId: number, rating: number) => void;
+  onRate: (playerId: string, rating: number) => void;
   isSelf: boolean;
 };
 
