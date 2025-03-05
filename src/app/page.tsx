@@ -75,7 +75,6 @@ export default function Home() {
   if (!session) {
     return <PhoneAuth />
   }
-  // Check if phone number is verified
   if (!phoneNumber) {
     return <PhoneAuth />;
   }
