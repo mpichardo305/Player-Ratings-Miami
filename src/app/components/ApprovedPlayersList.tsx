@@ -12,12 +12,12 @@ const PlayerItem = dynamic(() => import('./PlayerItem'), {
 
 type Rating = {
   rating: number;
-  player_id: number;
+  player_id: string;  // Changed from number to string for UUID
   user_id?: string;
 };
 
 type Player = {
-  id: number;
+  id: string;        // Changed from number to string for UUID
   name: string;
   status: string;
   avg_rating: number;
@@ -138,28 +138,34 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
   }, [groupId]);
 
   // Function to upsert a rating
-  const handleRate = async (playerId: number, rating: number) => {
-    console.log("playerId", playerId)
-    // Prevent rating yourself if needed
-    if (playerId === parseInt(sessionUserId)) {
-      console.warn("🚫 You can't rate yourself!");
-      return;
-    }
-
-    // Upsert with composite conflict (player_id, user_id)
-    const { error } = await supabase
-      .from("ratings")
-      .upsert(
-        { player_id: playerId, user_id: sessionUserId, rating },
-        { onConflict: "player_id, user_id" }
-      );
-
-    if (error) {
-      console.error("Error: 🚫 You can't rate yourself!", error);
-    } else {
+  const handleRate = async (playerId: string, rating: number) => {
+    try {
+      // Prevent rating yourself
+      if (playerId === sessionUserId) {
+        console.warn("🚫 You can't rate yourself!");
+        return;
+      }
+  
+      const { error } = await supabase
+        .from("ratings")
+        .upsert(
+          { 
+            player_id: playerId,    
+            user_id: sessionUserId, 
+            rating 
+          },
+          { onConflict: "player_id, user_id" }
+        );
+  
+      if (error) {
+        console.error("Error submitting rating:", error.message);
+        return;
+      }
+  
       console.log("✅ Rating submitted successfully!");
-      // Refresh data immediately without showing loading state
       fetchPlayersAndRatings(true);
+    } catch (err) {
+      console.error("Failed to submit rating:", err);
     }
   };
 
@@ -179,10 +185,14 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
       ) : (
         // Show actual players
         players.map((player) => {
-          const isSelf = player.id === parseInt(sessionUserId);
+          const isSelf = player.id === sessionUserId;
           return (
             <div key={player.id} className="player-item">
-              <PlayerItem player={player} onRate={handleRate} isSelf={isSelf}/>
+              <PlayerItem 
+                player={player}  // No need to convert id to string anymore
+                onRate={handleRate} 
+                isSelf={isSelf}
+              />
               {isSelf && <p className="text-gray-400">🚫 You can not rate yourself!</p>}
             </div>
           );
