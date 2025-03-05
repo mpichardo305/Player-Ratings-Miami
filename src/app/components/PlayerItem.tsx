@@ -17,7 +17,7 @@ export default function PlayerItem({ player, onRate, isSelf }: PlayerItemProps) 
     <div className="flex flex-col items-center bg-gray-700 p-4 rounded-lg shadow-md">
     <h3 className="text-lg font-semibold text-white">{player.name}</h3>
     <div className="flex space-x-1 mt-2">
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
+      {[1, 2, 3, 4, 5].map(star => (
         <button
           key={star}
           onClick={() => onRate(player.id, star)}

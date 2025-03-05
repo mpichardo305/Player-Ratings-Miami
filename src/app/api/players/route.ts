@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/app/utils/supabaseClient";
 import { v4 as uuidv4 } from "uuid";
-import { PhoneFormatter } from "@/app/utils/PhoneFormatter";
 
 interface CreatePlayerRequest {
   name: string;
@@ -12,8 +11,10 @@ interface CreatePlayerRequest {
 export async function POST(req: Request) {
   try {
     const { name, phone }: CreatePlayerRequest = await req.json();
-
-    const standardizedPhone = PhoneFormatter.standardize(phone);
+    
+    if (!name || !phone) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
 
     const { data: existingPlayer } = await supabase
       .from("players")
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
       'create_player_with_status',
       { 
         player_name: name,
-        player_phone: standardizedPhone,
+        player_phone: phone,
         player_status: 'pending'
       }
     );
