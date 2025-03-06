@@ -119,9 +119,11 @@ function genGameId(): GameIdPair {
     
     try {
       setSubmitting(true);
+      console.log('Starting game creation process...');
       
       // Generate game IDs first
       const { uuid, readableId } = genGameId();
+      console.log('Generated IDs:', { uuid, readableId });
       
       // Update game details with the generated IDs
       const gameWithIds = {
@@ -129,12 +131,17 @@ function genGameId(): GameIdPair {
         id: uuid,
         game_id: readableId
       };
+      console.log('Game details before API call:', gameWithIds);
       
       // Call the createGame API with the game details including IDs
+      console.log('Calling createGame API...');
       const createdGame = await createGame(gameWithIds);
+      console.log('Game created response:', createdGame);
       
       // Now update the game players with the same game UUID
-      await updateGamePlayers(uuid, { players: Array.from(selectedPlayers) });
+      console.log('Updating game players with IDs:', Array.from(selectedPlayers));
+      const updateResponse = await updateGamePlayers(uuid, { players: Array.from(selectedPlayers) });
+      console.log('Update players response:', updateResponse);
       
       console.log('Game created successfully:', createdGame);
       console.log('Selected players:', Array.from(selectedPlayers));
@@ -143,7 +150,18 @@ function genGameId(): GameIdPair {
       
     } catch (error) {
       console.error('Error creating game:', error);
-      alert('Failed to create game. Please try again.');
+      let errorDetails;
+      if (error instanceof Error) {
+        errorDetails = {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        };
+      } else {
+        errorDetails = error;
+      }
+      console.error('Error details:', errorDetails);
+      alert(`Failed to create game: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }

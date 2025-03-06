@@ -17,19 +17,42 @@ export interface Game extends GameCreate {
 }
 
 export const createGame = async (gameData: GameCreate): Promise<Game> => {
-  const response = await fetch(BASE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(gameData),
+  console.log('🎮 Creating new game with data:', {
+    fieldName: gameData.fieldName,
+    date: gameData.date,
+    start_time: gameData.start_time,
+    group_id: gameData.group_id
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to create game');
-  }
+  try {
+    const response = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(gameData),
+    });
 
-  return response.json();
+    console.log('📡 API Response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('❌ Failed to create game:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      throw new Error(`Failed to create game: ${response.statusText}`);
+    }
+
+    const createdGame = await response.json();
+    console.log('✅ Game created successfully:', createdGame);
+    return createdGame;
+
+  } catch (error) {
+    console.error('🚨 Error in createGame:', error);
+    throw error;
+  }
 };
 
 
