@@ -1,6 +1,20 @@
-import { GameCreate, Game } from '../types/game';
+const BASE_URL = '/api/games'; // review this
 
-const BASE_URL = '/api/games';
+export interface GameCreate {
+  fieldName: string;
+  date: Date;
+  start_time: string;
+  created_at: Date;
+  updated_at: Date;
+  group_id: string;
+}
+
+
+export interface Game extends GameCreate {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export const createGame = async (gameData: GameCreate): Promise<Game> => {
   const response = await fetch(BASE_URL, {
@@ -17,3 +31,5 @@ export const createGame = async (gameData: GameCreate): Promise<Game> => {
 
   return response.json();
 };
+
+

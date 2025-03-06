@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from '../CreateGame.module.css';
-import { GameCreate } from './CreateGame';
 import { supabase } from "@/app/utils/supabaseClient";
-
+import { createGame, GameCreate } from '../../app/api/create-game/route';
+import { v4 as uuidv4 } from 'uuid';
+import { create, update } from 'lodash';
+import { updateGamePlayers } from '../api/update-game-players/route';
 
 type Player = {
   id: string;      
@@ -19,10 +21,28 @@ const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const previousPlayersRef = useRef<Player[]>([]);
-  const isInitialFetchRef = useRef(true);
+  const [submitting, setSubmitting] = useState(false);
   const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
+  const MAX_PLAYERS = 12;
 
+  // Generate Game ID
+interface GameIdPair {
+  uuid: string;
+  readableId: string;
+}
+
+function genGameId(): GameIdPair {
+  const uuid = uuidv4();
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const idLength = 4;
+  let readableId = 'P-';
+  
+  for (let i = 0; i < idLength; i++) {
+    readableId += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return { uuid, readableId };
+}
   const fetchPlayers = async () => {
     setLoading(true);
 
@@ -65,11 +85,7 @@ const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
   };
 
   useEffect(() => {
-    fetchPlayers();
-    return () => {
-      // Cleanup
-      previousPlayersRef.current = [];
-    };
+    fetchPlayers();    
   }, []);
 
   const handlePlayerToggle = (playerId: string) => {
@@ -77,7 +93,13 @@ const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
     if (newSelected.has(playerId)) {
       newSelected.delete(playerId);
     } else {
-      newSelected.add(playerId);
+      // Only add new player if we haven't reached max
+      if (newSelected.size < MAX_PLAYERS) {
+        newSelected.add(playerId);
+      } else {
+        alert(`Maximum of ${MAX_PLAYERS} players allowed`);
+        return;
+      }
     }
     setSelectedPlayers(newSelected);
     
@@ -89,9 +111,45 @@ const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
   };
 
   const handleSubmit = async () => {
-    // TODO: Implement the final game creation with selected players
-    console.log('Selected players:', Array.from(selectedPlayers));
+    // Only proceed if we have a valid number of players
+    // if (selectedPlayers.size > MAX_PLAYERS) {
+    //   alert(`Please select a maximum of ${MAX_PLAYERS} players.`);
+    //   return;
+    // }
+    
+    try {
+      setSubmitting(true);
+      
+      // Generate game IDs first
+      const { uuid, readableId } = genGameId();
+      
+      // Update game details with the generated IDs
+      const gameWithIds = {
+        ...gameDetails,
+        id: uuid,
+        game_id: readableId
+      };
+      
+      // Call the createGame API with the game details including IDs
+      const createdGame = await createGame(gameWithIds);
+      
+      // Now update the game players with the same game UUID
+      await updateGamePlayers(uuid, { players: Array.from(selectedPlayers) });
+      
+      console.log('Game created successfully:', createdGame);
+      console.log('Selected players:', Array.from(selectedPlayers));
+      
+      alert('Game created successfully!');
+      
+    } catch (error) {
+      console.error('Error creating game:', error);
+      alert('Failed to create game. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const isValidTeamSize = selectedPlayers.size <= MAX_PLAYERS;
 
   return (
     <div className={styles.playerSelection}>
@@ -99,24 +157,37 @@ const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
       <div className={styles.gameInfo}>
         <p>Field: {gameDetails.fieldName}</p>
         <p>Date: {gameDetails.date.toLocaleDateString()}</p>
-        <p>Time: {gameDetails.time}</p>
+        <p>Time: {gameDetails.start_time}</p>
       </div>
       <div className={styles.playerList}>
-      <p>Select the guys that will play</p>
+        <p>Select the guys that will play (max {MAX_PLAYERS})</p>
+        <p className={selectedPlayers.size > MAX_PLAYERS ? styles.error : ''}>
+          {selectedPlayers.size}/{MAX_PLAYERS} players selected
+        </p>
         {players.map(player => (
-          <label key={player.id} className={styles.playerItem}>
+          <label 
+            key={player.id} 
+            className={`${styles.playerItem} ${selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id) ? styles.disabled : ''}`}
+          >
             <input
               type="checkbox"
               checked={selectedPlayers.has(player.id)}
               onChange={() => handlePlayerToggle(player.id)}
+              disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
             />
             {player.name}
           </label>
         ))}
       </div>
       <div className={styles.buttonGroup}>
-        <button onClick={onBack}>Back</button>
-        <button onClick={handleSubmit}>Create Game</button>
+        <button onClick={onBack} disabled={submitting}>Back</button>
+        <button 
+          onClick={handleSubmit} 
+          disabled={!isValidTeamSize || submitting}
+          className={!isValidTeamSize || submitting ? styles.buttonDisabled : ''}
+        >
+          {submitting ? 'Creating...' : 'Create Game'}
+        </button>
       </div>
     </div>
   );

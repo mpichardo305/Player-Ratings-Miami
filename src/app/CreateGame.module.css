@@ -106,3 +106,19 @@
   height: 18px;
   cursor: pointer;
 }
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonDisabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  background-color: #3a3a3a !important;
+}
+
+.error {
+  color: #ff6b6b;
+  font-weight: bold;
+}

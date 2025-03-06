@@ -2,24 +2,12 @@ import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import styles from '../CreateGame.module.css';
-import { createGame } from '../../api/games';
+import { createGame } from '../../app/api/create-game/route';
 import PageBackground from './PageBackground';
 import PlayerSelection from './PlayerSelection';
 
 const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
 const TIME_OPTIONS = ['7:00 PM', '8:00 PM', '9:00 PM'];
-
-export interface GameCreate {
-  fieldName: string;
-  date: Date;
-  time: string;
-}
-
-export interface Game extends GameCreate {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 
 export const CreateGame = () => {
@@ -94,7 +82,10 @@ export const CreateGame = () => {
           gameDetails={{
             fieldName: selectedField,
             date: selectedDate!,
-            time: selectedTime
+            start_time: selectedTime,
+            created_at: new Date(),
+            updated_at: new Date(),
+            group_id: '',
           }}
           onBack={() => setStep(1)}
         />
