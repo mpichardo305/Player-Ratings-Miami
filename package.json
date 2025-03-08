@@ -18,7 +18,7 @@
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.48.1",
-    "@types/react-datepicker": "^6.2.0",
+    "date-fns": "^4.1.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "lodash": "^4.17.21",
     "next": "^15.1.7",

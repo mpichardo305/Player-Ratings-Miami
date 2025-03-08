@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from '../CreateGame.module.css';
 import { supabase } from "@/app/utils/supabaseClient";
-import { createGame, GameCreate } from '../../app/api/create-game/route';
 import { v4 as uuidv4 } from 'uuid';
 import { create, update } from 'lodash';
-import { updateGamePlayers } from '../api/update-game-players/route';
+import { updateGamePlayers } from '../lib/updateGamePlayersService';
+import { createGame, GameCreate } from '../lib/gameService';  
 
 type Player = {
   id: string;      
@@ -135,15 +135,15 @@ function genGameId(): GameIdPair {
       
       // Call the createGame API with the game details including IDs
       console.log('Calling createGame API...');
-      const createdGame = await createGame(gameWithIds);
-      console.log('Game created response:', createdGame);
+      const gameCreationResponse = await createGame(gameWithIds);
+      console.log('Game created response:', gameCreationResponse);
       
       // Now update the game players with the same game UUID
       console.log('Updating game players with IDs:', Array.from(selectedPlayers));
       const updateResponse = await updateGamePlayers(uuid, { players: Array.from(selectedPlayers) });
       console.log('Update players response:', updateResponse);
       
-      console.log('Game created successfully:', createdGame);
+      console.log('Game created successfully:', createGame);
       console.log('Selected players:', Array.from(selectedPlayers));
       
       alert('Game created successfully!');

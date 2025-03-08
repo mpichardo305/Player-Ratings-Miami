@@ -2,7 +2,6 @@ import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import styles from '../CreateGame.module.css';
-import { createGame } from '../../app/api/create-game/route';
 import PageBackground from './PageBackground';
 import PlayerSelection from './PlayerSelection';
 

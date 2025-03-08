@@ -1,58 +1,21 @@
-const BASE_URL = '/api/games'; // review this
+// app/api/create-game/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createGame, GameCreate } from '../../lib/gameService';
 
-export interface GameCreate {
-  fieldName: string;
-  date: Date;
-  start_time: string;
-  created_at: Date;
-  updated_at: Date;
-  group_id: string;
-}
-
-
-export interface Game extends GameCreate {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export const createGame = async (gameData: GameCreate): Promise<Game> => {
-  console.log('🎮 Creating new game with data:', {
-    fieldName: gameData.fieldName,
-    date: gameData.date,
-    start_time: gameData.start_time,
-    group_id: gameData.group_id
-  });
-
+export async function POST(request: NextRequest) {
   try {
-    const response = await fetch(BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(gameData),
-    });
+    const gameData: GameCreate = await request.json();
+    console.log('game data:', gameData);
 
-    console.log('📡 API Response status:', response.status);
+    const createdGame = await createGame(gameData);
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('❌ Failed to create game:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      throw new Error(`Failed to create game: ${response.statusText}`);
-    }
-
-    const createdGame = await response.json();
-    console.log('✅ Game created successfully:', createdGame);
-    return createdGame;
+    return NextResponse.json(createdGame, { status: 201 });
 
   } catch (error) {
-    console.error('🚨 Error in createGame:', error);
-    throw error;
+    console.error('🚨 Error in createGame route:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
-};
-
-
+}
