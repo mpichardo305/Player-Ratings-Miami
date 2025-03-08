@@ -89,22 +89,46 @@
   flex-direction: column;
   gap: 10px;
   margin: 20px 0;
+  background-color: #333;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: white;
 }
 
 .playerItem {
   display: flex;
   align-items: center;
-  gap: 10px;
   padding: 8px;
-  background-color: #2a2a2a;
+  margin: 6px 0;
   border-radius: 4px;
   cursor: pointer;
+  background-color: #2a2a2a;
+    /* Dark background for all player items */
+    color: white;
+    /* White text for all player items */
+    transition: background-color 0.2s;
+  }
+  
+  .playerItem:hover {
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 .playerItem input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
+  margin-right: 10px;
+  }
+  
+  .playerName {
+    color: white;
+    margin-left: 8px;
+  }
+  
+  /* Additional styling for selected players */
+  .selectedPlayer {
+    background-color: rgba(255, 255, 255, 0.2);
+    /* Slightly lighter background for selected */
+    border-left: 3px solid #4CAF50;
+    /* Green border indicator */
 }
 
 .disabled {
@@ -121,4 +145,172 @@
 .error {
   color: #ff6b6b;
   font-weight: bold;
+}
+/* Success screen styles */
+.successContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  background-color: #2a2a2a;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+  color: white;
+}
+
+.successIcon {
+  color: #4CAF50;
+  margin-bottom: 1rem;
+  animation: scaleIn 0.5s ease-in-out;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+  }
+
+  70% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.gameDetails {
+  margin: 1.5rem 0;
+  width: 100%;
+  text-align: left;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  padding: 1rem 0;
+}
+
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 0.8rem 1.5rem;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.1s;
+  width: 100%;
+}
+
+.primaryButton {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+}
+
+.primaryButton:hover {
+  background-color: #0b7dda;
+  transform: translateY(-2px);
+}
+
+.secondaryButton {
+  background-color: white;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.secondaryButton:hover {
+  background-color: #f5f5f5;
+}
+
+/* Add these styles to your existing CSS file */
+
+.gameDetailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.shareSection {
+  position: relative;
+}
+
+.shareButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.shareButton:hover {
+  background-color: #0b7dda;
+  transform: translateY(-2px);
+}
+
+.copyConfirmation {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease-in-out;
+  z-index: 100;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Player list specific styles for game details */
+.playerList h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+/* Override styles for player items in view mode */
+.playerList .playerItem {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: white;
+}
+
+/* Action buttons at the bottom of the game details page */
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 2rem;
 }

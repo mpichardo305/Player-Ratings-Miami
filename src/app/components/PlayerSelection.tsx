@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../CreateGame.module.css';
 import { supabase } from "@/app/utils/supabaseClient";
 import { v4 as uuidv4 } from 'uuid';
-import { create, update } from 'lodash';
 import { updateGamePlayers } from '../lib/updateGamePlayersService';
 import { createGame, GameCreate } from '../lib/gameService';  
 
@@ -15,9 +14,12 @@ type Player = {
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
   onBack: () => void;
+  mode: 'create' | 'update';
+  gameId?: string;
+  onSuccess?: (gameId: string, readableId: string) => void;
 }
 
-const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
+const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', onSuccess }: PlayerSelectionProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -26,23 +28,24 @@ const PlayerSelection = ({ gameDetails, onBack }: PlayerSelectionProps) => {
   const MAX_PLAYERS = 12;
 
   // Generate Game ID
-interface GameIdPair {
-  uuid: string;
-  readableId: string;
-}
-
-function genGameId(): GameIdPair {
-  const uuid = uuidv4();
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const idLength = 4;
-  let readableId = 'P-';
-  
-  for (let i = 0; i < idLength; i++) {
-    readableId += chars.charAt(Math.floor(Math.random() * chars.length));
+  interface GameIdPair {
+    uuid: string;
+    readableId: string;
   }
-  
-  return { uuid, readableId };
-}
+
+  function genGameId(): GameIdPair {
+    const uuid = uuidv4();
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const idLength = 4;
+    let readableId = 'P-';
+    
+    for (let i = 0; i < idLength; i++) {
+      readableId += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return { uuid, readableId };
+  }
+
   const fetchPlayers = async () => {
     setLoading(true);
 
@@ -84,9 +87,35 @@ function genGameId(): GameIdPair {
     }
   };
 
+  const fetchExistingPlayers = async () => {
+    if (mode !== 'update' || !gameId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('game_players')
+        .select('player_id')
+        .eq('game_id', gameId);
+      
+      if (error) {
+        console.error('Error fetching existing players:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        const existingPlayerIds = data.map(item => item.player_id);
+        setSelectedPlayers(new Set(existingPlayerIds));
+      }
+    } catch (error) {
+      console.error('Error fetching existing players:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchPlayers();    
-  }, []);
+    fetchPlayers();
+    if (mode === 'update' && gameId) {
+      fetchExistingPlayers();
+    }
+  }, [mode, gameId]);
 
   const handlePlayerToggle = (playerId: string) => {
     const newSelected = new Set(selectedPlayers);
@@ -102,100 +131,93 @@ function genGameId(): GameIdPair {
       }
     }
     setSelectedPlayers(newSelected);
-    
-    // Update players when selection changes
-    setPlayers(prevPlayers => prevPlayers.map(player => ({
-      ...player,
-      selected: newSelected.has(player.id)
-    })));
   };
 
   const handleSubmit = async () => {
     // Only proceed if we have a valid number of players
-    // if (selectedPlayers.size > MAX_PLAYERS) {
-    //   alert(`Please select a maximum of ${MAX_PLAYERS} players.`);
-    //   return;
-    // }
-    
     try {
       setSubmitting(true);
-      console.log('Starting game creation process...');
       
-      // Generate game IDs first
-      const { uuid, readableId } = genGameId();
-      console.log('Generated IDs:', { uuid, readableId });
-      
-      // Update game details with the generated IDs
-      const gameWithIds = {
-        ...gameDetails,
-        id: uuid,
-        game_id: readableId
-      };
-      console.log('Game details before API call:', gameWithIds);
-      
-      // Call the createGame API with the game details including IDs
-      console.log('Calling createGame API...');
-      const gameCreationResponse = await createGame(gameWithIds);
-      console.log('Game created response:', gameCreationResponse);
-      
-      // Now update the game players with the same game UUID
-      console.log('Updating game players with IDs:', Array.from(selectedPlayers));
-      const updateResponse = await updateGamePlayers(uuid, { players: Array.from(selectedPlayers) });
-      console.log('Update players response:', updateResponse);
-      
-      console.log('Game created successfully:', createGame);
-      console.log('Selected players:', Array.from(selectedPlayers));
-      
-      alert('Game created successfully!');
+      if (mode === 'create') {
+        // Generate game IDs first
+        const { uuid, readableId } = genGameId();
+        
+        // Update game details with the generated IDs
+        const gameWithIds = {
+          ...gameDetails,
+          id: uuid,
+          game_id: readableId
+        };
+        
+        // Call the createGame API with the game details including IDs
+        const gameCreationResponse = await createGame(gameWithIds);
+        
+        // Now update the game players with the same game UUID
+        const updateResponse = await updateGamePlayers(uuid, { players: Array.from(selectedPlayers) });
+        
+        // Call success callback instead of alert
+        if (onSuccess) {
+          onSuccess(uuid, readableId);
+        }
+      } else if (mode === 'update' && gameId) {
+        // Just update the players for existing game
+        const updateResponse = await updateGamePlayers(gameId, { players: Array.from(selectedPlayers) });
+        
+        // Call success callback if provided
+        if (onSuccess) {
+          // We use gameId twice since we don't have readableId in update mode
+          onSuccess(gameId, gameDetails.id || '');
+        }
+      }
       
     } catch (error) {
-      console.error('Error creating game:', error);
-      let errorDetails;
+      console.error('Error managing game players:', error);
+      let errorMessage = 'Unknown error';
       if (error instanceof Error) {
-        errorDetails = {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        };
-      } else {
-        errorDetails = error;
+        errorMessage = error.message;
       }
-      console.error('Error details:', errorDetails);
-      alert(`Failed to create game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(`Failed: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
   };
 
   const isValidTeamSize = selectedPlayers.size <= MAX_PLAYERS;
+  const buttonText = mode === 'create' ? 'Create Game' : 'Update Players';
+  const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
 
   return (
     <div className={styles.playerSelection}>
-      <h2>Game Details</h2>
+      <h2>{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
       <div className={styles.gameInfo}>
-        <p>Field: {gameDetails.fieldName}</p>
+        <p>Field: {gameDetails.field_name || gameDetails.field_name}</p>
         <p>Date: {gameDetails.date.toLocaleDateString()}</p>
         <p>Time: {gameDetails.start_time}</p>
+        {mode === 'update' && gameDetails.id && <p>Game ID: {gameDetails.game_id || gameDetails.id}</p>}
       </div>
       <div className={styles.playerList}>
         <p>Select the guys that will play (max {MAX_PLAYERS})</p>
         <p className={selectedPlayers.size > MAX_PLAYERS ? styles.error : ''}>
           {selectedPlayers.size}/{MAX_PLAYERS} players selected
         </p>
-        {players.map(player => (
-          <label 
-            key={player.id} 
-            className={`${styles.playerItem} ${selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id) ? styles.disabled : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={selectedPlayers.has(player.id)}
-              onChange={() => handlePlayerToggle(player.id)}
-              disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
-            />
-            {player.name}
-          </label>
-        ))}
+        {loading ? (
+          <p>Loading players...</p>
+        ) : (
+          players.map(player => (
+            <label 
+              key={player.id} 
+              className={`${styles.playerItem} ${selectedPlayers.has(player.id) ? styles.selectedPlayer : ''} ${selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id) ? styles.disabled : ''}`}
+            >
+              <input
+                type="checkbox"
+                checked={selectedPlayers.has(player.id)}
+                onChange={() => handlePlayerToggle(player.id)}
+                disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
+              />
+              <span>{player.name}</span>
+            </label>
+          ))
+        )}
       </div>
       <div className={styles.buttonGroup}>
         <button onClick={onBack} disabled={submitting}>Back</button>
@@ -204,7 +226,7 @@ function genGameId(): GameIdPair {
           disabled={!isValidTeamSize || submitting}
           className={!isValidTeamSize || submitting ? styles.buttonDisabled : ''}
         >
-          {submitting ? 'Creating...' : 'Create Game'}
+          {submitting ? submittingText : buttonText}
         </button>
       </div>
     </div>

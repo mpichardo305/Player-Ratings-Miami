@@ -2,12 +2,13 @@ import { format } from 'date-fns';
 import supabase from "./supabase";
 
 export interface GameCreate {
-  id: string;
-  fieldName: string;
+  id?: string;
+  game_id?: string;
+  field_name: string; // Changed from fieldName
   date: Date; // ✅ Ensure this is a valid Date object
   start_time: string; // Example: "8:00 PM"
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date;
+  updated_at?: Date;
   group_id: string;
 }
 
@@ -53,7 +54,7 @@ export const createGame = async (gameData: GameCreate): Promise<Game> => {
     .insert([
       {
         id: gameData.id, 
-        field_name: gameData.fieldName,
+        field_name: gameData.field_name,
         date: sqlDate, // ✅ Ensures proper SQL format
         start_time: start_time, // ✅ Fix this
         created_at: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),

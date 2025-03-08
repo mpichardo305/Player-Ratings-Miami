@@ -4,6 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import styles from '../CreateGame.module.css';
 import PageBackground from './PageBackground';
 import PlayerSelection from './PlayerSelection';
+import GameCreationSuccess from './GameCreationSuccess';
 
 const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
 const TIME_OPTIONS = ['7:00 PM', '8:00 PM', '9:00 PM'];
@@ -15,6 +16,8 @@ export const CreateGame = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedField, setSelectedField] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [createdGameId, setCreatedGameId] = useState<string>('');
+  const [createdGameReadableId, setCreatedGameReadableId] = useState<string>('');
 
   const handleReset = () => {
     setSelectedDate(null);
@@ -28,6 +31,12 @@ export const CreateGame = () => {
       return;
     }
     setStep(2);
+  };
+
+  const handleGameCreated = (gameId: string, readableId: string) => {
+    setCreatedGameId(gameId);
+    setCreatedGameReadableId(readableId);
+    setStep(3);
   };
 
   return (    
@@ -77,10 +86,11 @@ export const CreateGame = () => {
             <button onClick={handleNext}>Next</button>
           </div>
         </>
-      ) : (
+      ) : step === 2 ? (
         <PlayerSelection 
           gameDetails={{
-            fieldName: selectedField,
+            id: '',
+            field_name: selectedField,
             date: selectedDate!,
             start_time: selectedTime,
             created_at: new Date(),
@@ -88,6 +98,16 @@ export const CreateGame = () => {
             group_id: GROUP_ID,
           }}
           onBack={() => setStep(1)}
+          mode="create"
+          onSuccess={handleGameCreated}
+        />
+      ) : (
+        <GameCreationSuccess
+          gameId={createdGameId}
+          readableId={createdGameReadableId}
+          fieldName={selectedField}
+          date={selectedDate!}
+          startTime={selectedTime}
         />
       )}
     </div>
