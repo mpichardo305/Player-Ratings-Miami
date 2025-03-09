@@ -35,6 +35,7 @@ export default function GameDetails() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState<string>('');
   
   // Share functionality
   const [showCopyConfirmation, setShowCopyConfirmation] = useState(false);
@@ -83,6 +84,10 @@ export default function GameDetails() {
 
         // After setting the game, fetch players
         fetchGamePlayers(data.id);
+        // Fetch the group name if we have a group_id
+        if (data.group_id) {
+          await fetchGroupName(data.group_id);
+        }
         
       } catch (err) {
         console.error('Error fetching game details:', err);
@@ -136,6 +141,27 @@ export default function GameDetails() {
     fetchGameDetails();
   }, [gameId]);
 
+  const fetchGroupName = async (groupId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('name')
+        .eq('id', groupId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching group name:', error);
+        return;
+      }
+      
+      if (data && data.name) {
+        setGroupName(data.name);
+      }
+    } catch (err) {
+      console.error('Error in fetchGroupName:', err);
+    }
+  };
+
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/game/${gameId}`;
     
@@ -182,7 +208,7 @@ export default function GameDetails() {
       </div>
           
       <div className={styles.gameInfo}>
-        <p><strong>Group Name:</strong> {game.group_id}</p>
+        <p><strong>Group:</strong> {groupName}</p>
         <p><strong>Field:</strong> {game.field_name}</p>
         <p><strong>Date:</strong> {String(game.date)}</p>
         <p><strong>Time:</strong> {formatTimeTo12Hour(new Date (game.start_time))}</p>
