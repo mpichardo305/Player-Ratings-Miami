@@ -29,7 +29,7 @@ type Player = {
 export default function GameDetails() {
   const params = useParams();
   const router = useRouter();
-  const gameId = params.gameId as string;
+  const gameId = params?.gameId as string || '';
   
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
