@@ -1,4 +1,5 @@
 'use client';
+import { format, parseISO } from 'date-fns';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -29,7 +30,14 @@ export default function ManagePlayers() {
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [readableId, setReadableId] = useState('');
+  
+  function formatTimeTo12Hour(date: Date): string {
+    return format(date, 'h:mm a'); // Outputs: "8:00 PM"
+  }
 
+  function formatDatetoUSA(date: Date): string {
+    return format(parseISO(date.toString()), 'EEEE, MMMM do'); // Outputs: "Sunday, March 9th"
+  }
   useEffect(() => {
     async function fetchGameDetails() {
       try {
@@ -59,7 +67,8 @@ export default function ManagePlayers() {
         // Convert date strings to Date objects
         setGame({
           ...data,
-          date: new Date(data.date),
+          date: formatDatetoUSA(data.date), 
+          start_time: formatTimeTo12Hour(new Date(data.start_time)),
           created_at: new Date(data.created_at),
           updated_at: new Date(data.updated_at)
         });

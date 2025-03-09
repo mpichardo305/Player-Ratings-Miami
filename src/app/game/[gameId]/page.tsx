@@ -6,6 +6,7 @@ import { supabase } from '@/app/utils/supabaseClient';
 import styles from '@/app/CreateGame.module.css';
 import { FaShareAlt } from 'react-icons/fa';
 import Link from 'next/link';
+import { format, parseISO } from 'date-fns';
 
 // Updated interface to match the database schema
 interface Game {
@@ -37,7 +38,12 @@ export default function GameDetails() {
   
   // Share functionality
   const [showCopyConfirmation, setShowCopyConfirmation] = useState(false);
-
+  function formatTimeTo12Hour(date: Date): string {
+    return format(date, 'h:mm a'); // Outputs: "8:00 PM"
+  }
+  function formatDatetoUSA(date: Date): string {
+    return format(parseISO(date.toString()), 'EEEE, MMMM do'); // Outputs: "Sunday, March 9th"
+  }
   useEffect(() => {
     async function fetchGameDetails() {
       try {
@@ -69,7 +75,8 @@ export default function GameDetails() {
         // Convert date strings to Date objects
         setGame({
           ...data,
-          date: new Date(data.date),
+          date: formatDatetoUSA(data.date), // ✅ Now converts UTC → ET
+          start_time: new Date(data.start_time),
           created_at: new Date(data.created_at),
           updated_at: new Date(data.updated_at)
         });
@@ -177,8 +184,8 @@ export default function GameDetails() {
       <div className={styles.gameInfo}>
         <p><strong>Group Name:</strong> {game.group_id}</p>
         <p><strong>Field:</strong> {game.field_name}</p>
-        <p><strong>Date:</strong> {game.date.toLocaleDateString()}</p>
-        <p><strong>Time:</strong> {game.start_time}</p>
+        <p><strong>Date:</strong> {String(game.date)}</p>
+        <p><strong>Time:</strong> {formatTimeTo12Hour(new Date (game.start_time))}</p>
       </div>
       
       <div className={styles.playerList}>
