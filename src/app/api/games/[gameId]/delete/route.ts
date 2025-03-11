@@ -3,13 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  context: any
 ) {
   console.log('DELETE received');
-  console.log('Request params:', params);
 
   try {
-    const gameId = params.gameId;
+    const { gameId } = context.params;
     // Remove the request.json() since we are not sending a request body in DELETE
     // const requestBody = await request.json();
 

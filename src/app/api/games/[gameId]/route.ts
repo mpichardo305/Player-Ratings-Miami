@@ -5,10 +5,10 @@ import { parse, format } from 'date-fns';
 // GET handler for fetching a game by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  context: any
 ) {
   try {
-    const gameId = params.gameId;
+    const { gameId } = context.params;
     
     const { data, error } = await supabase
       .from('games')
@@ -44,10 +44,10 @@ export async function GET(
 // PUT handler for updating a game
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  context: any
 ) {
   try {
-    const gameId = params.gameId;
+    const gameId = context.params.gameId;
     const body = await request.json();
     
     console.log('Updating game with data:', body);

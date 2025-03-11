@@ -8,7 +8,7 @@ export interface GameCreate {
   field_name: string; // Changed from fieldName
   date: string; 
   start_time: string; // Example: "8:00 PM"
-  created_at?: string;
+  created_at?: Date;
   updated_at?: Date;
   group_id?: string;
 }

@@ -3,13 +3,13 @@ import { updateGamePlayers } from '../../lib/updateGamePlayersService';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  context: any
 ) {
   console.log('PUT /api/update-game-players received');
-  console.log('Request params:', params);
+  
 
   try {
-    const gameId = params.gameId;
+    const gameId = context.params.gameId;
     const requestBody = await request.json();
     console.log('Request body:', requestBody);
 

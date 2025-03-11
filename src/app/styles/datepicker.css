@@ -1,0 +1,7 @@
+/* Global styles for react-datepicker that can be imported where needed */
+
+.react-datepicker__input-container input {
+  padding: 8px;
+  border-radius: 4px;
+  /* other styles */
+}

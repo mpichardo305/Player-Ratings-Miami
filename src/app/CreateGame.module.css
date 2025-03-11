@@ -85,14 +85,10 @@
     /* Horizontal spacing between buttons */
   }
 }
-:global(.react-datepicker__input-container input) {
+.datePickerWrapper :global(.react-datepicker__input-container input) {
   padding: 8px;
   border-radius: 4px;
-  border: 1px solid #333;
-  background-color: #2a2a2a;
-  color: white;
-  font-size: 1rem;
-  width: 100%;
+  /* other styles */
 }
 
 .playerSelection {
