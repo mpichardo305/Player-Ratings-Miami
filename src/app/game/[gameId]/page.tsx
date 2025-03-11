@@ -1,240 +1,267 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/app/utils/supabaseClient';
-import styles from '@/app/CreateGame.module.css';
-import { FaShareAlt } from 'react-icons/fa';
-import Link from 'next/link';
-import { format, parseISO } from 'date-fns';
+import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "@/app/hooks/useSession";
+import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
+import { formatDate } from "@/app/utils/dateUtils";
 
-// Updated interface to match the database schema
-interface Game {
+type Game = {
   id: string;
-  game_id: string; // Human readable ID
-  field_name: string; // Fixed field name property
-  date: Date;
+  field_name: string;
   start_time: string;
-  created_at: Date;
-  updated_at: Date;
   group_id: string;
-}
-
-type Player = {
-  id: string;
-  name: string;
-  status: string;
 };
 
-export default function GameDetails() {
+export default function GamePage() {
   const params = useParams();
   const router = useRouter();
-  const gameId = params?.gameId as string || '';
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode') || 'view'; // Default to view mode
   
+  const gameId = params.gameId as string;
   const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [groupName, setGroupName] = useState<string>('');
+  const session = useSession();
   
-  // Share functionality
-  const [showCopyConfirmation, setShowCopyConfirmation] = useState(false);
-  function formatTimeTo12Hour(date: Date): string {
-    return format(date, 'h:mm a'); // Outputs: "8:00 PM"
-  }
-  function formatDatetoUSA(date: Date): string {
-    return format(parseISO(date.toString()), 'EEEE, MMMM do'); // Outputs: "Sunday, March 9th"
-  }
+  // Add states to track initialization
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [adminCheckComplete, setAdminCheckComplete] = useState(false);
+  
+  // Form state (only needed for edit mode)
+  const [fieldName, setFieldName] = useState("");
+  const [startTime, setStartTime] = useState("");
+  
+  // Fetch game data
   useEffect(() => {
-    async function fetchGameDetails() {
+    const fetchGame = async () => {
       try {
-        // Enable debugging to see the response
-        console.log('Fetching game with ID:', gameId);
-        
-        const { data, error } = await supabase
-          .from('games')
-          .select('*')
-          .eq('id', gameId)
-          .single();
-
-        if (error) {
-          console.error('Error fetching game:', error);
-          setError('Failed to load game details');
-          setLoading(false);
-          return;
+        const response = await fetch(`/api/games/${gameId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch game details');
         }
-
-        if (!data) {
-          setError('Game not found');
-          setLoading(false);
-          return;
-        }
-
-        // Log the raw data to see field names
-        console.log('Raw game data:', data);
-
-        // Convert date strings to Date objects
-        setGame({
-          ...data,
-          date: formatDatetoUSA(data.date), // ✅ Now converts UTC → ET
-          start_time: new Date(data.start_time),
-          created_at: new Date(data.created_at),
-          updated_at: new Date(data.updated_at)
-        });
-
-        // After setting the game, fetch players
-        fetchGamePlayers(data.id);
-        // Fetch the group name if we have a group_id
-        if (data.group_id) {
-          await fetchGroupName(data.group_id);
-        }
+        const data = await response.json();
+        setGame(data);
         
-      } catch (err) {
-        console.error('Error fetching game details:', err);
-        setError('An unexpected error occurred');
-        setLoading(false);
-      }
-    }
-
-    const fetchGamePlayers = async (gameId: string) => {
-      try {
-        // First get player IDs from game_players
-        const { data: playerRelations, error: relationsError } = await supabase
-          .from('game_players')
-          .select('player_id')
-          .eq('game_id', gameId);
-        
-        if (relationsError || !playerRelations) {
-          console.error('Error fetching player relations:', relationsError);
-          setLoading(false);
-          return;
+        // Initialize form state if in edit mode
+        if (mode === 'edit') {
+          setFieldName(data.field_name);
+          setStartTime(data.start_time.substring(0, 16)); // Format for datetime-local input
         }
-        
-        if (playerRelations.length === 0) {
-          setPlayers([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Get player details for each player ID
-        const playerIds = playerRelations.map(relation => relation.player_id);
-        
-        const { data: playerDetails, error: playersError } = await supabase
-          .from('players')
-          .select('id, name, status')
-          .in('id', playerIds);
-          
-        if (playersError) {
-          console.error('Error fetching player details:', playersError);
-          setPlayers([]);
-        } else {
-          setPlayers(playerDetails || []);
-        }
-      } catch (err) {
-        console.error('Error in fetch players flow:', err);
-        setPlayers([]);
+      } catch (error) {
+        console.error('Error fetching game:', error);
+        setError('Failed to load game details');
       } finally {
         setLoading(false);
+        setInitialLoad(false);
       }
     };
 
-    fetchGameDetails();
-  }, [gameId]);
-
-  const fetchGroupName = async (groupId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('groups')
-        .select('name')
-        .eq('id', groupId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching group name:', error);
-        return;
-      }
-      
-      if (data && data.name) {
-        setGroupName(data.name);
-      }
-    } catch (err) {
-      console.error('Error in fetchGroupName:', err);
+    if (gameId) {
+      fetchGame();
     }
-  };
+  }, [gameId, mode]);
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/game/${gameId}`;
+  // Check if user is admin for this game's group
+  const [isAdminCheckLoading, isAdmin] = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? null);
+
+  // Track when admin check completes
+  useEffect(() => {
+    if (!isAdminCheckLoading && game?.group_id) {
+      setAdminCheckComplete(true);
+      
+      // Log for debugging
+      console.log({
+        adminCheckComplete: true,
+        isAdmin,
+        mode,
+        shouldRedirect: mode === 'edit' && !isAdmin
+      });
+    }
+  }, [isAdminCheckLoading, game?.group_id, isAdmin, mode]);
+
+  // Redirect only after initial load and admin check are complete
+  useEffect(() => {
+    if (!initialLoad && adminCheckComplete && mode === 'edit' && !isAdmin) {
+      console.log("Redirecting to view mode - not an admin");
+      router.push(`/game/${gameId}?mode=view`);
+    }
+  }, [initialLoad, adminCheckComplete, isAdmin, mode, gameId, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!isAdmin) {
+      setError("You don't have permission to edit this game");
+      return;
+    }
     
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      setShowCopyConfirmation(true);
-      setTimeout(() => setShowCopyConfirmation(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      alert('Failed to copy link. Please try again.');
+      const response = await fetch(`/api/games/${gameId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          field_name: fieldName,
+          start_time: new Date(startTime).toISOString(),
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update game');
+      }
+      
+      // Redirect to view mode after successful update
+      router.push(`/game/${gameId}?mode=view`);
+    } catch (error) {
+      console.error('Error updating game:', error);
+      setError('Failed to update game');
     }
   };
 
-  if (loading) {
-    return <div className={styles.container}>Loading game details...</div>;
-  }
+  // Debug panel to help investigate issues
+  const debugPanel = (
+    <div className="bg-gray-800 text-white p-4 mb-4 rounded-lg text-xs">
+      <h3 className="font-bold mb-1">Debug Info</h3>
+      <div>User ID: {session?.user?.id || 'none'}</div>
+      <div>Game Group: {game?.group_id || 'none'}</div>
+      <div>Is Admin: {isAdmin ? 'Yes' : 'No'}</div>
+      <div>Mode: {mode}</div>
+      <div>Initial Load: {initialLoad ? 'Yes' : 'No'}</div>
+      <div>Admin Check Complete: {adminCheckComplete ? 'Yes' : 'No'}</div>
+      <div>Admin Check Loading: {isAdminCheckLoading ? 'Yes' : 'No'}</div>
+    </div>
+  );
 
-  if (error || !game) {
-    return <div className={styles.container}>
-      <h2>Error</h2>
-      <p>{error || 'Failed to load game'}</p>
-      <button onClick={() => router.push('/')}>Return Home</button>
-    </div>;
-  }
-// hardcoded the group name. Should later pull the group name from supabase based on the group_id
-  return (
-    <div className={styles.container}>
-      <div className={styles.gameDetailsHeader}>
-        <h2>Game Details</h2>
-        
-        <div className={styles.shareSection}>
-          <button 
-            onClick={handleShare} 
-            className={styles.shareButton}
-          >
-            <FaShareAlt /> Share
-          </button>
-          {showCopyConfirmation && (
-            <div className={styles.copyConfirmation}>
-              Link copied!
-            </div>
-          )}
+  if (loading || isAdminCheckLoading) {
+    return (
+      <div className="min-h-screen bg-gray-600 p-4">
+        {debugPanel}
+        <div className="text-white text-center p-8">
+          Loading game details...
         </div>
       </div>
-          
-      <div className={styles.gameInfo}>
-        <p><strong>Group:</strong> {groupName}</p>
-        <p><strong>Field:</strong> {game.field_name}</p>
-        <p><strong>Date:</strong> {String(game.date)}</p>
-        <p><strong>Time:</strong> {formatTimeTo12Hour(new Date (game.start_time))}</p>
+    );
+  }
+
+  if (error && (mode !== 'edit' || !isAdmin)) {
+    return (
+      <div className="min-h-screen bg-gray-600 p-4">
+        {debugPanel}
+        <div className="text-red-500 text-center p-8">{error}</div>
       </div>
-      
-      <div className={styles.playerList}>
-        <h3>Players ({players.length})</h3>
+    );
+  }
+
+  if (!game) {
+    return (
+      <div className="min-h-screen bg-gray-600 p-4">
+        {debugPanel}
+        <div className="text-red-500 text-center p-8">Game not found</div>
+      </div>
+    );
+  }
+
+  // Prevent unauthorized edit access
+  if (mode === 'edit' && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-600 p-4">
+        {debugPanel}
+        <div className="text-red-500 text-center p-8">
+          You do not have permission to edit this game.
+        </div>
+      </div>
+    );
+  }
+
+  // View Mode
+  if (mode === 'view') {
+    return (
+      <div className="min-h-screen bg-gray-600 p-4">
+        {debugPanel}
+        <h1 className="text-3xl font-bold mb-6 text-white">Game Details</h1>
         
-        {players.length === 0 ? (
-          <p>No players assigned to this game yet.</p>
-        ) : (
-          players.map(player => (
-            <div key={player.id} className={styles.playerItem}>
-              <span>{player.name}</span>
+        <div className="bg-gray-700 rounded-lg p-6">
+          <h2 className="text-2xl font-semibold text-white mb-4">{game.field_name}</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <p className="text-gray-300 text-sm">Start Time</p>
+              <p className="text-white">{formatDate(game.start_time)}</p>
             </div>
-          ))
+          </div>
+        </div>
+        
+        {/* Add edit button outside the details card for admins */}
+        {isAdmin && (
+          <div className="mt-6">
+            <button
+              onClick={() => router.push(`/game/${gameId}?mode=edit`)}
+              className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+            >
+              Switch to Edit Mode
+            </button>
+          </div>
         )}
       </div>
+    );
+  }
+  
+  // Edit Mode (only accessible by admins)
+  return (
+    <div className="min-h-screen bg-gray-600 p-4">
+      {debugPanel}
+      <h1 className="text-3xl font-bold mb-6 text-white">Edit Game</h1>
       
-      <div className={styles.actionButtons}>
-        <Link href="/" passHref>
-          <button className={styles.secondaryButton}>
-            Return to Dashboard
+      {error && (
+        <div className="bg-red-500 text-white p-4 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="bg-gray-700 rounded-lg p-6">
+        <div className="mb-4">
+          <label htmlFor="field_name" className="block text-white mb-2">Field Name</label>
+          <input
+            type="text"
+            id="field_name"
+            value={fieldName}
+            onChange={(e) => setFieldName(e.target.value)}
+            required
+            className="w-full p-2 border border-gray-300 rounded bg-gray-800 text-white"
+          />
+        </div>
+        
+        <div className="mb-6">
+          <label htmlFor="start_time" className="block text-white mb-2">Start Time</label>
+          <input
+            type="datetime-local"
+            id="start_time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            required
+            className="w-full p-2 border border-gray-300 rounded bg-gray-800 text-white"
+          />
+        </div>
+        
+        <div className="flex justify-end space-x-4">
+          <button
+            type="button"
+            onClick={() => router.push(`/game/${gameId}?mode=view`)}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Cancel
           </button>
-        </Link>
-      </div>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

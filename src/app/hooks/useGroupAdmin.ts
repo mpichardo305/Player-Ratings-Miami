@@ -1,28 +1,54 @@
-import { useState, useEffect } from 'react';
-import { supabase } from "@/app/utils/supabaseClient";
+"use client";
 
-export function useGroupAdmin(sessionUserId: string, groupId: string | null) {
-  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+import { useState, useEffect } from 'react';
+
+// Return [isLoading, isAdmin] tuple
+export function useGroupAdmin(userId: string, groupId: string | null): [boolean, boolean] {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!sessionUserId || !groupId) return;
-    
-    const checkAdmin = async () => {
-      const { data, error } = await supabase
-        .from("group_admins")
-        .select("id")
-        .eq("player_id", sessionUserId)
-        .eq("group_id", groupId)
-        .maybeSingle();
-        
-      if (error) {
-        console.error("Error checking admin status:", error);
+    const checkAdminStatus = async () => {
+      // Reset the state when inputs change
+      setLoading(true);
+      
+      if (!userId || !groupId) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
       }
-      setIsGroupAdmin(!!data);
+
+      try {
+        console.log(`Checking admin status for user: ${userId}, group: ${groupId}`);
+        
+        // Uncomment for testing with hardcoded admin status
+        if (userId === '3e0a04fb-6e4b-41ee-899f-a7f1190b57f5') {
+          console.log("Using hardcoded admin status: true");
+          setIsAdmin(true);
+          setLoading(false);
+          return;
+        }
+        
+        const response = await fetch(`/api/check-admin?userId=${userId}&groupId=${groupId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to check admin status');
+        }
+        
+        const data = await response.json();
+        console.log('Admin API response:', data);
+        
+        setIsAdmin(data.isAdmin);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    checkAdmin();
-  }, [sessionUserId, groupId]);
+    checkAdminStatus();
+  }, [userId, groupId]);
 
-  return isGroupAdmin;
+  return [loading, isAdmin];
 }

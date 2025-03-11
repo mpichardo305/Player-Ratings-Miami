@@ -35,7 +35,7 @@ export async function GET() {
     // Now fetch games for these groups
     const { data, error } = await supabase
       .from('games')
-      .select('id, start_time, field_name')
+      .select('id, start_time, field_name, group_id')
       .in('group_id', accessibleGroupIds)
       .order('start_time', { ascending: true });
 
