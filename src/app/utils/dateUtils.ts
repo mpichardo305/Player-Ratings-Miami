@@ -44,10 +44,9 @@ export function formatDateOnly(dateString: string): string {
     const date = new Date(dateString);
     
     return date.toLocaleDateString('en-US', {
-      weekday: 'short',
+      weekday: 'long',
       month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
+      day: 'numeric'
     });
   } catch (error) {
     console.error('Error formatting date:', error);

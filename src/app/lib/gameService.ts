@@ -1,15 +1,16 @@
 import { format } from 'date-fns';
 import supabase from './supabase';
+import { formatDateOnly, formatTimeOnly } from '../utils/dateUtils';
 
 export interface GameCreate {
   id?: string;
   game_id?: string;
   field_name: string; // Changed from fieldName
-  date: string; // ✅ Ensure this is a valid Date object
+  date: string; 
   start_time: string; // Example: "8:00 PM"
-  created_at?: Date;
+  created_at?: string;
   updated_at?: Date;
-  group_id: string;
+  group_id?: string;
 }
 
 export interface Game extends GameCreate {
@@ -56,9 +57,6 @@ function convertToUTC(date: Date, time: string): string {
  */
 export const createGame = async (gameData: GameCreate): Promise<Game> => {
   console.log('🎮 Creating new game with data:', gameData);
-
-  // Convert provided date to proper UTC format
-  const sqlDate = convertToUTC(new Date(gameData.date), gameData.start_time);
   
   // Ensure `created_at` and `updated_at` timestamps are in UTC
   const createdAt = format(new Date(), "yyyy-MM-dd HH:mm:ss'Z'");
@@ -71,15 +69,15 @@ export const createGame = async (gameData: GameCreate): Promise<Game> => {
       {
         id: gameData.id, 
         field_name: gameData.field_name,
-        date: sqlDate, // ✅ Proper UTC conversion
-        start_time: sqlDate, // ✅ Fix for correct time storage
+        date: formatDateOnly(gameData.date), 
+        start_time: formatTimeOnly(gameData.start_time), 
         created_at: createdAt,
         updated_at: updatedAt,
         group_id: gameData.group_id,
       }
     ])
     .select()
-    .single(); // Get the inserted row
+    .single(); 
 
   if (error) {
     console.error('🚨 Error inserting game into DB:', error);
@@ -90,3 +88,26 @@ export const createGame = async (gameData: GameCreate): Promise<Game> => {
 
   return data as Game;
 };
+
+export async function updateGame(gameId: string, gameData: Partial<GameCreate>) {
+  try {
+    // Make sure start_time is sent as a string directly without further processing
+    const response = await fetch(`/api/games/${gameId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(gameData), // Send the data as provided without manipulation
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update game');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in updateGame:', error);
+    throw error;
+  }
+}
