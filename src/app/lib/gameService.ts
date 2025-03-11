@@ -5,7 +5,7 @@ export interface GameCreate {
   id?: string;
   game_id?: string;
   field_name: string; // Changed from fieldName
-  date: Date; // ✅ Ensure this is a valid Date object
+  date: string; // ✅ Ensure this is a valid Date object
   start_time: string; // Example: "8:00 PM"
   created_at?: Date;
   updated_at?: Date;
@@ -58,7 +58,7 @@ export const createGame = async (gameData: GameCreate): Promise<Game> => {
   console.log('🎮 Creating new game with data:', gameData);
 
   // Convert provided date to proper UTC format
-  const sqlDate = convertToUTC(gameData.date, gameData.start_time);
+  const sqlDate = convertToUTC(new Date(gameData.date), gameData.start_time);
   
   // Ensure `created_at` and `updated_at` timestamps are in UTC
   const createdAt = format(new Date(), "yyyy-MM-dd HH:mm:ss'Z'");

@@ -1,110 +1,142 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/app/utils/supabaseClient';
+import { parse, format } from 'date-fns';
 
-// Initialize Supabase client with environment variables
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
-
+// GET handler for fetching a game by ID
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { gameId: string } }
 ) {
   try {
-    // Fix: Await params to satisfy Next.js warning
-    const { gameId } = await Promise.resolve(params);
-
+    const gameId = params.gameId;
+    
     const { data, error } = await supabase
       .from('games')
       .select('*')
       .eq('id', gameId)
       .single();
-
+    
     if (error) {
       console.error('Error fetching game:', error);
-      return NextResponse.json({ error: 'Failed to fetch game' }, { status: 500 });
-    }
-
-    if (!data) {
-      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function PUT(
-  request: Request,
-  { params }: { params: { gameId: string } }
-) {
-  try {
-    // Fix: Await params to satisfy Next.js warning
-    const { gameId } = await Promise.resolve(params);
-    const body = await request.json();
-    
-    // Extract the user claims from the request
-    // In a real implementation, you'd get this from a server-side session
-    // This is a placeholder for where you'd check the user's admin status
-    const playerId = '3e0a04fb-6e4b-41ee-899f-a7f1190b57f5'; // Example - you'd get this from auth
-    
-    // First, get the game to check its group_id
-    const { data: game, error: gameError } = await supabase
-      .from('games')
-      .select('group_id')
-      .eq('id', gameId)
-      .single();
-    
-    if (gameError) {
-      console.error('Error fetching game:', gameError);
-      return NextResponse.json({ error: 'Failed to fetch game' }, { status: 500 });
-    }
-    
-    // Check if the user is an admin for this group
-    const { data: isAdmin, error: adminError } = await supabase
-      .from('group_admins')
-      .select('id')
-      .eq('player_id', playerId)
-      .eq('group_id', game.group_id)
-      .maybeSingle();
-    
-    if (adminError) {
-      console.error('Error checking admin status:', adminError);
-      return NextResponse.json({ error: 'Failed to verify permissions' }, { status: 500 });
-    }
-    
-    // If not admin, deny access
-    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'You do not have permission to edit this game' }, 
-        { status: 403 }
+        { error: 'Failed to fetch game' },
+        { status: 500 }
       );
     }
     
-    // Proceed with the update
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Game not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error in GET handler:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT handler for updating a game
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { gameId: string } }
+) {
+  try {
+    const gameId = params.gameId;
+    const body = await request.json();
+    
+    console.log('Updating game with data:', body);
+    console.log('Time format received:', body.start_time);
+    
+    // For timestamptz column, we need a complete ISO timestamp
+    let fullTimestamp;
+    
+    if (body.date && body.start_time) {
+      // Extract the date portion from the ISO string
+      const datePart = body.date.split('T')[0];
+      
+      // Convert and validate time format
+      let timepart = body.start_time;
+      
+      // Try to normalize the time format if it doesn't match already
+      if (!timepart.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/)) {
+        console.log('Invalid time format detected, attempting to fix:', timepart);
+        
+        // Try to handle different time formats
+        if (timepart.includes('PM') || timepart.includes('AM')) {
+          // Handle 12-hour format (like "8:00 PM")
+          try {
+            const dt = parse(timepart, 'h:mm a', new Date());
+            timepart = format(dt, 'HH:mm:ss');
+            console.log('Converted 12-hour format to 24-hour:', timepart);
+          } catch (e) {
+            console.error('Failed to parse 12-hour format:', e);
+          }
+        } else {
+          // Try to add seconds if missing
+          if (timepart.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+            timepart = `${timepart}:00`;
+            console.log('Added seconds to time:', timepart);
+          }
+        }
+      }
+      
+      // Final validation
+      if (!timepart.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/)) {
+        console.error('Invalid time format after fixes:', timepart);
+        return NextResponse.json(
+          { 
+            error: 'Invalid time format. Expected HH:MM:SS',
+            receivedFormat: timepart 
+          },
+          { status: 400 }
+        );
+      }
+      
+      // Create a complete ISO8601 timestamp with timezone (Z = UTC)
+      fullTimestamp = `${datePart}T${timepart}.000Z`;
+      console.log('Created full timestamp:', fullTimestamp);
+    } else {
+      console.error('Missing date or time:', body.date, body.start_time);
+      return NextResponse.json(
+        { error: 'Date and time are required' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('Full timestamp for database:', fullTimestamp);
+    
     const { data, error } = await supabase
       .from('games')
       .update({
         field_name: body.field_name,
-        start_time: body.start_time,
-        // Add other fields as needed
+        date: body.date,
+        start_time: fullTimestamp, // Use the complete timestamptz format
+        updated_at: new Date().toISOString()
       })
       .eq('id', gameId)
-      .select()
-      .single();
-
+      .select();
+    
     if (error) {
       console.error('Error updating game:', error);
-      return NextResponse.json({ error: 'Failed to update game' }, { status: 500 });
+      return NextResponse.json(
+        { error: `Database error: ${error.message}` },
+        { status: 500 }
+      );
     }
-
-    return NextResponse.json(data);
+    
+    return NextResponse.json(data[0] || {});
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error in PUT handler:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 

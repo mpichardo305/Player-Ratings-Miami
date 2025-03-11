@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDate } from "@/app/utils/dateUtils";
+import { formatTimeOnly } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { useRouter } from "next/navigation";
@@ -124,7 +124,7 @@ export default function AllGames() {
               {games.map((game) => (
                 <tr key={game.id} className="border-t border-gray-700 hover:bg-gray-700">
                   <td className="py-3 px-4">{game.field_name}</td>
-                  <td className="py-3 px-4">{formatDate(game.start_time)}</td>
+                  <td className="py-3 px-4">{formatTimeOnly(game.start_time)}</td>
                   <td className="py-3 px-4 text-center">
                     <button
                       onClick={() => handleView(game.id)}

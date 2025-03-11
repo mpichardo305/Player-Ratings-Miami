@@ -4,6 +4,7 @@ import { supabase } from "@/app/utils/supabaseClient";
 import { v4 as uuidv4 } from 'uuid';
 import { updateGamePlayers } from '../lib/updateGamePlayersService';
 import { createGame, GameCreate } from '../lib/gameService';  
+import { formatDateOnly, formatTimeOnly } from '../utils/dateUtils';
 
 type Player = {
   id: string;      
@@ -187,12 +188,12 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
 
   return (
-    <div className={styles.playerSelection}>
+    <div className={styles.playerList}>
       <h2>{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
       <div className={styles.gameInfo}>
         <p>Field: {gameDetails.field_name || gameDetails.field_name}</p>
-        <p>Date: {`${gameDetails.date}`}</p>
-        <p>Start Time: {gameDetails.start_time}</p>
+        <p>Date: {`${formatDateOnly(gameDetails.date)}`}</p>
+        <p>Start Time: {`${formatTimeOnly(gameDetails.start_time)}`}</p>
       </div>
       <div className={styles.playerList}>
         <p>Select the guys that will play (max {MAX_PLAYERS})</p>

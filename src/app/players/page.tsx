@@ -70,21 +70,21 @@ export default function Players() {
       {selectedGroup ? (
         <>
         {session && isGroupAdmin && (
+          <div className="mt-4 flex gap-6">
             <button
               onClick={() => handleCreateGame(selectedGroup.id)}
-              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Create Game
             </button>
-          )}
-          {session && isGroupAdmin && (
             <button
               onClick={() => setShowApproveDialog(true)}
-              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
             >
               Show Pending Players
             </button>
-          )}
+          </div>
+        )}
           {selectedGroup && isGroupAdmin && (
             <InviteDialog groupId={selectedGroup.id} onClose={() => setShowApproveDialog(false)}
             />
