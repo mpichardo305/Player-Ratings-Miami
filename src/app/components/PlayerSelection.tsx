@@ -191,9 +191,8 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
       <h2>{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
       <div className={styles.gameInfo}>
         <p>Field: {gameDetails.field_name || gameDetails.field_name}</p>
-        <p>Date: {gameDetails.date.toString()}</p>
+        <p>Date: {`${gameDetails.date}`}</p>
         <p>Start Time: {gameDetails.start_time}</p>
-        {mode === 'update' && gameDetails.id && <p>Game ID: {gameDetails.game_id || gameDetails.id}</p>}
       </div>
       <div className={styles.playerList}>
         <p>Select the guys that will play (max {MAX_PLAYERS})</p>

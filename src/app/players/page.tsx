@@ -27,6 +27,10 @@ export default function Players() {
     router.push("/logout");
   };
 
+  function handleCreateGame(id: string): void {
+    router.push(`/create-game/groupId=${id}`);
+  }
+
   return (
     <div className="min-h-screen bg-gray-600 p-4 relative">
       {/* Hamburger Menu Button */}
@@ -65,6 +69,14 @@ export default function Players() {
       
       {selectedGroup ? (
         <>
+        {session && isGroupAdmin && (
+            <button
+              onClick={() => handleCreateGame(selectedGroup.id)}
+              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            >
+              Create Game
+            </button>
+          )}
           {session && isGroupAdmin && (
             <button
               onClick={() => setShowApproveDialog(true)}

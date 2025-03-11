@@ -12,7 +12,8 @@ export async function GET(
   { params }: { params: { gameId: string } }
 ) {
   try {
-    const gameId = params.gameId;
+    // Fix: Await params to satisfy Next.js warning
+    const { gameId } = await Promise.resolve(params);
 
     const { data, error } = await supabase
       .from('games')
@@ -41,7 +42,8 @@ export async function PUT(
   { params }: { params: { gameId: string } }
 ) {
   try {
-    const gameId = params.gameId;
+    // Fix: Await params to satisfy Next.js warning
+    const { gameId } = await Promise.resolve(params);
     const body = await request.json();
     
     // Extract the user claims from the request

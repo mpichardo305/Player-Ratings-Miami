@@ -5,7 +5,7 @@ import { formatDate } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { useRouter } from "next/navigation";
-import { PencilIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, EyeIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 type Game = {
   id: string;
@@ -17,11 +17,10 @@ type Game = {
 export default function AllGames() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const router = useRouter();
   const session = useSession();
   
-  // We'll use the first game's group_id for the admin check
-  // This is a simplification - ideally you'd check admin status per game
   const firstGroupId = games.length > 0 ? games[0]?.group_id : null;
   const isAdmin = useGroupAdmin(session?.user?.id ?? '', firstGroupId);
   
@@ -56,6 +55,53 @@ export default function AllGames() {
     return <div className="text-white text-center py-8">Loading games...</div>;
   }
 
+  const handleDeleteClick = (id: string) => {
+    setShowDeleteModal(id);
+  };
+
+  // Use the '/delete' endpoint and remove the duplicate function
+  const handleConfirmDelete = async () => {
+    if (!showDeleteModal) return;
+    try {
+      const response = await fetch(`/api/games/${showDeleteModal}/delete`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete game");
+      }
+      setGames(games.filter((game) => game.id !== showDeleteModal));
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      alert("Failed to delete game");
+    } finally {
+      setShowDeleteModal(null);
+    }
+  };
+
+  function DeleteModal({
+    onConfirm,
+    onCancel,
+  }: {
+    onConfirm: () => void;
+    onCancel: () => void;
+  }) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-700 bg-opacity-80 z-50">
+        <div className="bg-gray-800 p-6 rounded-md">
+          <p className="text-white">Are you sure you want to delete this game?</p>
+          <div className="mt-4 flex justify-end space-x-4">
+            <button onClick={onConfirm} className="px-3 py-1 bg-red-500 text-white rounded">
+              Yes
+            </button>
+            <button onClick={onCancel} className="px-3 py-1 bg-gray-400 text-white rounded">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-700 rounded-lg p-4 mt-4">
       <h2 className="text-2xl font-bold mb-4 text-white">All Games</h2>
@@ -71,6 +117,7 @@ export default function AllGames() {
                 <th className="py-3 px-4 text-left">Start Time</th>
                 <th className="py-3 px-4 text-center">View</th>
                 {isAdmin && <th className="py-3 px-4 text-center">Edit</th>}
+                {isAdmin && <th className="py-3 px-4 text-center">Delete</th>}
               </tr>
             </thead>
             <tbody>
@@ -98,11 +145,28 @@ export default function AllGames() {
                       </button>
                     </td>
                   )}
+                  {isAdmin && (
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => handleDeleteClick(game.id)}
+                        className="text-yellow-400 hover:text-yellow-300"
+                        aria-label="Delete game"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+      {showDeleteModal && (
+        <DeleteModal
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteModal(null)}
+        />
       )}
     </div>
   );
