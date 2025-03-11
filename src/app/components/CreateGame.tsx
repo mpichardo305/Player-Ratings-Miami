@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import DatePicker from 'react-datepicker';
+import DatePickerComponent from './DatePickerComponent';
 import 'react-datepicker/dist/react-datepicker.css';
 import styles from '../CreateGame.module.css';
 import PageBackground from './PageBackground';
@@ -60,11 +60,9 @@ export const CreateGame = () => {
 
           <div className={styles.formGroup}>
             <label>Date</label>
-            <DatePicker
-              selected={selectedDate}
+            <DatePickerComponent
+              selectedDate={selectedDate}
               onChange={(date) => setSelectedDate(date)}
-              dateFormat="MMMM d, yyyy"
-              placeholderText="Select date"
             />
           </div>
 
@@ -91,7 +89,7 @@ export const CreateGame = () => {
           gameDetails={{
             id: '',
             field_name: selectedField,
-            date: selectedDate!,
+            date: selectedDate!.toISOString().split('T')[0],
             start_time: selectedTime,
             created_at: new Date(),
             updated_at: new Date(),

@@ -1,7 +1,8 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState } from "react";
-import { formatTimeOnly } from "@/app/utils/dateUtils";
+import { formatDateOnly, formatTimeOnly } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { useRouter } from "next/navigation";
@@ -10,6 +11,7 @@ import { PencilIcon, EyeIcon, TrashIcon } from "@heroicons/react/24/outline";
 type Game = {
   id: string;
   field_name: string;
+  date: string;
   start_time: string;
   group_id: string;
 };
@@ -114,6 +116,7 @@ export default function AllGames() {
             <thead>
               <tr className="bg-gray-900">
                 <th className="py-3 px-4 text-left">Field Name</th>
+                <th className="py-3 px-4 text-left">Date</th>
                 <th className="py-3 px-4 text-left">Start Time</th>
                 <th className="py-3 px-4 text-center">View</th>
                 {isAdmin && <th className="py-3 px-4 text-center">Edit</th>}
@@ -124,6 +127,7 @@ export default function AllGames() {
               {games.map((game) => (
                 <tr key={game.id} className="border-t border-gray-700 hover:bg-gray-700">
                   <td className="py-3 px-4">{game.field_name}</td>
+                  <td className="py-3 px-4">{formatDateOnly(game.date)}</td>
                   <td className="py-3 px-4">{formatTimeOnly(game.start_time)}</td>
                   <td className="py-3 px-4 text-center">
                     <button

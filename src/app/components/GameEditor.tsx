@@ -207,7 +207,8 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
           body: JSON.stringify({
             field_name: selectedField,
             date: selectedDate?.toISOString(),
-            start_time: formattedTime, // Just send the time component now
+            start_time: formattedTime,
+            created_at: game?.created_at,
           }),
         });
 
