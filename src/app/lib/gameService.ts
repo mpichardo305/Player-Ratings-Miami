@@ -3,14 +3,14 @@ import supabase from './supabase';
 import { formatDateOnly, formatTimeOnly } from '../utils/dateUtils';
 
 export interface GameCreate {
-  id?: string;
+  id: string;
+  field_name: string;
+  date: Date | string; // Accept both Date and string
+  start_time: string;
+  created_at: Date;
+  updated_at: Date;
+  group_id: string;
   game_id?: string;
-  field_name: string; // Changed from fieldName
-  date: string; 
-  start_time: string; // Example: "8:00 PM"
-  created_at?: Date;
-  updated_at?: Date;
-  group_id?: string;
 }
 
 export interface Game extends GameCreate {
@@ -55,25 +55,40 @@ function convertToUTC(date: Date, time: string): string {
 /**
  * Creates a new game in the database and stores all timestamps in UTC.
  */
-export const createGame = async (gameData: GameCreate): Promise<Game> => {
-  console.log('🎮 Creating new game with data:', gameData);
+export const createGame = async (gameDetails: GameCreate): Promise<Game> => {
+  console.log('🎮 Creating new game with data:', gameDetails);
   
+  // If gameDetails.date is a Date object, convert it to ISO string for API
+  const dataToSend = {
+    ...gameDetails,
+    date: gameDetails.date instanceof Date 
+      ? gameDetails.date.toISOString().split('T')[0]
+      : gameDetails.date
+  };
+
   // Ensure `created_at` and `updated_at` timestamps are in UTC
   const createdAt = format(new Date(), "yyyy-MM-dd HH:mm:ss'Z'");
   const updatedAt = format(new Date(), "yyyy-MM-dd HH:mm:ss'Z'");
+
+  // Format the date as YYYY-MM-DD for PostgreSQL
+  const formattedDate = gameDetails.date instanceof Date 
+    ? format(gameDetails.date, 'yyyy-MM-dd')
+    : typeof gameDetails.date === 'string' && gameDetails.date.includes(',')
+      ? format(new Date(gameDetails.date), 'yyyy-MM-dd')
+      : gameDetails.date;
 
   // Insert into Supabase
   const { data, error } = await supabase
     .from('games')
     .insert([
       {
-        id: gameData.id, 
-        field_name: gameData.field_name,
-        date: formatDateOnly(gameData.date), 
-        start_time: formatTimeOnly(gameData.start_time), 
+        id: gameDetails.id, 
+        field_name: gameDetails.field_name,
+        date: formattedDate, // Use properly formatted date
+        start_time: formatTimeOnly(gameDetails.start_time), 
         created_at: createdAt,
         updated_at: updatedAt,
-        group_id: gameData.group_id,
+        group_id: gameDetails.group_id,
       }
     ])
     .select()

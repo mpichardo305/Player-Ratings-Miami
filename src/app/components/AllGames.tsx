@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useEffect, useState } from "react";
-import { formatDateOnly, formatTimeOnly } from "@/app/utils/dateUtils";
+import { formatDateOnly, formatTimeOnly, formatDatePreserveDay } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { useRouter } from "next/navigation";
@@ -124,44 +124,47 @@ export default function AllGames() {
               </tr>
             </thead>
             <tbody>
-              {games.map((game) => (
-                <tr key={game.id} className="border-t border-gray-700 hover:bg-gray-700">
-                  <td className="py-3 px-4">{game.field_name}</td>
-                  <td className="py-3 px-4">{formatDateOnly(game.date)}</td>
-                  <td className="py-3 px-4">{formatTimeOnly(game.start_time)}</td>
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => handleView(game.id)}
-                      className="text-blue-400 hover:text-blue-300"
-                      aria-label="View game details"
-                    >
-                      <EyeIcon className="h-5 w-5" />
-                    </button>
-                  </td>
-                  {isAdmin && (
+              {games.map((game) => {
+                console.log(`Game ID: ${game.id}, Date: ${game.date}, Type: ${typeof game.date}`);
+                return (
+                  <tr key={game.id} className="border-t border-gray-700 hover:bg-gray-700">
+                    <td className="py-3 px-4">{game.field_name}</td>
+                    <td className="py-3 px-4">{formatDatePreserveDay(game.date)}</td>
+                    <td className="py-3 px-4">{formatTimeOnly(game.start_time)}</td>
                     <td className="py-3 px-4 text-center">
                       <button
-                        onClick={() => handleEdit(game.id)}
-                        className="text-yellow-400 hover:text-yellow-300"
-                        aria-label="Edit game"
+                        onClick={() => handleView(game.id)}
+                        className="text-blue-400 hover:text-blue-300"
+                        aria-label="View game details"
                       >
-                        <PencilIcon className="h-5 w-5" />
+                        <EyeIcon className="h-5 w-5" />
                       </button>
                     </td>
-                  )}
-                  {isAdmin && (
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleDeleteClick(game.id)}
-                        className="text-yellow-400 hover:text-yellow-300"
-                        aria-label="Delete game"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
+                    {isAdmin && (
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => handleEdit(game.id)}
+                          className="text-yellow-400 hover:text-yellow-300"
+                          aria-label="Edit game"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => handleDeleteClick(game.id)}
+                          className="text-yellow-400 hover:text-yellow-300"
+                          aria-label="Delete game"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

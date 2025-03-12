@@ -38,7 +38,6 @@ const GameCreationSuccess = ({
       <h2>Game Created Successfully!</h2>
       
       <div className={styles.gameDetails}>
-        <p><strong>Game ID:</strong> {readableId}</p>
         <p><strong>Field:</strong> {fieldName}</p>
         <p><strong>Date:</strong> {date.toLocaleDateString()}</p>
         <p><strong>Time:</strong> {startTime}</p>

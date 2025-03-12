@@ -89,7 +89,7 @@ export const CreateGame = () => {
           gameDetails={{
             id: '',
             field_name: selectedField,
-            date: selectedDate!.toISOString().split('T')[0],
+            date: selectedDate!, // Pass the Date object directly instead of converting to string
             start_time: selectedTime,
             created_at: new Date(),
             updated_at: new Date(),
