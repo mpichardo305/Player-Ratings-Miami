@@ -8,10 +8,10 @@ import { supabase } from "@/app/utils/supabaseClient";
 
 interface PhoneAuthProps {
   onVerificationSuccess?: () => void;
-  
+  refreshPhoneNumber?: () => void;
 }
 
-const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess }) => {
+const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess, refreshPhoneNumber }) => {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -58,6 +58,11 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess }) => {
 
         if (updateError) {
           console.error('Failed to update user metadata:', updateError);
+        }
+
+        // Explicitly refresh the phone number if the function is provided
+        if (refreshPhoneNumber) {
+          refreshPhoneNumber();
         }
 
         if (onVerificationSuccess) {
