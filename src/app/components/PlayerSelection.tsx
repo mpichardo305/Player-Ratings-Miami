@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
 import styles from '../CreateGame.module.css';
-import { supabase } from "@/app/utils/supabaseClient";
 import { v4 as uuidv4 } from 'uuid';
 import { updateGamePlayers } from '../lib/updateGamePlayersService';
 import { createGame, GameCreate } from '../lib/gameService';  
 import { formatDateOnly, formatTimeOnly } from '../utils/dateUtils';
-
-type Player = {
-  id: string;      
-  name: string;
-  status: string;
-};
+import { Player, fetchGroupPlayers, fetchExistingPlayerIds } from '../utils/playerDb';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -49,72 +43,31 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
 
   const fetchPlayers = async () => {
     setLoading(true);
-
     try {
-      // Fetch all memberships
-      const { data: memberships, error: membershipsError } = await supabase
-        .from("group_memberships")
-        .select(`
-          status,
-          players:players!inner (
-            id,
-            name,
-            status
-          )
-        `)
-        .eq("group_id", GROUP_ID);
-
-      if (membershipsError || !memberships) {
-        console.error("❌ Error fetching players:", membershipsError);
-        setPlayers([]);
-        return;
-      }
-
-      const approvedPlayers: Player[] = memberships
-      .filter((m) => m.status === "approved")  
-      .flatMap((m) => m.players ?? [])
-      .map((pl) => ({
-        ...pl,
-      }));
-
-      if (approvedPlayers.length === 0) {
-        setPlayers([]);
-        return;
-      }      
+      const approvedPlayers = await fetchGroupPlayers(GROUP_ID);
       setPlayers(approvedPlayers);
-      
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchExistingPlayers = async () => {
+  const loadExistingPlayers = async () => {
     if (mode !== 'update' || !gameId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('game_players')
-        .select('player_id')
-        .eq('game_id', gameId);
-      
-      if (error) {
-        console.error('Error fetching existing players:', error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        const existingPlayerIds = data.map(item => item.player_id);
+      const existingPlayerIds = await fetchExistingPlayerIds(gameId);
+      if (existingPlayerIds.length > 0) {
         setSelectedPlayers(new Set(existingPlayerIds));
       }
     } catch (error) {
-      console.error('Error fetching existing players:', error);
+      console.error('Error loading existing players:', error);
     }
   };
 
   useEffect(() => {
     fetchPlayers();
     if (mode === 'update' && gameId) {
-      fetchExistingPlayers();
+      loadExistingPlayers();
     }
   }, [mode, gameId]);
 

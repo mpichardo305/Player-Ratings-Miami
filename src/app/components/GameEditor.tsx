@@ -251,7 +251,10 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
       <div className={styles.container}>
         <h2>Error</h2>
         <p>{error}</p>
-        <button onClick={() => router.push('/')}>Return Home</button>
+        <button 
+          onClick={() => router.push('/')}
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+        >Return Home</button>
       </div>
     );
   }
@@ -299,13 +302,14 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
   // Game details form (step 1)
   return (
     <div className={styles.container}>
-      <h2>{mode === 'create' ? 'Create New Game' : 'Edit Game'}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-white">{mode === 'create' ? 'Create New Game' : 'Edit Game'}</h2>
       
       <div className={styles.formGroup}>
         <label>Field</label>
         <select 
           value={selectedField}
           onChange={(e) => setSelectedField(e.target.value)}
+          className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
         >
           <option value="">Select Field</option>
           {FIELD_OPTIONS.map(field => (
@@ -321,6 +325,9 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
           onChange={(date) => setSelectedDate(date)}
           dateFormat="MMMM d, yyyy"
           placeholderText="Select date"
+          className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
+          calendarClassName="bg-[#374151] border-[#4B5563]"
+          dayClassName={() => "text-white"}
         />
       </div>
 
@@ -329,6 +336,7 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
         <select 
           value={selectedTime}
           onChange={(e) => setSelectedTime(e.target.value)}
+          className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
         >
           <option value="">Select Time</option>
           {TIME_OPTIONS.map(time => (
@@ -337,16 +345,28 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
         </select>
       </div>
 
-      <div className={styles.buttonGroup}>
+      <div className="flex justify-between mt-8">
         {mode === 'edit' ? (
-        <button onClick={handleCancel}>Cancel</button>
+        <button 
+          onClick={handleCancel}
+          className="px-4 py-2 bg-[#4B5563] text-white rounded hover:bg-gray-600"
+        >Cancel</button>
         ) : (
-          <button onClick={handleReset}>Reset</button>
+          <button 
+            onClick={handleReset}
+            className="px-4 py-2 bg-[#4B5563] text-white rounded hover:bg-gray-600"
+          >Reset</button>
         )}
         {mode === 'create' ? (
-          <button onClick={handleNext}>Next</button>
+          <button 
+            onClick={handleNext}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >Next</button>
         ) : (
-          <button onClick={handleSubmitGameDetails}>Save & Continue</button>
+          <button 
+            onClick={handleSubmitGameDetails}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >Save & Continue</button>
         )}
       </div>
     </div>

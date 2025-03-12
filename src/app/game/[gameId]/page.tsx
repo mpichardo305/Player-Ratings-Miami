@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
-import { formatDate, formatDateOnly, formatTimeOnly } from "@/app/utils/dateUtils";
+import { formatDateOnly, formatTimeOnly } from "@/app/utils/dateUtils";
 import GameEditor from "@/app/components/GameEditor";
 import { supabase } from "@/app/utils/supabaseClient";
+import { Player, fetchGamePlayers } from "@/app/utils/playerDb";
 
 type Game = {
   id: string;
@@ -28,11 +29,12 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const session = useSession();
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [playersLoading, setPlayersLoading] = useState(true);
   
   const [initialLoad, setInitialLoad] = useState(true);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
   
-  // const viewDate  = game?.date ? formatDate(game.date) : '';
   // Fetch game data
   useEffect(() => {
     const fetchGame = async () => {
@@ -55,7 +57,27 @@ export default function GamePage() {
     if (gameId) {
       fetchGame();
     }
-  
+  }, [gameId]);
+
+  // Fetch game players
+  useEffect(() => {
+    const loadGamePlayers = async () => {
+      if (!gameId) return;
+      
+      setPlayersLoading(true);
+      try {
+        const gamePlayers = await fetchGamePlayers(gameId);
+        setPlayers(gamePlayers);
+      } catch (error) {
+        console.error("Error loading game players:", error);
+      } finally {
+        setPlayersLoading(false);
+      }
+    };
+
+    if (gameId) {
+      loadGamePlayers();
+    }
   }, [gameId]);
 
   const fetchGroupName = async (groupId: string) => {
@@ -79,7 +101,6 @@ export default function GamePage() {
     }
   };
 
-
   // Check if user is admin for this game's group
   const [isAdminCheckLoading, isAdmin] = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? null);
 
@@ -89,7 +110,6 @@ export default function GamePage() {
       setAdminCheckComplete(true);
       fetchGroupName(game.group_id);
     }
-      
   }, [isAdminCheckLoading, game?.group_id]);
 
   // Redirect only after initial load and admin check are complete
@@ -162,21 +182,41 @@ export default function GamePage() {
         <div className="bg-gray-700 rounded-lg p-6">
           <h2 className="text-2xl font-semibold text-white mb-4">{`${game.field_name}`}</h2>
           <h3 className="text-xl font-semibold text-white mb-4">{`${groupName}`}</h3>
-          <div className="space-y-4">
-            <div>
+          <div className="flex justify-between gap-4">
+            <div className="flex-1">
               <p className="text-gray-300 text-sm">Date</p>
               <p className="text-white">{`${(formatDateOnly(game.date))}`}</p>
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-gray-300 text-sm">Start Time</p>
               <p className="text-white">{`${(formatTimeOnly(game.start_time))}`}</p>
             </div>
           </div>
         </div>
         
+        {/* Player Roster */}
+        <div className="mt-6 bg-gray-700 rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-white mb-4">Roster</h3>
+          {playersLoading ? (
+            <p className="text-white">Loading players...</p>
+          ) : players.length === 0 ? (
+            <p className="text-white">No players assigned to this game.</p>
+          ) : (
+            <div className="max-h-[40vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700 pr-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {players.map((player) => (
+                  <div key={player.id} className="bg-gray-800 p-3 rounded-lg">
+                    <p className="text-white">{player.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
         {/* Add buttons for different operations */}
         {isAdmin && (
-          <div className="mt-6 flex gap-8">  {/* Change from gap-4 to gap-8 for more spacing */}
+          <div className="mt-6 flex gap-8">
             <button
               onClick={() => router.push(`/game/${gameId}?mode=edit`)}
               className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"

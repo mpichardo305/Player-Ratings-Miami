@@ -16,14 +16,14 @@ const GameOperationSuccess = ({ gameId, readableId, mode, onCreateNewGame }: Gam
   return (
     <div className={styles.successContainer}>
       <FaCheckCircle size={60} className={styles.successIcon} />
-      <h2>{isCreate ? 'Game Created Successfully!' : 'Players Updated Successfully!'}</h2>
+      <h1 style={{ fontSize: '1.8rem' }}>{isCreate ? 'Game Created Successfully!' : 'Players Updated Successfully!'}</h1>
       <p>{isCreate 
         ? 'Your game has been created and players have been assigned.'
         : 'The player roster for this game has been updated.'}
       </p>
       
       <div className={styles.gameDetails}>
-        <p><strong>Game ID:</strong> {readableId}</p>
+        <p><strong>Game ID:</strong> {gameId}</p>
       </div>
       
       <div className={styles.actionButtons}>
