@@ -16,6 +16,7 @@ export default function Home() {
   const { phoneNumber } = usePhoneNumber()
   const [isLoading, setIsLoading] = useState(true)
   const [isMember, setIsMember] = useState(false)
+  const [membershipChecked, setMembershipChecked] = useState(false)
   const [session, setSession] = useState<Session | null>(null);
   const params = useParams();
   const token = params?.token as string;
@@ -45,46 +46,73 @@ export default function Home() {
       phoneNumber, 
       hasSession: !!session,
       sessionPhone: session?.user?.phone,
-      currentIsMember: isMember 
+      membershipCheckedStatus: membershipChecked
     });
 
+    // Reset membership check status when dependencies change
+    if (membershipChecked) {
+      setMembershipChecked(false);
+    }
+
     async function checkMembership() {
-      if (!phoneNumber || !session) {
-        console.log('Skipping check - Missing requirements:', {
-          hasPhoneNumber: !!phoneNumber,
-          hasSession: !!session
-        });
+      // If no session but we have a token for registration, we can stop loading
+      if (token && !session) {
         setIsLoading(false);
+        setMembershipChecked(true);
+        return;
+      }
+      
+      // If no session and no auth in progress, go to login
+      if (!session && document.cookie.indexOf('supabase-auth-token') === -1) {
+        setIsLoading(false);
+        setMembershipChecked(true);
         return;
       }
 
-      try {
-        console.log('Calling checkPlayerMembership with:', {
-          phoneNumber,
-          GROUP_ID,
-          sessionId: session.user.id
-        });
-        
-        const result = await checkPlayerMembership(phoneNumber, GROUP_ID);
-        
-        console.log('Membership check complete:', {
-          result,
-          previousIsMember: isMember,
-          willUpdate: result.isMember !== isMember
-        });
-        
-        setIsMember(result.isMember);
-      } catch (error) {
-        console.error('Membership check failed:', error);
-      } finally {
-        setIsLoading(false);
+      // If we have a session but no phone yet, keep loading
+      if (session && !phoneNumber) {
+        return;
+      }
+
+      // If we have both session and phone, check membership
+      if (session && phoneNumber) {
+        try {
+          console.log('Calling checkPlayerMembership with:', {
+            phoneNumber,
+            GROUP_ID,
+            sessionId: session.user.id
+          });
+          
+          const result = await checkPlayerMembership(phoneNumber, GROUP_ID);
+          
+          console.log('Membership check complete:', {
+            result,
+            previousIsMember: isMember,
+          });
+          
+          setIsMember(result.isMember);
+          setMembershipChecked(true);
+        } catch (error) {
+          console.error('Membership check failed:', error);
+          setMembershipChecked(true);
+        } finally {
+          setIsLoading(false);
+        }
       }
     }
 
     checkMembership();
-  }, [phoneNumber, session]);
+  }, [phoneNumber, session, token]);
 
-  if (isLoading) {
+  // Only proceed to rendering content when we have:
+  // 1. A token-based registration flow, OR
+  // 2. No session with no auth in progress, OR
+  // 3. A completed membership check for logged-in users
+  const showContent = (token && !session) || 
+                     (!session && document.cookie.indexOf('supabase-auth-token') === -1) || 
+                     (session && membershipChecked);
+
+  if (!showContent) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
