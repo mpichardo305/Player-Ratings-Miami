@@ -52,6 +52,8 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
   const [game, setGame] = useState<Game | null>(null);
   const [isGameEnded, setIsGameEnded] = useState<boolean>(false);
   const [gameLoading, setGameLoading] = useState<boolean>(true);
+  // Add a new state to track if the user has already rated players in this game
+  const [hasRatedGame, setHasRatedGame] = useState<boolean>(false);
 
   const fetchPlayersAndRatings = async () => {
     if (!gameId) return;
@@ -75,7 +77,7 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
       // Fetch ratings for these players to check if current user has already rated them
       const playerIds = gamePlayers.map((p) => p.id);
       const { data: ratingsData, error: ratingsError } = await supabase
-        .from("ratings")
+        .from("game_ratings") // Changed from "ratings" to "game_ratings"
         .select("player_id, rating, user_id")
         .in("player_id", playerIds)
         .eq("user_id", sessionUserId);
@@ -84,6 +86,11 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
         console.error("❌ Error fetching ratings:", ratingsError);
         setPlayers(gamePlayers);
         return;
+      }
+
+      // Check if the user has already rated any players in this game
+      if (ratingsData && ratingsData.length > 0) {
+        setHasRatedGame(true);
       }
 
       // Map ratings to players
@@ -190,9 +197,9 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
         game_id: gameId
       }));
       
-      // Submit all ratings in one call
+      // Submit all ratings to game_ratings table
       const { error } = await supabase
-        .from("game_ratings")
+        .from("game_ratings") // Using "game_ratings" correctly
         .upsert(ratingsToSubmit, { onConflict: "player_id, user_id" });
       
       if (error) {
@@ -227,6 +234,13 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
 
   return (
     <div className="space-y-4">
+      {/* Add alert for users who already rated players in this game */}
+      {hasRatedGame && (
+        <div className="mb-4 p-3 rounded bg-blue-600 text-white">
+          You already submitted a rating for this game.
+        </div>
+      )}
+
       {/* Show warning if game hasn't ended yet */}
       {!isGameEnded && !gameLoading && (
         <div className="mb-4 p-3 rounded bg-red-600 text-white">
