@@ -6,11 +6,13 @@ import UnratedPlayersList from '@/app/components/UnratedPlayersList';
 import SessionGuard from '@/app/components/SessionGuard';
 import { supabase } from '@/app/utils/supabaseClient';
 import { hasGameEnded } from '@/app/utils/gameUtils';
+import { formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
 
 type Game = {
   id: string;
   date: string;
   start_time: string;
+  field_name?: string;  // Changed from fieldName to field_name to match API response
 };
 
 function RatePlayersContent() {
@@ -43,7 +45,11 @@ function RatePlayersContent() {
         if (!response.ok) {
           throw new Error('Failed to fetch game details');
         }
+        
         const data = await response.json();
+        console.log('Game data from API:', data);
+        
+        // Set the game data from the API response
         setGame(data);
         
         // Check if game has ended
@@ -95,6 +101,21 @@ function RatePlayersContent() {
       <p className="text-gray-300 mb-4">
         Rate the players who participated in this game
       </p>
+      
+      {/* Game Info Card */}
+      {game && (
+        <div className="bg-gray-700 rounded-md p-3 mb-4 text-white shadow">
+          <h3 className="text-lg font-semibold">{game.field_name}</h3>
+          <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+            <div>
+              <span className="text-gray-400">Date:</span> {formatDatePreserveDay(game.date)}
+            </div>
+            <div>
+              <span className="text-gray-400">Time:</span> {formatTimeOnly(game.start_time)}
+            </div>
+          </div>
+        </div>
+      )}
       
       {userId && (
         <UnratedPlayersList 
