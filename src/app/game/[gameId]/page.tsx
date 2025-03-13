@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { formatDateOnly, formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
+import { hasGameEnded } from "@/app/utils/gameUtils";
 import GameEditor from "@/app/components/GameEditor";
 import { supabase } from "@/app/utils/supabaseClient";
 import { Player, fetchGamePlayers } from "@/app/utils/playerDb";
@@ -31,6 +32,7 @@ export default function GamePage() {
   const session = useSession();
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
+  const [isGameEnded, setIsGameEnded] = useState(false);
   
   const [initialLoad, setInitialLoad] = useState(true);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
@@ -119,6 +121,13 @@ export default function GamePage() {
       router.push(`/game/${gameId}?mode=view`);
     }
   }, [initialLoad, adminCheckComplete, isAdmin, mode, gameId, router]);
+
+  // Check if game has ended whenever game data changes
+  useEffect(() => {
+    if (game?.date && game?.start_time) {
+      setIsGameEnded(hasGameEnded(game.date, game.start_time));
+    }
+  }, [game]);
 
   // Debug panel 
   const debugPanel = (
@@ -213,6 +222,18 @@ export default function GamePage() {
             </div>
           )}
         </div>
+        
+        {/* Rate Players button - visible to all users but only after game has ended */}
+        {isGameEnded && (
+          <div className="mt-6">
+            <button
+              onClick={() => router.push(`/rate-players/${gameId}`)}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Rate Players
+            </button>
+          </div>
+        )}
         
         {/* Add buttons for different operations */}
         {isAdmin && (
