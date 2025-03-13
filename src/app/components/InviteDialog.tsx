@@ -70,7 +70,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
       </button>
       
       {inviteUrl && (
-        <div className="mt-4 p-4 bg-white rounded-lg">
+        <div className="mt-4 p-4 bg-gray-700 rounded-lg text-white">
           <p className="mb-2 text-lg">Invite URL:</p>
           <div className="flex flex-col gap-2">
             <input 
@@ -83,9 +83,9 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
               <div className="relative flex-1">
                 <button 
                   onClick={handleCopy}
-                  className="w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
+                  className="w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200 text-gray-800"
                 >
-                  Copy
+                  Copy  
                 </button>
                 {copyConfirmation && (
                   <div className="absolute -bottom-12 left-0 right-0 text-center text-lg font-semibold text-green-600 bg-green-100 p-2 rounded-md shadow-sm">
@@ -95,7 +95,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
               </div>
               <button 
                 onClick={handleClose}
-                className="flex-1 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200"
+                className="flex-1 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200 text-gray-800"
               >
                 Done
               </button>

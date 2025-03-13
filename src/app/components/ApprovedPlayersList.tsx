@@ -170,7 +170,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
   };
 
   return (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700">
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700 pt-10 pb-10">
       {!loading && players.length === 0 && (
         <p className="text-gray-400">No approved players found.</p>
       )}

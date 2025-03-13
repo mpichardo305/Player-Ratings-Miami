@@ -142,7 +142,7 @@ const WaitingListPage = () => {
                 onClick={() => handleThirdQuestion('more than 12')}
                 className="w-full py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                More than 12
+                12 or More
               </button>
               <button
                 onClick={() => handleThirdQuestion('less than 12')}

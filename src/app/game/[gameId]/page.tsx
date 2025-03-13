@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
-import { formatDateOnly, formatTimeOnly } from "@/app/utils/dateUtils";
+import { formatDateOnly, formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
 import GameEditor from "@/app/components/GameEditor";
 import { supabase } from "@/app/utils/supabaseClient";
 import { Player, fetchGamePlayers } from "@/app/utils/playerDb";
@@ -134,7 +134,7 @@ export default function GamePage() {
   if (loading || isAdminCheckLoading) {
     return (
       <div className="min-h-screen bg-gray-600 p-4">
-        {debugPanel}
+        {/* {debugPanel} */}
         <div className="text-white text-center p-8">
           Loading game details...
         </div>
@@ -176,7 +176,7 @@ export default function GamePage() {
   if (mode === 'view') {
     return (
       <div className="min-h-screen bg-gray-600 p-4">
-        {debugPanel}
+        {/* {debugPanel} */}
         <h1 className="text-3xl font-bold mb-6 text-white">Game Details</h1>
         
         <div className="bg-gray-700 rounded-lg p-6">
@@ -185,7 +185,7 @@ export default function GamePage() {
           <div className="flex justify-between gap-4">
             <div className="flex-1">
               <p className="text-gray-300 text-sm">Date</p>
-              <p className="text-white">{`${(formatDateOnly(game.date))}`}</p>
+              <p className="text-white">{`${(formatDatePreserveDay(game.date))}`}</p>
             </div>
             <div className="flex-1">
               <p className="text-gray-300 text-sm">Start Time</p>
