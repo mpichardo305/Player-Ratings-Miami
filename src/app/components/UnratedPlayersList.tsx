@@ -277,8 +277,8 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
                 <PlayerItem 
                   player={{
                     ...player,
-                    // Don't show any rating to avoid biasing - set to 0 to have user rate from scratch
-                    avg_rating: 0,
+                    // Show the user's previous rating if it exists, otherwise use 0
+                    avg_rating: userRating || 0,
                     ratings: player.ratings ? player.ratings.map(r => ({ 
                       rating: r.rating, 
                       user_id: r.user_id 
@@ -286,12 +286,12 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
                   }}
                   onRate={handleRate} 
                   isSelf={isSelf}
-                  // Pass the pending rating separately so PlayerItem can handle it properly
                   pendingRating={pendingRating}
                 />
                 {isSelf && <p className="text-gray-400">🚫 You can not rate yourself!</p>}
-                {/* {pendingRating && <p className="text-yellow-400 text-xs mt-1">Your rating: {pendingRating} (pending submission)</p>} */}
-                {/* {userRating && !pendingRating && <p className="text-gray-400 text-xs mt-1">You previously rated this player: {userRating}</p>} */}
+                {userRating && !pendingRating && (
+                  <p className="text-blue-400 text-xs mt-1">Your previous rating: {userRating}</p>
+                )}
               </div>
             );
           })
@@ -336,7 +336,7 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
               : isUserPlayer === false
                 ? 'Only Players Can Rate'
                 : pendingRatingsCount > 0
-                  ? `Submit ${pendingRatingsCount} Rating${pendingRatingsCount !== 1 ? 's' : ''}`
+                  ? `${hasRatedGame ? 'Update' : 'Submit'} ${pendingRatingsCount} Rating${pendingRatingsCount !== 1 ? 's' : ''}`
                   : 'No Ratings to Submit'
           }
         </button>
