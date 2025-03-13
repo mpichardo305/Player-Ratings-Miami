@@ -8,6 +8,7 @@ import { hasGameEnded } from "@/app/utils/gameUtils";
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
   ssr: false,
+  loading: () => <div className="animate-pulse h-20 bg-gray-700 rounded-lg"></div>
 });
 
 type Rating = {
@@ -35,6 +36,12 @@ type UnratedPlayersListProps = {
   gameId: string;
 };
 
+type Game = {
+  id: string;
+  date: string;
+  start_time: string;
+};
+
 export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPlayersListProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +49,9 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const [isUserPlayer, setIsUserPlayer] = useState<boolean | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
+  const [isGameEnded, setIsGameEnded] = useState<boolean>(false);
+  const [gameLoading, setGameLoading] = useState<boolean>(true);
 
   const fetchPlayersAndRatings = async () => {
     if (!gameId) return;
@@ -93,6 +103,33 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
 
   useEffect(() => {
     fetchPlayersAndRatings();
+  }, [gameId]);
+
+  // Fetch game data to check if it has ended
+  useEffect(() => {
+    const fetchGame = async () => {
+      if (!gameId) return;
+      
+      setGameLoading(true);
+      try {
+        const response = await fetch(`/api/games/${gameId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch game details');
+        }
+        const data = await response.json();
+        setGame(data);
+        
+        // Check if game has ended
+        const gameHasEnded = hasGameEnded(data.date, data.start_time);
+        setIsGameEnded(gameHasEnded);
+      } catch (error) {
+        console.error('Error fetching game:', error);
+      } finally {
+        setGameLoading(false);
+      }
+    };
+
+    fetchGame();
   }, [gameId]);
 
   // Function to store a rating in pending state
@@ -185,10 +222,18 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
   // Determine if submit button should be disabled
   const isSubmitDisabled = isSubmitting || 
                           pendingRatings.length === 0 || 
-                          isUserPlayer === false;
+                          isUserPlayer === false ||
+                          !isGameEnded;
 
   return (
     <div className="space-y-4">
+      {/* Show warning if game hasn't ended yet */}
+      {!isGameEnded && !gameLoading && (
+        <div className="mb-4 p-3 rounded bg-red-600 text-white">
+          This game hasn't ended yet. Ratings can only be submitted after the game has finished.
+        </div>
+      )}
+      
       <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700 pb-6">
         {!loading && players.length === 0 && (
           <p className="text-gray-400">No players found for this game.</p>
@@ -218,7 +263,8 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
                 <PlayerItem 
                   player={{
                     ...player,
-                    avg_rating: pendingRating || userRating || 0,
+                    // Don't show any rating to avoid biasing - set to 0 to have user rate from scratch
+                    avg_rating: 0,
                     ratings: player.ratings ? player.ratings.map(r => ({ 
                       rating: r.rating, 
                       user_id: r.user_id 
@@ -226,9 +272,12 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
                   }}
                   onRate={handleRate} 
                   isSelf={isSelf}
+                  // Pass the pending rating separately so PlayerItem can handle it properly
+                  pendingRating={pendingRating}
                 />
                 {isSelf && <p className="text-gray-400">🚫 You can not rate yourself!</p>}
-                {pendingRating && <p className="text-yellow-400 text-xs mt-1">Rating pending submission</p>}
+                {/* {pendingRating && <p className="text-yellow-400 text-xs mt-1">Your rating: {pendingRating} (pending submission)</p>} */}
+                {/* {userRating && !pendingRating && <p className="text-gray-400 text-xs mt-1">You previously rated this player: {userRating}</p>} */}
               </div>
             );
           })
@@ -240,6 +289,12 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
         {isUserPlayer === false && (
           <div className="mb-4 p-3 rounded bg-amber-600 text-white">
             You must be a player in this game to submit ratings.
+          </div>
+        )}
+        
+        {!isGameEnded && !gameLoading && (
+          <div className="mb-4 p-3 rounded bg-amber-600 text-white">
+            Ratings can only be submitted after the game has ended.
           </div>
         )}
         
@@ -262,11 +317,13 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
         >
           {isSubmitting 
             ? 'Submitting...' 
-            : isUserPlayer === false
-              ? 'Only Players Can Rate'
-              : pendingRatingsCount > 0
-                ? `Submit ${pendingRatingsCount} Rating${pendingRatingsCount !== 1 ? 's' : ''}`
-                : 'No Ratings to Submit'
+            : !isGameEnded 
+              ? 'Game Has Not Ended Yet'
+              : isUserPlayer === false
+                ? 'Only Players Can Rate'
+                : pendingRatingsCount > 0
+                  ? `Submit ${pendingRatingsCount} Rating${pendingRatingsCount !== 1 ? 's' : ''}`
+                  : 'No Ratings to Submit'
           }
         </button>
       </div>
