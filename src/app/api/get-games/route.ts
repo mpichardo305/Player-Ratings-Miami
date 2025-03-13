@@ -32,20 +32,38 @@ export async function GET() {
       accessibleGroupIds.push(groupId);
     }
 
-    // Now fetch games for these groups
-    const { data, error } = await supabase
+    // Get today's date in YYYY-MM-DD format for comparison
+    const today = new Date().toISOString().split('T')[0];
+
+    // Fetch upcoming games (today and future)
+    const { data: upcomingGames, error: upcomingError } = await supabase
       .from('games')
       .select('id, start_time, date, field_name, group_id')
       .in('group_id', accessibleGroupIds)
+      .gte('date', today)
       .order('date', { ascending: true })
       .order('start_time', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching games:', error);
-      return NextResponse.json({ error: 'Failed to fetch games' }, { status: 500 });
+    if (upcomingError) {
+      console.error('Error fetching upcoming games:', upcomingError);
+      return NextResponse.json({ error: 'Failed to fetch upcoming games' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    // Fetch previous games (past dates)
+    const { data: previousGames, error: previousError } = await supabase
+      .from('games')
+      .select('id, start_time, date, field_name, group_id')
+      .in('group_id', accessibleGroupIds)
+      .lt('date', today)
+      .order('date', { ascending: false })
+      .order('start_time', { ascending: true });
+
+    if (previousError) {
+      console.error('Error fetching previous games:', previousError);
+      return NextResponse.json({ error: 'Failed to fetch previous games' }, { status: 500 });
+    }
+
+    return NextResponse.json({ upcomingGames, previousGames });
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
