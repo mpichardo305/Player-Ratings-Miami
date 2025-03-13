@@ -9,6 +9,7 @@ import {
   PencilIcon,
   EyeIcon,
   TrashIcon,
+  StarIcon,
 } from "@heroicons/react/24/outline";
 
 type Game = {
@@ -63,6 +64,10 @@ export default function AllGames() {
 
   const handleEdit = (gameId: string) => {
     router.push(`/game/${gameId}?mode=edit`);
+  };
+
+  const handleRate = (gameId: string) => {
+    router.push(`/rate-players/${gameId}`);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -139,7 +144,16 @@ export default function AllGames() {
         >
           <EyeIcon className="h-5 w-5" />
         </button>
-        {isAdmin && (
+        {activeTab === "past" && (
+          <button
+            onClick={() => handleRate(game.id)}
+            className="text-yellow-500 hover:text-yellow-700 p-1 rounded"
+            aria-label="Rate players"
+          >
+            <StarIcon className="h-5 w-5" />
+          </button>
+        )}
+        {isAdmin && activeTab === "upcoming" && (
           <>
             <button
               onClick={() => handleEdit(game.id)}
