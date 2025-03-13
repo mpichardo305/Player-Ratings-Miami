@@ -5,10 +5,10 @@ import { formatDateOnly, formatTimeOnly } from '../utils/dateUtils';
 export interface GameCreate {
   id: string;
   field_name: string;
-  date: Date | string; // Accept both Date and string
+  date: Date | string; 
   start_time: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date; 
+  updated_at?: Date;
   group_id: string;
   game_id?: string;
 }

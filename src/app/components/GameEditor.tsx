@@ -288,9 +288,16 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
           date: new Date(game!.date).toISOString()
         };
 
+    // Before passing gameDetails to PlayerSelection, ensure created_at and updated_at are set:
+    const gameDetailsWithDates = {
+      ...gameDetails,
+      created_at: gameDetails.created_at || new Date(),
+      updated_at: gameDetails.updated_at || new Date()
+    };
+
     return (
       <PlayerSelection
-        gameDetails={gameDetails}
+        gameDetails={gameDetailsWithDates}
         onBack={handleBack}
         mode={mode === 'create' ? 'create' : 'update'}
         gameId={gameId}
