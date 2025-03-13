@@ -164,7 +164,7 @@ export default function GamePage() {
   if (mode === 'edit' && !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-600 p-4">
-        {debugPanel}
+        {/* {debugPanel} */}
         <div className="text-red-500 text-center p-8">
           You do not have permission to edit this game.
         </div>
@@ -246,7 +246,7 @@ export default function GamePage() {
   // Edit Mode - Use the unified GameEditor component
   return (
     <div className="min-h-screen bg-gray-600 p-4">
-      {debugPanel}
+      {/* {debugPanel} */}
       <GameEditor mode="edit" gameId={gameId} />
     </div>
   );
