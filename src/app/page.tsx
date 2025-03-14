@@ -10,6 +10,7 @@ import PhoneAuth from './components/PhoneAuth'
 import { supabase } from "@/app/utils/supabaseClient";
 import { Session } from "@supabase/supabase-js";
 import { useParams } from "next/navigation";
+import AllGames from './components/AllGames'
 
 // Constants
 const MEMBERSHIP_CACHE_KEY = 'playerRatingsMembershipCache';
@@ -206,7 +207,7 @@ export default function Home() {
           <PhoneAuth />
         </>
       ) : (
-        !isMember ? <WaitingListPage/> : <Players />
+        !isMember ? <WaitingListPage/> : <AllGames />
       )}
     </div>
   );
