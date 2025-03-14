@@ -34,6 +34,18 @@ export default function MobileMenu() {
           <div className="absolute right-0 top-0 h-full w-64 bg-gray-800 p-4 shadow-lg">
             <div className="mt-16 flex flex-col space-y-4">
               <button
+                onClick={() => router.push('/players')}
+                className="text-white hover:bg-gray-700 px-4 py-2 rounded-lg text-left"
+              >
+                Players
+              </button>
+              <button
+                onClick={() => router.push('/games')}
+                className="text-white hover:bg-gray-700 px-4 py-2 rounded-lg text-left"
+              >
+                Games
+              </button>
+              <button
                 onClick={handleLogout}
                 className="text-white hover:bg-gray-700 px-4 py-2 rounded-lg text-left"
               >
