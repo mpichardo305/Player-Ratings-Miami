@@ -12,11 +12,13 @@ export async function POST(req: Request) {
   try {
     const body: ApprovePlayerRequest = await req.json();
     const { id, groupId, phone } = body;
+    // Sanitize phone number - remove non-numeric characters
+    const sanitizedPhone = phone.replace(/\D/g, '');
 
     // 1. Add to Group Update Invites Table
     const membershipRes = await updateGroupMembership(id, groupId);
     const inviteTab = await updateInvitesTableViaPlayerId(id);
-    const playerRes = await updatePlayerStatusAndPhone(id, phone);
+    const playerRes = await updatePlayerStatusAndPhone(id, sanitizedPhone);
     if (membershipRes.error) {
       return NextResponse.json({ error: membershipRes.error.message }, { status: 400 });
     }
