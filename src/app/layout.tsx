@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GroupProvider } from './context/GroupContext';
 import MobileMenu from "./components/MobileMenu";
+import ToastProvider from './components/ToastProvider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </div>
         </GroupProvider>
+        <ToastProvider />
       </body>
     </html>
   );

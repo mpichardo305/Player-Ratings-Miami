@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 type Rating = {
   rating: number;
@@ -19,6 +20,7 @@ type PlayerItemProps = {
   onRate: (playerId: string, rating: number) => void;
   isSelf?: boolean;
   pendingRating?: number;
+  viewOnly?: boolean;
 };
 
 export default function PlayerItem({
@@ -26,6 +28,7 @@ export default function PlayerItem({
   onRate,
   isSelf = false,
   pendingRating,
+  viewOnly = false,
 }: PlayerItemProps) {
   const [userRating, setUserRating] = useState<number>(0);
 
@@ -39,7 +42,37 @@ export default function PlayerItem({
   }, [pendingRating, player.avg_rating]);
 
   const handleRating = (newRating: number) => {
+    if (viewOnly) {
+      // Show a tooltip or message when users try to interact
+      alert('Rating is disabled in view-only mode.');
+      return;
+    }
     setUserRating(newRating);
+    onRate(player.id, newRating);
+  };
+
+  const handleRatingClick = (newRating: number) => {
+    if (isSelf || viewOnly) {
+      // Create a temporary toast/alert
+      const alert = document.createElement('div');
+      alert.className = 'fixed top-10 right-10 bg-amber-500 text-white p-4 rounded-lg shadow-lg z-50';
+      
+      // Prioritize the isSelf message over viewOnly
+      alert.textContent = isSelf 
+        ? '⚠️ You cannot rate yourself.'
+        : '🔒 This is view only mode.';
+      
+      document.body.appendChild(alert);
+      
+      // Remove after 2 seconds
+      setTimeout(() => {
+        alert.remove();
+      }, 2000);
+      
+      return;
+    }
+    
+    // Normal rating handling
     onRate(player.id, newRating);
   };
 
@@ -64,15 +97,13 @@ export default function PlayerItem({
                 <button
                   type="button"
                   className="absolute left-0 top-0 w-1/2 h-full"
-                  onClick={() => handleRating(starIndex - 0.5)}
-                  disabled={isSelf}
+                  onClick={() => handleRatingClick(starIndex - 0.5)}
                 />
                 {/* Right half for full-star (e.g. 5) */}
                 <button
                   type="button"
                   className="absolute right-0 top-0 w-1/2 h-full"
-                  onClick={() => handleRating(starIndex)}
-                  disabled={isSelf}
+                  onClick={() => handleRatingClick(starIndex)}
                 />
                 {/* Gray star background */}
                 <span className="text-gray-500 pointer-events-none">★</span>

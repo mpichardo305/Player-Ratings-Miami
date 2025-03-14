@@ -43,7 +43,7 @@ export const CreateGame = () => {
     <div className={styles.container}>
       {step === 1 ? (
         <>
-          <h2>Create New Game</h2>
+          <h1 className="text-2xl font-bold mb-2 text-white">Create New Game</h1>
           
           <div className={styles.formGroup}>
             <label>Field</label>
