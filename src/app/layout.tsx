@@ -1,6 +1,10 @@
+"use client";
+
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GroupProvider } from './context/GroupContext';
+import MobileMenu from "./components/MobileMenu";
+import ToastProvider from './components/ToastProvider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,10 +28,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://player-ratings-miami.vercel.app/social-preview.jpg" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-app-background`}>
         <GroupProvider>
-          {children}
+          <div className="relative min-h-screen">
+            <MobileMenu />
+            {children}
+          </div>
         </GroupProvider>
+        <ToastProvider />
       </body>
     </html>
   );

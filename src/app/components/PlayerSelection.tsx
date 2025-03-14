@@ -142,7 +142,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
 
   return (
     <div className={styles.playerList}>
-      <h2>{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
+      <h2 className="text-xl font-bold mb-2 text-white">{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
       <div className={styles.gameInfo}>
         <p>Field: {gameDetails.field_name}</p>
         <p>Date: {`${formatDateOnly(gameDetails.date)}`}</p>

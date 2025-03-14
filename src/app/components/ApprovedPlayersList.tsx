@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import dynamic from 'next/dynamic';
 import { isEqual } from 'lodash';
+import toast from 'react-hot-toast';
 
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
@@ -27,9 +28,10 @@ type Player = {
 type ApprovedPlayersListProps = {
   sessionUserId: string;
   groupId: string;
+  viewOnly?: boolean; // New prop to disable rating functionality
 };
 
-export default function ApprovedPlayersList({ sessionUserId, groupId }: ApprovedPlayersListProps) {
+export default function ApprovedPlayersList({ sessionUserId, groupId, viewOnly = false }: ApprovedPlayersListProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const previousPlayersRef = useRef<Player[]>([]);
@@ -59,6 +61,9 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
 
       if (membershipsError || !memberships) {
         console.error("❌ Error fetching players:", membershipsError);
+        if (!isPolling) {
+          toast.error("Failed to load players. Please try again later.");
+        }
         setPlayers([]);
         return;
       }
@@ -87,6 +92,9 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
 
       if (ratingsError) {
         console.error("❌ Error fetching ratings:", ratingsError, JSON.stringify(ratingsError, null, 2));
+        if (!isPolling) {
+          toast.error("Failed to load ratings. Please try again later.");
+        }
         setPlayers(approvedPlayers);
         return;
       }
@@ -139,12 +147,20 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
 
   // Function to upsert a rating
   const handleRate = async (playerId: string, rating: number) => {
+    // Check for view-only mode first
+    if (viewOnly) {
+      toast.error("View-only mode: Ratings cannot be changed");
+      return;
+    }
+    
     try {
       // Prevent rating yourself
       if (playerId === sessionUserId) {
-        console.warn("🚫 You can't rate yourself!");
+        toast.error("You can't rate yourself!");
         return;
       }
+
+      const loadingToastId = toast.loading("Submitting rating...");
   
       const { error } = await supabase
         .from("ratings")
@@ -157,20 +173,30 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
           { onConflict: "player_id, user_id" }
         );
   
+      toast.dismiss(loadingToastId);
+      
       if (error) {
         console.error("Error submitting rating:", error.message);
+        toast.error("Failed to submit rating. Please try again.");
         return;
       }
   
-      console.log("✅ Rating submitted successfully!");
+      toast.success("Rating submitted successfully!");
       fetchPlayersAndRatings(true);
     } catch (err) {
       console.error("Failed to submit rating:", err);
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
   return (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700 pt-10 pb-10">
+      {viewOnly && (
+        <div className="mb-2 p-2 bg-gray-800 rounded-md">
+          <p className="text-amber-400 text-sm font-medium">🔒 This is view only</p>
+        </div>
+      )}
+
       {!loading && players.length === 0 && (
         <p className="text-gray-400">No approved players found.</p>
       )}
@@ -192,8 +218,8 @@ export default function ApprovedPlayersList({ sessionUserId, groupId }: Approved
                 player={player}  // No need to convert id to string anymore
                 onRate={handleRate} 
                 isSelf={isSelf}
+                viewOnly={viewOnly} // Pass viewOnly prop to PlayerItem
               />
-              {isSelf && <p className="text-gray-400">🚫 You can not rate yourself!</p>}
             </div>
           );
         })

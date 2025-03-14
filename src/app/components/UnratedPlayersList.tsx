@@ -4,6 +4,7 @@ import { supabase } from "@/app/utils/supabaseClient";
 import dynamic from 'next/dynamic';
 import { fetchGamePlayers } from "@/app/utils/playerDb";
 import { hasGameEnded } from "@/app/utils/gameUtils";
+import toast from "react-hot-toast";
 
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
@@ -144,6 +145,7 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
     // Prevent rating yourself
     if (playerId === sessionUserId) {
       console.warn("🚫 You can't rate yourself!");
+      toast.error("You cannot rate your own performance!");
       return;
     }
     
@@ -288,7 +290,6 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
                   isSelf={isSelf}
                   pendingRating={pendingRating}
                 />
-                {isSelf && <p className="text-gray-400">🚫 You can not rate yourself!</p>}
                 {userRating && !pendingRating && (
                   <p className="text-blue-400 text-xs mt-1">Your previous rating: {userRating}</p>
                 )}

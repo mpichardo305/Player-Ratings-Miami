@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 import { useGroupAdmin } from '../hooks/useGroupAdmin';
+import { PencilIcon } from "@heroicons/react/24/outline";
 
 export interface Group {
   id: string;
@@ -17,8 +18,10 @@ interface UserGroup {
 type GroupSelectorProps = {
   sessionUserId: string;
   onGroupSelect: (group: Group) => void;
+  hideEditIcon?: boolean; // New optional prop
 };
-export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSelectorProps) {
+
+export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
 
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
@@ -26,6 +29,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
 
   // Fetch groups where the user is an admin
   // hardcoding the admin player id for now but should be sessionUserId
@@ -108,37 +112,48 @@ export default function GroupSelector({ sessionUserId, onGroupSelect }: GroupSel
 
   return (
     <div className="mb-4">
-      <select
-        value={selectedGroupId || ''}
-        onChange={handleGroupChange}
-        className="bg-gray-700 text-white p-2 rounded"
-      >
-        {groups.map(group => (
-          <option key={group.id} value={group.id}>{group.name}</option>
-        ))}
-      </select>
-      {isGroupAdmin && selectedGroupId && (
-        <div className="mt-2">
-          {editing ? (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="bg-gray-700 text-white p-2 rounded"
-              />
-              <button onClick={handleNameEdit} className="bg-green-500 px-4 py-2 rounded">
-                Save
-              </button>
-              <button onClick={handleCancel} className="bg-red-500 px-4 py-2 rounded">
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setEditing(true)} className="bg-blue-500 px-4 py-2 rounded">
+      <div className="flex items-center gap-2">
+        <select
+          value={selectedGroupId || ''}
+          onChange={handleGroupChange}
+          className="bg-gray-700 text-white p-2 rounded"
+        >
+          {groups.map(group => (
+            <option key={group.id} value={group.id}>{group.name}</option>
+          ))}
+        </select>
+        {!hideEditIcon && isGroupAdmin && selectedGroupId && !editing && (
+          <div className="relative group">
+            <PencilIcon 
+              onClick={() => {
+                setEditing(true);
+                setNewName(groups.find(g => g.id === selectedGroupId)?.name || "");
+              }}
+              className="h-5 w-5 text-white cursor-pointer hover:text-blue-400 transition-colors"
+              aria-label="Edit group name"
+            />
+            <div className="absolute invisible group-hover:visible bg-gray-800 text-white text-xs px-2 py-1 rounded top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap">
               Edit Group Name
-            </button>
-          )}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {!hideEditIcon && isGroupAdmin && selectedGroupId && editing && (
+        <div className="mt-2 flex gap-2">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="bg-gray-700 text-white p-2 rounded"
+            autoFocus
+          />
+          <button onClick={handleNameEdit} className="bg-green-500 px-4 py-2 rounded">
+            Save
+          </button>
+          <button onClick={handleCancel} className="bg-red-500 px-4 py-2 rounded">
+            Cancel
+          </button>
         </div>
       )}
     </div>
