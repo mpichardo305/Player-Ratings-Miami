@@ -1,14 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function MobileMenu() {
   const router = useRouter();
+  const pathname = usePathname(); // Add this to get the current path
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Don't render the menu on the login page
+  if (pathname === '/login') {
+    return null;
+  }
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
