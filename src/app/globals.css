@@ -53,3 +53,15 @@ body {
   min-height: 100vh;
 }
 
+.back-button {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  background-color: rgb(55, 65, 81);
+  /* bg-gray-700 */
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+}

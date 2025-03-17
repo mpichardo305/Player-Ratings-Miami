@@ -3,7 +3,7 @@ import styles from '../CreateGame.module.css';
 import { v4 as uuidv4 } from 'uuid';
 import { updateGamePlayers } from '../lib/updateGamePlayersService';
 import { createGame, GameCreate } from '../lib/gameService';  
-import { formatDateOnly, formatTimeOnly } from '../utils/dateUtils';
+import { formatDateOnly, formatDatePreserveDay, formatTimeOnly } from '../utils/dateUtils';
 import { Player, fetchGroupPlayers, fetchExistingPlayerIds } from '../utils/playerDb';
 
 interface PlayerSelectionProps {
@@ -145,7 +145,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
       <h2 className="text-xl font-bold mb-2 text-white">{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
       <div className={styles.gameInfo}>
         <p>Field: {gameDetails.field_name}</p>
-        <p>Date: {`${formatDateOnly(gameDetails.date)}`}</p>
+        <p>Date: {`${formatDatePreserveDay(gameDetails.date.toString())}`}</p>
         <p>Start Time: {`${formatTimeOnly(gameDetails.start_time)}`}</p>
       </div>
       <div className={styles.playerList}>

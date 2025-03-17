@@ -28,12 +28,7 @@ export default function Players() {
     <div className="min-h-screen bg-gray-600 p-4 relative">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <button
-          onClick={() => router.push('/')}
-          className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 flex items-center"
-        >
-          <span>Back</span>
-        </button>
+       
       </div>
       
       <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} />
@@ -82,6 +77,12 @@ export default function Players() {
       ) : (
         <p className="text-white">No groups found.</p>
       )}
+      <button
+        onClick={() => router.push('/')}
+        className="back-button"
+      >
+        <span>Back</span>
+      </button>
     </div>
   );
 }

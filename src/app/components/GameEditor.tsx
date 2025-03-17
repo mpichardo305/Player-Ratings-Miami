@@ -296,6 +296,8 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
     };
 
     return (
+      <div className="min-h-screen bg-gray-600 p-4 relative">
+      <h1 className="text-3xl font-bold text-white mb-4">Edit Game</h1>
       <PlayerSelection
         gameDetails={gameDetailsWithDates}
         onBack={handleBack}
@@ -303,6 +305,13 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
         gameId={gameId}
         onSuccess={handleOperationSuccess}
       />
+      <button
+        onClick={() => router.push('/dashboard')}
+        className="back-button"
+      >
+        <span>Cancel</span>
+      </button>
+      </div>
     );
   }
 
