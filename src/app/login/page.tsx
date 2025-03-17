@@ -243,12 +243,9 @@ export default function LoginPage() {
 
   // Standard login page
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+    <div>
       <RefreshIndicator />
-      <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-6 text-center">Welcome to Player Ratings</h1>
         <PhoneAuth />
-      </div>
     </div>
   )
 }

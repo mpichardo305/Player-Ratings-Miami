@@ -80,6 +80,7 @@ const WaitingListPage = () => {
       {isFirstPage && (
         <div className="flex flex-col items-center justify-center h-full px-4">
           <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 space-y-6">
+            Please answer these questions to join the community
             <h2 className="text-2xl font-semibold text-gray-900 text-center">
               Are you an admin of a soccer group?
             </h2>
@@ -169,10 +170,10 @@ const WaitingListPage = () => {
             {submitSuccess && (
               <div className="text-center">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  Thank you for joining!
+                  Thank you! You are now part of the wait list.
                 </h2>
                 <div className="text-green-600 text-lg">
-                  We will text you with next steps
+                  If you are a fit, we will text you with next steps
                 </div>
               </div>
             )}
