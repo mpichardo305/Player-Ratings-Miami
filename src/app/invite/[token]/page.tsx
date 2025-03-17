@@ -54,18 +54,26 @@ export default function InviteRegistration() {
     }
     const result = await validateInvite(token)
     
-    if (result.error) {
-      if (result.error.includes('used')) {
-        setError('Sorry, this invite link has already been used.');
-      } else {
-        setError('Invalid or expired invite link');
+    if (result.status !== 'valid') {
+      // Handle different status types
+      switch (result.status) {
+        case 'already_used':
+          setError('Sorry, this invite link has already been used.');
+          break;
+        case 'invalid':
+        case 'error':
+        default:
+          setError(result.message || 'Invalid or expired invite link');
+          break;
       }
+      
       setTimeout(() => {
         router.push('/');
       }, 2000);
       return;
     }
-    setInvite(result.data as Invite)
+    
+    setInvite(result.data as Invite);
     setIsLoading(false);
   }
 
@@ -100,24 +108,34 @@ export default function InviteRegistration() {
 
       setUserId(newUserId);
 
-      // Use validateInvite from server action
-            const result = await validateInvite(token);
-            if (result.error || !result.data) {
-              throw new Error('Failed to fetch invite data');
-            }
-            const inviteData = result.data as Invite;
-            setInvite(inviteData);
+      // Use validateInvite from server action with new status field
+      const result = await validateInvite(token);
+      
+      if (result.status !== 'valid') {
+        // Handle different error conditions based on status
+        if (result.status === 'already_used') {
+          setError('This invite has already been used');
+          setTimeout(() => router.push('/'), 2000);
+        } else {
+          setError(result.message || 'Invalid invite link');
+          setTimeout(() => router.push('/'), 2000);
+        }
+        return;
+      }
+      
+      const inviteData = result.data as Invite;
+      setInvite(inviteData);
 
-      // Use server actions instead of direct Supabase queries
+      // Continue with player creation...
       const { data: playerData, error: playerError } = await createInitialPlayer(newUserId, phoneNumber);
       if (playerError) throw playerError;
 
       await updateInviteWithPlayer(inviteData.id, playerData.id);
-
       setnextPage(true);
     } catch (error) {
       console.error('Error in handleSignupSuccess:', error);
       setError('Failed to complete signup');
+      setTimeout(() => router.push('/'), 2000);
     }
   };
 

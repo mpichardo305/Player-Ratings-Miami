@@ -28,13 +28,14 @@ function genPlayerId(): PlayerIdPair {
 export async function validateInvite(token: string) {
   try {
     const { data, error } = await getInviteByToken(token);
-    if (error || !data) return { error: 'Invalid or expired invite' };
-    if (data.used) return { error: 'This invite has already been used' };
-
-    return { data };
+    
+    if (error || !data) return { status: 'invalid', message: 'Invalid or expired invite' };
+    if (data.used) return { status: 'already_used', data, message: 'This invite has already been used' };
+    
+    return { status: 'valid', data };
   } catch (error) {
     console.error('Validation error:', error);
-    return { error: 'Failed to validate invite' };
+    return { status: 'error', message: 'Failed to validate invite' };
   }
 }
 
