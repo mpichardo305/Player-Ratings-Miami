@@ -11,7 +11,14 @@ export default function MobileMenu() {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = async () => {
+    setIsMenuOpen(false);
     router.push("/logout");
+  };
+
+  // New navigation handler function
+  const handleNavigation = (path: string) => {
+    setIsMenuOpen(false);
+    router.push(path);
   };
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -59,23 +66,23 @@ export default function MobileMenu() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40">
           <div ref={menuRef} className="absolute right-0 top-0 h-full w-64 bg-gray-800 p-4 shadow-lg">
             <div className="mt-16 flex flex-col space-y-1">
+            <button
+                onClick={() => handleNavigation('/dashboard')}
+                className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
+              >
+                Dashboard
+            </button>
               <button
-                onClick={() => router.push('/players')}
+                onClick={() => handleNavigation('/players')}
                 className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
               >
                 Players
               </button>
               <button
-                onClick={() => router.push('/games')}
+                onClick={() => handleNavigation('/games')}
                 className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
               >
                 Games
-              </button>
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
-              >
-                Dashboard
               </button>
               <button
                 onClick={handleLogout}

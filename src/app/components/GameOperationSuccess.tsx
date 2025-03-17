@@ -44,7 +44,7 @@ const GameOperationSuccess = ({ gameId, readableId, mode, onCreateNewGame }: Gam
         
         <Link href="/" passHref>
           <button className={styles.secondaryButton}>
-            Return to Dashboard
+            Home
           </button>
         </Link>
       </div>
