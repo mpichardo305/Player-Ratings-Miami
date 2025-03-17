@@ -11,11 +11,6 @@ export default function MobileMenu() {
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Don't render the menu on the login page
-  if (pathname === '/login') {
-    return null;
-  }
-
   const handleLogout = async () => {
     setIsMenuOpen(false);
     router.push("/logout");
@@ -50,6 +45,10 @@ export default function MobileMenu() {
     };
   }, [isMenuOpen]);
 
+  // Don't render the menu on the login page
+  if (pathname === '/login') {
+    return null;
+  }
   return (
     <>
       {/* Hamburger Menu Button */}
