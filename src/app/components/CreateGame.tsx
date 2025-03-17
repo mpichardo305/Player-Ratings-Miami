@@ -5,6 +5,7 @@ import styles from '../CreateGame.module.css';
 import PageBackground from './PageBackground';
 import PlayerSelection from './PlayerSelection';
 import GameCreationSuccess from './GameCreationSuccess';
+import router from 'next/router';
 
 const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
 const TIME_OPTIONS = ['9:00 AM', '10:00 AM', '11:00 AM', '7:00 PM', '8:00 PM', '9:00 PM'];
@@ -108,6 +109,14 @@ export const CreateGame = () => {
           startTime={selectedTime}
         />
       )}
+      <div className="mt-6">
+        <button
+        onClick={() => router.push('/dashboard')} // Or whatever the appropriate return path is
+        className="back-button"
+      >
+        <span>Back</span>
+      </button>
+        </div>
     </div>
   );
 };

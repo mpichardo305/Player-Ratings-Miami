@@ -254,7 +254,7 @@ export default function GamePage() {
         )}
         <div className="mt-6">
         <button
-        onClick={() => router.push('/dashboard')} // Or whatever the appropriate return path is
+        onClick={() => router.push('/')}
         className="back-button"
       >
         <span>Back</span>
