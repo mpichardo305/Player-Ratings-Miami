@@ -4,12 +4,31 @@ import { createClient } from '@/app/utils/supabase/server';
 
 export async function updateGroupMembership(playerId: string, groupId: string) {
   console.log(`[SERVER] updateGroupMembership called with playerId: ${playerId}, groupId: ${groupId}`);
-  // find a way to also add playerName to the group_memberships table
   const supabase = createClient();
+  
   try {
+    // First fetch the player's name from the players table
+    const { data: playerData, error: playerError } = await supabase
+      .from('players')
+      .select('name')
+      .eq('id', playerId)
+      .single();
+    
+    if (playerError || !playerData) {
+      console.error(`[SERVER] Failed to fetch player name:`, playerError);
+      throw new Error(`Failed to fetch player name: ${playerError?.message || 'Player not found'}`);
+    }
+    
+    const playerName = playerData.name;
+    console.log(`[SERVER] Found player name: ${playerName}`);
+    
+    // Then update the group_membership with both status and player_name
     const result = await supabase
       .from('group_memberships')
-      .update({ status: 'approved' })
+      .update({ 
+        status: 'approved',
+        name: playerName
+      })
       .eq('player_id', playerId)
       .eq('group_id', groupId)
       .eq("status", "pending");
