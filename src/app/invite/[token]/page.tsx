@@ -148,8 +148,8 @@ export default function InviteRegistration() {
       await markInviteAsUsed(invite.id);
       await createGroupMembership(invite.player_id, invite.group_id);
 
-      console.log('Registration complete, redirecting...');
-      await router.replace('/');
+      console.log('Registration complete, redirecting to pending approval...');
+      await router.replace('/pending-approval');
     } catch (error) {
       console.error('Error completing signup:', error);
       setError('Failed to complete signup');
