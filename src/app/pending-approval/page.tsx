@@ -5,19 +5,20 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Session } from '@supabase/supabase-js'
+import { usePhoneNumber } from '../hooks/usePhoneNumber' // Import the hook
 import { checkPlayerMembership } from '../db/checkUserQueries'
 import { GROUP_ID } from '../utils/authUtils'
+
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
   const [session, setSession] = useState<Session | null>(null)
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true) // Start with loading true
+  const { phoneNumber, isLoading: phoneLoading } = usePhoneNumber() // Use the hook
+  const [isLoading, setIsLoading] = useState(true) 
   const [checkingApproval, setCheckingApproval] = useState(false)
   const [refreshCount, setRefreshCount] = useState(0)
   const [checkAttempted, setCheckAttempted] = useState(false)
   const router = useRouter()
-
-  //Next time, Might need to use hooks/useSession.ts
+  const [showLogin, setShowLogin] = useState(false);
 
   // Get session data when component mounts
   useEffect(() => {
@@ -25,15 +26,7 @@ export default function PendingApproval() {
       try {
         const { data: { session: userSession } } = await supabase.auth.getSession()
         setSession(userSession)
-        
-        // Extract phone number from session metadata
-        if (userSession?.user?.user_metadata?.phone) {
-          setPhoneNumber(userSession.user.user_metadata.phone)
-        }
-        
         console.log('Session:', userSession)
-        console.log('Phone from metadata:', userSession?.user?.user_metadata?.phone)
-        console.log('Group ID:', GROUP_ID)
       } catch (error) {
         console.error('Error getting session:', error)
       } finally {
@@ -52,15 +45,22 @@ export default function PendingApproval() {
     }
   }, [])
 
+  // Debug phone number from hook
+  useEffect(() => {
+    console.log('Phone number from hook:', phoneNumber)
+    console.log('Group ID:', GROUP_ID)
+  }, [phoneNumber])
+
   const checkApprovalStatus = async () => {
-    if (!session) {
-      alert("Unable to check status: user not logged in")
-      return
-    }
-    
+    console.log("Starting approval check...")
+    console.log("Session:", session)
+    console.log("Phone number:", phoneNumber)
+
+
     if (!phoneNumber) {
-      alert("Unable to check status: phone number not found in your profile")
-      return
+      console.error("Phone number missing, cannot proceed with check")
+      setShowLogin(true);
+      return;
     }
     
     setCheckingApproval(true)
@@ -77,8 +77,10 @@ export default function PendingApproval() {
       
       // Redirect if approved, otherwise show message
       if (result.isMember) {
+        console.log("User approved, redirecting to home")
         router.push('/')
       } else {
+        console.log("User not yet approved, showing message")
         setCheckAttempted(true)
       }
     } catch (error) {
@@ -89,12 +91,15 @@ export default function PendingApproval() {
     }
   }
 
-  // Show loading state while session data is being fetched
-  if (isLoading) {
+  // Combined loading state
+  const isPageLoading = isLoading || phoneLoading
+
+  // Show loading state while data is being fetched
+  if (isPageLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <span className="ml-3">Loading session data...</span>
+        <span className="ml-3">Loading user data...</span>
       </div>
     )
   }
@@ -109,8 +114,8 @@ export default function PendingApproval() {
     )
   }
 
-  // Show login message if no session
-  if (!session) {
+  // Show login message if no phone number
+  if (showLogin && !isPageLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="max-w-md w-full p-6 rounded-lg border border-red-500 bg-gray-800">
