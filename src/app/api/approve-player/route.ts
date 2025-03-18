@@ -12,8 +12,8 @@ export async function POST(req: Request) {
   try {
     const body: ApprovePlayerRequest = await req.json();
     const { id, groupId, phone } = body;
-    // Sanitize phone number - remove non-numeric characters
-    const sanitizedPhone = phone.replace(/\D/g, '');
+    // Sanitize phone number - add null check before using replace
+    const sanitizedPhone = phone ? phone.replace(/\D/g, '') : '';
 
     // 1. Add to Group Update Invites Table
     const membershipRes = await updateGroupMembership(id, groupId);
@@ -28,13 +28,13 @@ export async function POST(req: Request) {
     if (playerRes.error) {
       return NextResponse.json({ error: playerRes.error.message }, { status: 400 });
     }
+    
+    // Return success response when all operations complete successfully
+    return NextResponse.json({ success: true, message: "Player approved successfully" }, { status: 200 });
 
   } catch (err) {
     console.error("Unexpected Error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-}
-function updatePlayerStatus(id: string, phone: string) {
-  throw new Error("Function not implemented.");
 }
 
