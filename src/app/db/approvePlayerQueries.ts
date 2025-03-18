@@ -8,7 +8,8 @@ export async function updateGroupMembership(playerId: string, groupId: string) {
     .from('group_memberships')
     .update({ status: 'approved' })
     .eq('player_id', playerId)
-    .eq('group_id', groupId);
+    .eq('group_id', groupId)
+    .eq("status", "pending");
 }
 
 export async function updateInvitesTableViaPlayerId(playerId: string) {

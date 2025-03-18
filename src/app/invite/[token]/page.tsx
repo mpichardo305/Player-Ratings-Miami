@@ -97,6 +97,7 @@ export default function InviteRegistration() {
   }, [token, userId, invite, isLoading]);
 
   const { phoneNumber } = usePhoneNumber();
+  const sanitizedPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : '';
 
   const handleSignupSuccess = async () => {
     try {
@@ -115,10 +116,10 @@ export default function InviteRegistration() {
         // Handle different error conditions based on status
         if (result.status === 'already_used') {
           setError('This invite has already been used');
-          setTimeout(() => router.push('/'), 2000);
+          setTimeout(() => router.push('/logout'), 2000);
         } else {
           setError(result.message || 'Invalid invite link');
-          setTimeout(() => router.push('/'), 2000);
+          setTimeout(() => router.push('/logout'), 2000);
         }
         return;
       }
@@ -127,7 +128,7 @@ export default function InviteRegistration() {
       setInvite(inviteData);
 
       // Continue with player creation...
-      const { data: playerData, error: playerError } = await createInitialPlayer(newUserId, phoneNumber);
+      const { data: playerData, error: playerError } = await createInitialPlayer(newUserId, sanitizedPhone);
       if (playerError) throw playerError;
 
       await updateInviteWithPlayer(inviteData.id, playerData.id);
@@ -135,7 +136,7 @@ export default function InviteRegistration() {
     } catch (error) {
       console.error('Error in handleSignupSuccess:', error);
       setError('Failed to complete signup');
-      setTimeout(() => router.push('/'), 2000);
+      setTimeout(() => router.push('/logout'), 2000);
     }
   };
 
@@ -144,7 +145,7 @@ export default function InviteRegistration() {
     try {
       // Use server actions instead of direct queries
       if (!phoneNumber) throw new Error('Phone number is required');
-      await updatePlayerName(invite.player_id, name, userId, phoneNumber);
+      await updatePlayerName(invite.player_id, name, userId, sanitizedPhone);
       await markInviteAsUsed(invite.id);
       await createGroupMembership(invite.player_id, invite.group_id);
 

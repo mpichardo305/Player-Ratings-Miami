@@ -79,21 +79,11 @@ export default function ApprovePlayers({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...player, groupId: '299af152-1d95-4ca2-84ba-43328284c38e'}),
+        
       });
-
+      console.log("Approve Player Response:", response);
     if (!isGroupAdmin || !groupId || !isValidUUID(groupId)) return;
 
-    const { error } = await supabase
-      .from("group_memberships")
-      .update({ status: "approved" })
-      .eq("player_id", player.id)
-      .eq("group_id", groupId)
-      .eq("status", "pending");
-
-    if (error) {
-      console.error("Error approving player:", error);
-      return;
-    }
     setPendingPlayers((players) => players.filter((p) => p.id !== player.id));
     onApprove();
   };
