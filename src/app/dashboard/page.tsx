@@ -12,18 +12,21 @@ export default function Players() {
   const router = useRouter();
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  
+  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '');
   const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? null);
+
 
   if (!session?.user) {
     return <div>Loading session...</div>;
   }
 
+  if (selectedGroup && isAdminLoading) {
+    return <div>Loading group admin status...</div>;
+  }
   function handleCreateGame(id: string): void {
     router.push(`/create-game/groupId=${id}`);
   }
-
+console.log(isGroupAdmin, "TESTING isGroupAdmin");
   return (
     <div className="min-h-screen bg-gray-600 p-4 relative">
       <div className="flex justify-between items-center mb-4">
@@ -35,7 +38,7 @@ export default function Players() {
       
       {session && !isGroupAdmin && (
         <div className="mt-4 p-3 bg-gray-700 rounded-lg text-white">
-          <p>Ability to create a new game coming soon!</p>
+          <p>There is nothing to see here yet. Adding more controls soon.</p>
         </div>
       )}
       

@@ -29,6 +29,9 @@ export default function AllGames() {
   
   const router = useRouter();
   const session = useSession();
+  const firstGroupId =
+    upcomingGames[0]?.group_id || previousGames[0]?.group_id;
+  const { isAdmin, loading: isAdminLoading } = useGroupAdmin(session?.user?.id ?? "", firstGroupId ?? "");
   
   useEffect(() => {
     const fetchGames = async () => {
@@ -49,15 +52,10 @@ export default function AllGames() {
     fetchGames();
   }, []);
 
-  // If we have any upcoming or previous games, we can infer a group_id to check isAdmin
-  const firstGroupId =
-    upcomingGames[0]?.group_id || previousGames[0]?.group_id;
-  const isAdmin = useGroupAdmin(session?.user?.id ?? "", firstGroupId ?? "");
-
-  if (loading) {
+  if (loading || isAdminLoading) {
     return <div className="text-white text-center py-8">Loading games...</div>;
   }
-
+  
   const handleView = (gameId: string) => {
     router.push(`/game/${gameId}?mode=view`);
   };

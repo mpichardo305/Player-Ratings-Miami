@@ -1,54 +1,35 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-// Return [isLoading, isAdmin] tuple
-export function useGroupAdmin(userId: string, groupId: string | null): [boolean, boolean] {
+// Return isAdmin boolean
+export function useGroupAdmin(userId: string, groupId: string): { isAdmin: boolean, loading: boolean } {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      // Reset the state when inputs change
-      setLoading(true);
-      
+    const checkAdmin = async () => {
       if (!userId || !groupId) {
-        setIsAdmin(false);
         setLoading(false);
         return;
       }
 
       try {
-        console.log(`Checking admin status for user: ${userId}, group: ${groupId}`);
-        
-        // Uncomment for testing with hardcoded admin status
-        if (userId === '3e0a04fb-6e4b-41ee-899f-a7f1190b57f5') {
-          console.log("Using hardcoded admin status: true");
-          setIsAdmin(true);
-          setLoading(false);
-          return;
-        }
-        
+        console.log(`Checking admin status for player: ${userId}, group: ${groupId}`);
         const response = await fetch(`/api/check-admin?userId=${userId}&groupId=${groupId}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to check admin status');
-        }
-        
         const data = await response.json();
-        console.log('Admin API response:', data);
-        
         setIsAdmin(data.isAdmin);
       } catch (error) {
         console.error('Error checking admin status:', error);
-        setIsAdmin(false);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAdminStatus();
+    checkAdmin();
   }, [userId, groupId]);
 
-  return [loading, isAdmin];
+  return { isAdmin, loading };
 }
