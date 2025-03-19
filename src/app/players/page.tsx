@@ -15,7 +15,7 @@ export default function Players() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   
   const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? null);
+  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '');
   const [viewOnly, setViewOnly] = useState(false);
 
   if (!session?.user) {
