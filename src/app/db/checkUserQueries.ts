@@ -8,7 +8,7 @@ export async function checkPlayerMembership(phoneNumber: string, groupId: string
   // Normalize the phone number by removing '+' if present
   const normalizedPhone = phoneNumber.replace(/^\+/, '');
   
-  console.log('Checking for phone:', normalizedPhone); // Debug log
+  console.log('Checking membership - Phone:', normalizedPhone, 'Group:', groupId); 
   
   // First check if player exists with this phone number
   const { data: player, error: playerError } = await supabase
@@ -20,30 +20,33 @@ export async function checkPlayerMembership(phoneNumber: string, groupId: string
   console.log('Player query result:', { player, playerError }); // Debug log
 
   if (playerError || !player) {
+    console.log('No player found with this phone number');
     return { isMember: false, playerId: null }
   }
 
-  // Then check if player is member of the specified group
-// Check membership
-const { data: membership, error: membershipError } = await supabase
-.from('group_memberships')
-.select('*')
-.eq('player_id', player.id)
-.eq('group_id', groupId)
-.single()
+  // Then check if player is member of the specified group with approved status
+  const { data: membership, error: membershipError } = await supabase
+    .from('group_memberships')
+    .select('*')
+    .eq('player_id', player.id)
+    .eq('group_id', groupId)
+    .eq('status', 'approved')
+    .single()
 
-console.log('Membership query details:', {
-membership,
-membershipError,
-sql: `SELECT * FROM group_memberships WHERE player_id = '${player.id}' AND group_id = '${groupId}'`
-});
+  console.log('Membership query details:', {
+    membership,
+    membershipError,
+    playerId: player.id,
+    sql: `SELECT * FROM group_memberships WHERE player_id = '${player.id}' AND group_id = '${groupId}' AND status = 'approved'`
+  });
 
-const result = {
-isMember: !membershipError && membership !== null,
-playerId: player.id
-};
+  const result = {
+    isMember: !membershipError && membership !== null,
+    playerId: player.id,
+    status: membership?.status || 'not found'
+  };
 
-console.log('=== Final Result ===', result);
+  console.log('=== Final Membership Result ===', result);
 
-return result;
+  return result;
 }
