@@ -84,6 +84,8 @@ export async function updatePlayerStatusAndPhone(playerId: string, phoneNumber: 
       .select('*')
       .eq('id', playerId)
       .single();
+
+    console.log(`[SERVER] Current phone number: ${beforePlayer?.phone || 'not set'}`);
       
     console.log(`[SERVER] Player before update:`, beforePlayer);
     
