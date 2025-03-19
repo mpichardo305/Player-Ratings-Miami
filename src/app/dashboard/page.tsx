@@ -26,7 +26,7 @@ export default function Players() {
   function handleCreateGame(id: string): void {
     router.push(`/create-game/groupId=${id}`);
   }
-console.log(isGroupAdmin, "TESTING isGroupAdmin");
+console.log(isGroupAdmin, "isGroupAdmin");
   return (
     <div className="min-h-screen bg-gray-600 p-4 relative">
       <div className="flex justify-between items-center mb-4">

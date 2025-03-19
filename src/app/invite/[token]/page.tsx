@@ -127,7 +127,14 @@ export default function InviteRegistration() {
       const inviteData = result.data as Invite;
       setInvite(inviteData);
 
-      // Continue with player creation...
+      // Check if invite already has a player_id before creating a new one
+      if (inviteData.player_id) {
+        console.log('Invite already has a player assigned, skipping player creation');
+        setnextPage(true);
+        return;
+      }
+
+      // Create player record with proper user association
       const { data: playerData, error: playerError } = await createInitialPlayer(newUserId, sanitizedPhone);
       if (playerError) throw playerError;
 
