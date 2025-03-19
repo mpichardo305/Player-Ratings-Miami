@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: inviteTab.error.message }, { status: 400 });
     }
     if (playerRes.error) {
-      return NextResponse.json({ error: playerRes.error.message }, { status: 400 });
+      return NextResponse.json({ error: playerRes.error }, { status: 400 });
     }
     
     // Return success response when all operations complete successfully
