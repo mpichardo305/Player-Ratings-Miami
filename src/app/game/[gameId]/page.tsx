@@ -104,7 +104,7 @@ export default function GamePage() {
   };
 
   // Check if user is admin for this game's group
-  const {loading: isAdminLoading, isAdmin} = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? null);
+  const {loading: isAdminLoading, isAdmin} = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? '');
 
   // Track when admin check completes
   useEffect(() => {
