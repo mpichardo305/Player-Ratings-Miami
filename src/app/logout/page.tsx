@@ -19,7 +19,7 @@ export default function Logout() {
   }, [router]);
 
   return (
-    
+    <Layout>
     <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
       <div className="flex flex-col items-center bg-gray-800 p-6 rounded-xl shadow-lg">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-opacity-50"></div>
@@ -27,6 +27,6 @@ export default function Logout() {
         <p className="text-gray-400 mt-2 text-sm">Please wait while we sign you out.</p>
       </div>
     </div>
-  
+  </Layout>
   );
 }

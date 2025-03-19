@@ -25,7 +25,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
 
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(sessionUserId ?? '', selectedGroupId ?? '');
+  const isGroupAdmin = useGroupAdmin(sessionUserId, selectedGroupId);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
