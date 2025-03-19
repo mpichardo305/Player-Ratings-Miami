@@ -1,6 +1,7 @@
 import { createInitialPlayer } from '../playerQueries';
 
 // Set up mock functions outside the mock definition
+const mockFrom = jest.fn(); // Add this line
 const mockInsert = jest.fn();
 const mockSelect = jest.fn();
 const mockSingle = jest.fn();
@@ -8,7 +9,7 @@ const mockSingle = jest.fn();
 // Mock the Supabase client
 jest.mock('@/app/utils/supabase/server', () => ({
   createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
+    from: mockFrom.mockImplementation(() => ({
       insert: mockInsert.mockReturnThis(),
       select: mockSelect.mockReturnThis(),
       single: mockSingle
