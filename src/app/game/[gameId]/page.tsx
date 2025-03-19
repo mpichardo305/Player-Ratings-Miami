@@ -104,15 +104,15 @@ export default function GamePage() {
   };
 
   // Check if user is admin for this game's group
-  const [isAdminCheckLoading, isAdmin] = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? null);
+  const {loading: isAdminLoading, isAdmin} = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? null);
 
   // Track when admin check completes
   useEffect(() => {
-    if (!isAdminCheckLoading && game?.group_id) {
+    if (!isAdminLoading && game?.group_id) {
       setAdminCheckComplete(true);
       fetchGroupName(game.group_id);
     }
-  }, [isAdminCheckLoading, game?.group_id]);
+  }, [isAdminLoading, game?.group_id]);
 
   // Redirect only after initial load and admin check are complete
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function GamePage() {
     </div>
   );
 
-  if (loading || isAdminCheckLoading) {
+  if (loading || isAdminLoading) {
     return (
       <div className="min-h-screen bg-gray-600 p-4">
         {/* {debugPanel} */}
