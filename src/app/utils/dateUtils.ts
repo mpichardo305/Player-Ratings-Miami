@@ -54,15 +54,85 @@ export function formatDateOnly(date: string | Date | null): string {
     day: "numeric",
   });
 }
-
-// New function to preserve dates without timezone shifting
-export function formatDatePreserveDay(dateString: string | null): string {
+export function formatDatePreserveDayAndYear(dateString: string | null | Date): string {
   if (!dateString) return "";
   
-  // Parse the date parts directly from the YYYY-MM-DD format
-  const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+  let year, month, day;
   
-  // Create date with the exact components (months are 0-indexed in JS Date)
+  if (dateString instanceof Date) {
+    year = dateString.getFullYear();
+    month = dateString.getMonth() + 1;
+    day = dateString.getDate();
+  } else if (typeof dateString === 'string') {
+    try {
+      const datePart = dateString.split('T')[0];
+      const parts = datePart.split('-');
+      
+      if (parts.length === 3) {
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        day = parseInt(parts[2], 10);
+      } else {
+        const fallbackDate = new Date(dateString);
+        year = fallbackDate.getFullYear();
+        month = fallbackDate.getMonth() + 1;
+        day = fallbackDate.getDate();
+      }
+    } catch (e) {
+      console.error("Date parsing error:", e);
+      return "Invalid Date";
+    }
+  } else {
+    return "Invalid Date";
+  }
+  
+  const date = new Date(year, month - 1, day);
+  
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+// Update the formatDatePreserveDay function
+export function formatDatePreserveDay(dateString: string | null | Date): string {
+  if (!dateString) return "";
+  
+  let year, month, day;
+  
+  if (dateString instanceof Date) {
+    // Handle Date object
+    year = dateString.getFullYear();
+    month = dateString.getMonth() + 1;
+    day = dateString.getDate();
+  } else if (typeof dateString === 'string') {
+    // Better ISO string handling
+    try {
+      // This handles ISO strings like "2025-03-18T00:00:00.000Z"
+      const datePart = dateString.split('T')[0];
+      const parts = datePart.split('-');
+      
+      if (parts.length === 3) {
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        day = parseInt(parts[2], 10);
+      } else {
+        // Fallback to browser parsing if format is unexpected
+        const fallbackDate = new Date(dateString);
+        year = fallbackDate.getFullYear();
+        month = fallbackDate.getMonth() + 1;
+        day = fallbackDate.getDate();
+      }
+    } catch (e) {
+      console.error("Date parsing error:", e);
+      return "Invalid Date";
+    }
+  } else {
+    return "Invalid Date";
+  }
+  
   const date = new Date(year, month - 1, day);
   
   return date.toLocaleDateString("en-US", {
