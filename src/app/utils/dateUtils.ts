@@ -1,21 +1,21 @@
-export function formatDate(dateString: string): string {
-  try {
-    const date = new Date(dateString);
+// export function formatDate(dateString: string): string {
+//   try {
+//     const date = new Date(dateString);
     
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return dateString;
-  }
-}
+//     return date.toLocaleDateString('en-US', {
+//       weekday: 'short',
+//       month: 'short', 
+//       day: 'numeric',
+//       year: 'numeric',
+//       hour: 'numeric',
+//       minute: '2-digit',
+//       hour12: true
+//     });
+//   } catch (error) {
+//     console.error('Error formatting date:', error);
+//     return dateString;
+//   }
+// }
 
 export const formatTimeOnly = (time: string): string => {
   // Check for various time formats

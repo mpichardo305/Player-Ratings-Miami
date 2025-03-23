@@ -26,7 +26,7 @@ interface Game {
   id: string;
   game_id: string;
   field_name: string;
-  date: string | string;
+  date: string;
   start_time: string;
   created_at?: Date;
   updated_at?: Date;
