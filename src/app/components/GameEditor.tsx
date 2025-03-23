@@ -8,6 +8,7 @@ import GameOperationSuccess from './GameOperationSuccess';
 import { supabase } from '@/app/utils/supabaseClient';
 import { createGame } from '../lib/gameService';
 import { format, parseISO, parse } from 'date-fns';
+import { formatDatePreserveDay, formatDatePreserveDayAndYear } from '../utils/dateUtils';
 
 // Shared constants
 const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
@@ -25,7 +26,7 @@ interface Game {
   id: string;
   game_id: string;
   field_name: string;
-  date: Date | string;
+  date: string;
   start_time: string;
   created_at?: Date;
   updated_at?: Date;
@@ -117,17 +118,16 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
           setLoading(false);
           return;
         }
-        
+        const preservedDateString = formatDatePreserveDayAndYear(data.date);
         // Set game state with converted date
         setGame({
           ...data,
-          date: new Date(data.date)
+          date: new Date(preservedDateString)
         });
         setReadableId(data.game_id);
         
-        // Populate form fields for edit mode
         setSelectedField(data.field_name);
-        setSelectedDate(new Date(data.date));
+        setSelectedDate(new Date(preservedDateString));
         setSelectedTime(formatTimeFrom24Hour(data.start_time));
       } catch (err) {
         console.error('Error:', err);
