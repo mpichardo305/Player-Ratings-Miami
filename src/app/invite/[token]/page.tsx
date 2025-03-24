@@ -31,6 +31,7 @@ export default function InviteRegistration() {
   const [error, setError] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [inviteStatus, setInviteStatus] = useState<string>('');
 
   useEffect(() => {
     // Check for existing session when component mounts
@@ -95,6 +96,15 @@ export default function InviteRegistration() {
       isLoading
     });
   }, [token, userId, invite, isLoading]);
+
+  useEffect(() => {
+    if (inviteStatus === 'invalid' || inviteStatus === 'already_used') {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 2000); // 2 seconds delay before redirect
+      return () => clearTimeout(timer);
+    }
+  }, [inviteStatus, router]);
 
   const { phoneNumber } = usePhoneNumber();
   const sanitizedPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : '';
