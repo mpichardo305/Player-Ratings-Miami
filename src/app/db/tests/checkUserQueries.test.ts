@@ -1,17 +1,13 @@
 import { createTestClient } from '@/app/utils/supabase/test-client'
 import { checkPlayerMembership } from '../checkUserQueries'
 
-// Define types for our data
-interface Player {
-  id: string;
-  phone: string;
-  name: string;
-  status: string;
-}
-
+// Use the shared test client by mocking createClient to return createTestClient()
 jest.mock('@/app/utils/supabase/server', () => ({
   createClient: () => createTestClient()
 }))
+
+// Import createClient from the server module (which is now mocked)
+import { createClient } from '@/app/utils/supabase/server'
 
 describe('Membership Tests', () => {
   // Known valid test data
@@ -26,7 +22,8 @@ describe('Membership Tests', () => {
   })
 
   it('should verify membership with valid UUID', async () => {
-    const supabase = createTestClient()
+    // Instead of calling createTestClient() directly, use createClient() which is mocked
+    const supabase = createClient()
     
     try {
       // First verify the group exists
