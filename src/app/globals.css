@@ -116,7 +116,15 @@ body {
 @layer base {
   .dark {
     /* These map to the theme colors */
-    --background: 222.2 84% 4.9%;
+    --background: 222 24% 8%;
+      /* #030E24 - darker blue */
+      --foreground: 210 40% 98%;
+      --card: 217 33% 17%;
+      /* #1E293B - slate blue */
+      --card-foreground: 210 40% 98%;
+      --popover: 217 33% 17%;
+      /* match card */
+      --popover-foreground: 210 40% 98%;
     /* Dark blue background */
     --foreground: 210 40% 98%;
     /* Light text */
