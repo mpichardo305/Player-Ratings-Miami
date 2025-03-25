@@ -19,6 +19,10 @@ export const darkTheme = {
   secondary: "hsl(217.2 32.6% 17.5%)",
   // Text color for secondary elements
   secondaryForeground: "hsl(210 40% 98%)",
+  // Tertiary color for additional styling options
+  tertiary: "hsl(210 14% 34%)",
+  // Text color for tertiary elements
+  tertiaryForeground: "hsl(210 40% 98%)",
   // Muted color used for disabled elements
   muted: "hsl(217.2 32.6% 17.5%)",
   // Text color for muted elements

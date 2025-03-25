@@ -33,7 +33,7 @@
 }
 :root {
 /* App theme colors */
-  --background-color: #1F2937;
+  --background-color: #030E24;
   --text-color: #ffffff;
 }
 
@@ -86,7 +86,7 @@ body {
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 24% 8%;
     --foreground: 210 40% 98%;
     --card: 217 50% 12%;
     --card-foreground: 210 40% 98%;
@@ -134,6 +134,9 @@ body {
     /* Bright blue for primary actions */
     --secondary: 217.2 32.6% 17.5%;
     /* Darker blue for secondary elements */
+    --tertiary: 220 16% 34%;
+      /* #4B5563 - gray */
+      --tertiary-foreground: 210 40% 98%;
     /* ...other color definitions... */
   }
 }

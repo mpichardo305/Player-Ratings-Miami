@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { usePhoneNumber } from '../hooks/usePhoneNumber';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import PageBackground from './PageBackground';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const WaitingListPage = () => {
   const [isFirstPage, setIsFirstPage] = useState(true);
@@ -75,112 +77,122 @@ const WaitingListPage = () => {
     await submitToWaitingList(updatedAnswers);
   };
 
+  const QuestionCard = ({ title, children }: { title: string | React.ReactNode, children: React.ReactNode }) => (
+    <div className="flex flex-col items-center justify-center min-h-screen px-4">
+      <Card className="w-full max-w-md bg-card">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center text-card-foreground">
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {children}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   return (
-    <PageBackground>
+    <div className="min-h-screen bg-background p-4">
       {isFirstPage && (
-        <div className="flex flex-col items-center justify-center h-full px-4">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 space-y-6">
+        <QuestionCard title="Are you an admin of a soccer group?">
+          <p className="text-card-foreground text-center mb-6">
             Please answer these questions to join the community
-            <h2 className="text-2xl font-semibold text-gray-900 text-center">
-              Are you an admin of a soccer group?
-            </h2>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => handleFirstQuestion(true)}
-                className="w-24 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => handleFirstQuestion(false)}
-                className="w-24 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                No
-              </button>
-            </div>
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button
+              onClick={() => handleFirstQuestion(true)}
+              variant="default"
+              className="w-24"
+            >
+              Yes
+            </Button>
+            <Button
+              onClick={() => handleFirstQuestion(false)}
+              variant="default"
+              className="w-24"
+            >
+              No
+            </Button>
           </div>
-        </div>
+        </QuestionCard>
       )}
 
       {isSecondPage && (
-        <div className="flex flex-col items-center justify-center h-full px-4">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 text-center">
-              How often do you play?
-            </h2>
-            <div className="flex flex-col gap-4 w-full">
-              <button
-                onClick={() => handleSecondQuestion('weekly')}
-                className="w-full py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Weekly
-              </button>
-              <button
-                onClick={() => handleSecondQuestion('monthly')}
-                className="w-full py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => handleSecondQuestion('occasionally')}
-                className="w-full py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Once in a while
-              </button>
-            </div>
+        <QuestionCard title="How often do you play?">
+          <div className="flex flex-col gap-4 w-full">
+            <Button
+              onClick={() => handleSecondQuestion('weekly')}
+              variant="default"
+              className="w-full"
+            >
+              Weekly
+            </Button>
+            <Button
+              onClick={() => handleSecondQuestion('monthly')}
+              variant="default"
+              className="w-full"
+            >
+              Monthly
+            </Button>
+            <Button
+              onClick={() => handleSecondQuestion('occasionally')}
+              variant="default"
+              className="w-full"
+            >
+              Once in a while
+            </Button>
           </div>
-        </div>
+        </QuestionCard>
       )}
 
       {isThirdPage && (
-        <div className="flex flex-col items-center justify-center h-full px-4">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 text-center">
-              What is the size of your group?
-            </h2>
-            <div className="flex flex-col gap-4 w-full">
-              <button
-                onClick={() => handleThirdQuestion('more than 12')}
-                className="w-full py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                12 or More
-              </button>
-              <button
-                onClick={() => handleThirdQuestion('less than 12')}
-                className="w-full py-2 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Less than 12
-              </button>
-            </div>
+        <QuestionCard title="What is the size of your group?">
+          <div className="flex flex-col gap-4 w-full">
+            <Button
+              onClick={() => handleThirdQuestion('more than 12')}
+              variant="default"
+              className="w-full"
+            >
+              12 or More
+            </Button>
+            <Button
+              onClick={() => handleThirdQuestion('less than 12')}
+              variant="default"
+              className="w-full"
+            >
+              Less than 12
+            </Button>
           </div>
-        </div>
+        </QuestionCard>
       )}
 
       {isSubmitPage && (
-        <div className="flex flex-col items-center justify-center h-full px-4">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 space-y-6">
-            {isSubmitting && (
-              <div className="text-center">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  Submitting your information...
-                </h2>
-                <div className="text-blue-600">Please wait...</div>
-              </div>
-            )}
-            {submitSuccess && (
-              <div className="text-center">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  Thank you! You are now part of the wait list.
-                </h2>
-                <div className="text-green-600 text-lg">
-                  If you are a fit, we will text you with next steps
-                </div>
-              </div>
-            )}
+        <QuestionCard title={isSubmitting ? "Submitting your information..." : (
+          <div>
+            <p>Thank you!</p>
+            <p>You are now part of the wait list.</p>
           </div>
-        </div>
+        )}>
+          {isSubmitting && (
+            <p className="text-card-foreground text-center">
+              Please wait...
+            </p>
+          )}
+          {submitSuccess && (
+            <div className="space-y-2 text-center">
+              
+              <p className="text-primary">
+                If you are a fit, we will text you with next steps
+              </p>
+              <p className="text-card-foreground">
+              You can close this page
+              </p>
+            </div>
+          )}
+        </QuestionCard>
       )}
-    </PageBackground>
+    </div>
   );
 };
 

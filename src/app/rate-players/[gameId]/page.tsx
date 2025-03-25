@@ -7,6 +7,8 @@ import SessionGuard from '@/app/components/SessionGuard';
 import { supabase } from '@/app/utils/supabaseClient';
 import { hasGameEnded } from '@/app/utils/gameUtils';
 import { formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Game = {
   id: string;
@@ -71,9 +73,9 @@ function RatePlayersContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        <div className="text-white text-center p-8">
-          Loading game details...
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-muted-foreground">Loading game details...</p>
         </div>
       </div>
     );
@@ -81,56 +83,75 @@ function RatePlayersContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        <div className="bg-red-500 text-white p-4 rounded mb-4">
-          {error}
-        </div>
-        <button
-          onClick={() => router.push(`/game/${gameId}`)}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-        >
-          Back to Game Details
-        </button>
+      <div className="container mx-auto p-6">
+        <Card className="bg-destructive text-destructive-foreground">
+          <CardContent className="pt-6">
+            <p>{error}</p>
+            <Button
+              onClick={() => router.push(`/game/${gameId}`)}
+              variant="ghost"
+              className="border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
+            >
+              Back
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-600 p-4">
-      <h1 className="text-2xl font-bold mb-6 text-white">Rate Players</h1>
-      <p className="text-gray-300 mb-4">
-        Rate the players who participated in this game
-      </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Rate Players</h1>
+        <p className="text-muted-foreground">
+          Rate the players who participated in this game
+        </p>
+      </div>
       
-      {/* Game Info Card */}
       {game && (
-        <div className="bg-gray-700 rounded-md p-3 mb-4 text-white shadow">
-          <h3 className="text-lg font-semibold">{game.field_name}</h3>
-          <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-            <div>
-              <span className="text-gray-400">Date:</span> {formatDatePreserveDay(game.date)}
+        <Card>
+          <CardHeader>
+            <CardTitle>{game.field_name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Date</p>
+                <p className="text-sm font-medium">
+                  {formatDatePreserveDay(game.date)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Time</p>
+                <p className="text-sm font-medium">
+                  {formatTimeOnly(game.start_time)}
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-400">Time:</span> {formatTimeOnly(game.start_time)}
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
       
       {userId && (
-        <UnratedPlayersList 
-          sessionUserId={userId}
-          gameId={gameId}
-        />
+        <Card>
+          <CardContent className="pt-6">
+            <UnratedPlayersList 
+              sessionUserId={userId}
+              gameId={gameId}
+            />
+          </CardContent>
+        </Card>
       )}
       
-      <div className="mt-6">
-        <button
+      <div className="flex justify-start">
+        <Button
           onClick={() => router.push(`/game/${gameId}`)}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          variant="ghost"
+          className="border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
         >
-          Back to Game Details
-        </button>
+          Back
+        </Button>
       </div>
     </div>
   );

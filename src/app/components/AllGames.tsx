@@ -37,6 +37,7 @@ export default function AllGames() {
   const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [previousGames, setPreviousGames] = useState<Game[]>([]);
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
   
   const router = useRouter();
   const session = useSession();
@@ -68,18 +69,22 @@ export default function AllGames() {
   }
   
   const handleView = (gameId: string) => {
+    setSelectedAction(`view-${gameId}`);
     router.push(`/game/${gameId}?mode=view`);
   };
 
   const handleEdit = (gameId: string) => {
+    setSelectedAction(`edit-${gameId}`);
     router.push(`/game/${gameId}?mode=edit`);
   };
 
   const handleRate = (gameId: string) => {
+    setSelectedAction(`rate-${gameId}`);
     router.push(`/rate-players/${gameId}`);
   };
 
   const handleDeleteClick = (id: string) => {
+    setSelectedAction(`delete-${id}`);
     setShowDeleteModal(id);
   };
 
@@ -146,23 +151,38 @@ export default function AllGames() {
           <p className="text-[0.95rem] text-muted-foreground">Field: {game.field_name}</p>
         </div>
         <div className="flex space-x-1"> {/* Reduced from space-x-2.5 to space-x-1 */}
-          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleView(game.id)}>
+          <Button 
+            variant={selectedAction === `view-${game.id}` ? "default" : "ghost"} 
+            size="icon" 
+            className={`h-11 w-11 ${selectedAction === `view-${game.id}` ? "bg-primary text-primary-foreground" : ""}`} 
+            onClick={() => handleView(game.id)}
+          >
             <EyeIcon className="h-5 w-5" />
           </Button>
           {activeTab === "past" && (
-            <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleRate(game.id)}>
+            <Button 
+              variant={selectedAction === `rate-${game.id}` ? "default" : "ghost"} 
+              size="icon" 
+              className={`h-11 w-11 ${selectedAction === `rate-${game.id}` ? "bg-primary text-primary-foreground" : ""}`} 
+              onClick={() => handleRate(game.id)}
+            >
               <StarIcon className="h-5 w-5" />
             </Button>
           )}
           {isAdmin && activeTab === "upcoming" && (
             <>
-              <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleEdit(game.id)}>
+              <Button 
+                variant={selectedAction === `edit-${game.id}` ? "default" : "ghost"} 
+                size="icon" 
+                className={`h-11 w-11 ${selectedAction === `edit-${game.id}` ? "bg-primary text-primary-foreground" : ""}`} 
+                onClick={() => handleEdit(game.id)}
+              >
                 <PencilIcon className="h-5 w-5" />
               </Button>
               <Button
-                variant="ghost"
+                variant={selectedAction === `delete-${game.id}` ? "default" : "ghost"}
                 size="icon"
-                className="h-11 w-11"
+                className={`h-11 w-11 ${selectedAction === `delete-${game.id}` ? "bg-primary text-primary-foreground" : ""}`}
                 onClick={() => handleDeleteClick(game.id)}
               >
                 <TrashIcon className="h-5 w-5" />
@@ -180,7 +200,7 @@ export default function AllGames() {
   return (
     <Card className="bg-card">
       <CardHeader>
-        <CardTitle className="text-foreground text-[1.3rem]">Games</CardTitle>
+        <CardTitle className="text-foreground text-3xl">Games</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="upcoming" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>

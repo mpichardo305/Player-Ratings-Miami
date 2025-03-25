@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
+import { X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Player {
   id: string; // players.id is a UUID
@@ -107,48 +114,49 @@ const handleDecline = async (playerId: string, groupId: string) => {
 
 
   return (
-    <div className="flex flex-col items-center bg-gray-900 min-h-screen p-6">
-      <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
-        <div className="relative bg-gray-900 p-6 rounded-xl shadow-lg w-full max-w-md">
-          {/* Close Button */}
+    <Dialog open={true} onOpenChange={() => onClose()}>
+      <DialogContent className="bg-gray-900 border-gray-800">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-white">
+            Pending Player Requests
+          </DialogTitle>
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 text-gray-400 hover:text-white text-lg"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
           >
-            ❌
+            <span className="sr-only"></span>
           </button>
-          <h1 className="text-2xl font-bold text-white">Pending Player Requests</h1>
-          <div className="mt-6 w-full max-w-md">
-            {pendingPlayers.length === 0 ? (
-              <p className="text-gray-400">No pending requests</p>
-            ) : (
-              pendingPlayers.map((player) => (
-                <div
-                  key={player.id}
-                  className="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-md mb-3"
+        </DialogHeader>
+        <div className="mt-6 w-full">
+          {pendingPlayers.length === 0 ? (
+            <p className="text-gray-400">No pending requests</p>
+          ) : (
+            pendingPlayers.map((player) => (
+              <div
+                key={player.id}
+                className="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-md mb-3"
+              >
+                <span className="text-white">{player.name}</span>
+                <button
+                  onClick={() => handleApprove(player)}
+                  className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600"
                 >
-                  <span className="text-white">{player.name}</span>
-                  <button
-                    onClick={() => handleApprove(player)}
-                    className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600"
-                  >
-                    Approve
-                  </button>
-                  <button
-                      onClick={() => {
-                        if (!groupId) return;
-                        handleDecline(player.id, groupId);
-                      }}
-                    className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
-                  >
-                    Decline
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
+                  Approve
+                </button>
+                <button
+                  onClick={() => {
+                    if (!groupId) return;
+                    handleDecline(player.id, groupId);
+                  }}
+                  className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
+                >
+                  Decline
+                </button>
+              </div>
+            ))
+          )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

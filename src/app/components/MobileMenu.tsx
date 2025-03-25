@@ -3,11 +3,18 @@
 import { useRouter, usePathname } from "next/navigation";
 import { 
   ChartBarIcon,
-  UserGroupIcon, // Replace CleatIcon with UserGroupIcon for Players
-  PlayIcon,      // Replace PlayCircleIcon with PlayIcon for Games
-  ArrowLeftStartOnRectangleIcon, // Replace deprecated ArrowRightOnRectangleIcon
+  UserGroupIcon,
+  PlayIcon,
+  ArrowLeftStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
-import { Menu } from "lucide-react"; // Add this import
+import { 
+  LayoutDashboard,
+  Users,
+  Trophy,
+  LogOut,
+  Menu,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -16,26 +23,43 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useState } from "react";
+
 
 export default function MobileMenu() {
   const router = useRouter();
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
     router.push("/logout");
+    setOpen(false); // Close the sheet after logout
   };
 
   const handleNavigation = (path: string) => {
     router.push(path);
+    setOpen(false); // Close the sheet after navigation
   };
 
   if (pathname === '/login') return null;
 
+  // Helper function to determine if a path is active
+  const isActive = (path: string) => {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
+
+  // Button class generator based on active state with hover states disabled
+  const getButtonClass = (path: string) => {
+    return `w-full justify-start space-x-2 text-[1.05rem] hover:bg-transparent hover:text-current ${
+      isActive(path) ? 'bg-primary text-primary-foreground' : ''
+    }`;
+  };
+
   return (
     <div className="fixed top-4 right-4 z-50">
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="text-foreground h-12 w-12">
+          <Button variant="ghost" size="icon" className="text-foreground h-12 w-12 hover:bg-transparent">
             <Menu className="h-12 w-12" />
           </Button>
         </SheetTrigger>
@@ -44,33 +68,33 @@ export default function MobileMenu() {
             <SheetTitle className="text-foreground text-[1.05rem]">Menu</SheetTitle>
           </SheetHeader>
           <div className="mt-8 flex flex-col space-y-2">
-            <Button
+          <Button
               variant="ghost"
-              className="w-full justify-start space-x-2 text-[1.05rem]" 
-              onClick={() => handleNavigation('/dashboard')}
-            >
-              <ChartBarIcon className="h-[1.05rem] w-[1.05rem]" /> {/* 5% larger icons */}
-              <span>Dashboard</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start space-x-2 text-[1.05rem]"
-              onClick={() => handleNavigation('/players')}
-            >
-              <UserGroupIcon className="h-[1.05rem] w-[1.05rem]" />
-              <span>Players</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start space-x-2 text-[1.05rem]"
+              className={getButtonClass('/games')}
               onClick={() => handleNavigation('/games')}
             >
-              <PlayIcon className="h-[1.05rem] w-[1.05rem]" />
+              <Trophy className="h-[1.05rem] w-[1.05rem]" />
               <span>Games</span>
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start space-x-2 text-[1.05rem] text-destructive"
+              className={getButtonClass('/players')}
+              onClick={() => handleNavigation('/players')}
+            >
+              <Users className="h-[1.05rem] w-[1.05rem]" />
+              <span>Players</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className={getButtonClass('/dashboard')}
+              onClick={() => handleNavigation('/dashboard')}
+            >
+              <LayoutDashboard className="h-[1.05rem] w-[1.05rem]" />
+              <span>Dashboard</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start space-x-2 text-[1.05rem] text-destructive hover:bg-transparent hover:text-destructive"
               onClick={handleLogout}
             >
               <ArrowLeftStartOnRectangleIcon className="h-[1.05rem] w-[1.05rem]" />

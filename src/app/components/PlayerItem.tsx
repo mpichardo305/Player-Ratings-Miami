@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 import toast from 'react-hot-toast';
 
 type Rating = {
@@ -77,60 +78,59 @@ export default function PlayerItem({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div className="flex-1">
-        <h3 className="font-semibold text-lg text-white">{player.name}</h3>
-        <div className="flex space-x-1 mt-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((starIndex) => {
-            // Determine if this star is empty, half, or full.
-            let fillType: 'empty' | 'half' | 'full' = 'empty';
+    <Card className="bg-secondary border-secondary">
+      <CardContent className="pt-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="text-foreground text-lg font-semibold">{player.name}</h3>
+            <div className="flex space-x-1 mt-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((starIndex) => {
+                let fillType: 'empty' | 'half' | 'full' = 'empty';
 
-            if (userRating >= starIndex) {
-              fillType = 'full';
-            } else if (userRating >= starIndex - 0.5) {
-              fillType = 'half';
-            }
+                if (userRating >= starIndex) {
+                  fillType = 'full';
+                } else if (userRating >= starIndex - 0.5) {
+                  fillType = 'half';
+                }
 
-            return (
-              <div key={starIndex} className="relative inline-block text-2xl">
-                {/* Left half for half-star (e.g. 4.5) */}
-                <button
-                  type="button"
-                  className="absolute left-0 top-0 w-1/2 h-full"
-                  onClick={() => handleRatingClick(starIndex - 0.5)}
-                />
-                {/* Right half for full-star (e.g. 5) */}
-                <button
-                  type="button"
-                  className="absolute right-0 top-0 w-1/2 h-full"
-                  onClick={() => handleRatingClick(starIndex)}
-                />
-                {/* Gray star background */}
-                <span className="text-gray-500 pointer-events-none">★</span>
-                {/* Yellow star overlay (full or half) */}
-                {fillType !== 'empty' && (
-                  <span
-                    className="text-yellow-400 pointer-events-none"
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      width: fillType === 'half' ? '50%' : '100%',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    ★
-                  </span>
-                )}
-              </div>
-            );
-          })}
+                return (
+                  <div key={starIndex} className="relative inline-block text-2xl">
+                    {/* Interactive buttons */}
+                    <button
+                      type="button"
+                      className="absolute left-0 top-0 w-1/2 h-full"
+                      onClick={() => handleRatingClick(starIndex - 0.5)}
+                      disabled={isSelf || viewOnly}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-0 top-0 w-1/2 h-full"
+                      onClick={() => handleRatingClick(starIndex)}
+                      disabled={isSelf || viewOnly}
+                    />
+                    {/* Background star - changed from text-muted to text-muted-foreground */}
+                    <span className="text-muted-foreground pointer-events-none">★</span>
+                    {/* Primary color star overlay */}
+                    {fillType !== 'empty' && (
+                      <span
+                        className="text-primary pointer-events-none absolute left-0 top-0 overflow-hidden whitespace-nowrap"
+                        style={{
+                          width: fillType === 'half' ? '50%' : '100%'
+                        }}
+                      >
+                        ★
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <span className="text-mutedForeground text-sm">
+              {userRating} {userRating === 1 ? 'star' : 'stars'}
+            </span>
+          </div>
         </div>
-        <span className="text-gray-400">
-          {userRating} {userRating === 1 ? 'star' : 'stars'}
-        </span>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
