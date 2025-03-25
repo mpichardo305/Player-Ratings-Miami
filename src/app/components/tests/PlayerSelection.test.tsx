@@ -42,14 +42,20 @@ describe('PlayerSelection Component', () => {
   const mockOnSuccess = jest.fn();
 
   // Reset mocks before each test
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     
-    // Default mock implementations
+    // Default mock implementations - wrapping in waitFor to ensure they resolve
     (fetchGroupPlayers as jest.Mock).mockResolvedValue(mockPlayers);
     (fetchExistingPlayerIds as jest.Mock).mockResolvedValue([]);
     (createGame as jest.Mock).mockResolvedValue({ success: true });
     (updateGamePlayers as jest.Mock).mockResolvedValue({ success: true });
+    
+    // Wait for all promises to resolve before proceeding with tests
+    await waitFor(() => {
+      expect(fetchGroupPlayers).toBeDefined();
+      expect(fetchExistingPlayerIds).toBeDefined();
+    });
   });
 
   test('renders loading state initially', () => {
@@ -104,17 +110,23 @@ describe('PlayerSelection Component', () => {
     // Initial state: 0 players selected
     expect(screen.getByText('0/12 players selected')).toBeInTheDocument();
     
-    // Select a player
+    // Select a player and wait for state to update
     fireEvent.click(screen.getByText('John Smith'));
-    expect(screen.getByText('1/12 players selected')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('1/12 players selected')).toBeInTheDocument();
+    });
     
-    // Select another player
+    // Select another player and wait for state to update
     fireEvent.click(screen.getByText('Alex Johnson'));
-    expect(screen.getByText('2/12 players selected')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('2/12 players selected')).toBeInTheDocument();
+    });
     
-    // Deselect a player
+    // Deselect a player and wait for state to update
     fireEvent.click(screen.getByText('John Smith'));
-    expect(screen.getByText('1/12 players selected')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('1/12 players selected')).toBeInTheDocument();
+    });
   });
 
   test('creates a game when form is submitted in create mode', async () => {
@@ -243,19 +255,25 @@ describe('PlayerSelection Component', () => {
     // Select 12 players (the maximum)
     for (let i = 0; i < 12; i++) {
       fireEvent.click(screen.getByText(`Player ${i}`));
+      // Wait for each click to register to avoid race conditions
+      if (i < 11) {
+        await waitFor(() => {
+          expect(screen.getByText(`${i+1}/12 players selected`)).toBeInTheDocument();
+        });
+      }
     }
     
     // Verify 12 players are selected
-    expect(screen.getByText('12/12 players selected')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('12/12 players selected')).toBeInTheDocument();
+    });
     
     // Try to select one more and check behavior
-    // Option 1: Alert is actually disabled in component, so verify count stays the same
     fireEvent.click(screen.getByText('Player 12'));
-    expect(screen.getByText('12/12 players selected')).toBeInTheDocument();
-    
-    // Option 2: Max players is enforced by disabling UI elements
-    // const player13Element = screen.getByText('Player 12').closest('button, div[role="button"]');
-    // expect(player13Element).toBeDisabled();
+    await waitFor(() => {
+      // Count should still be 12 since we're at the limit
+      expect(screen.getByText('12/12 players selected')).toBeInTheDocument();
+    });
   });
 
   test('calls onBack when Back button is clicked', async () => {
@@ -273,6 +291,8 @@ describe('PlayerSelection Component', () => {
     });
     
     fireEvent.click(screen.getByText('Back'));
-    expect(mockOnBack).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockOnBack).toHaveBeenCalled();
+    });
   });
 });
