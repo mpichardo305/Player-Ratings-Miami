@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <meta property="og:title" content="Player Ratings Miami" />
         <meta property="og:description" content="Rate and track local soccer players!" />

@@ -11,6 +11,17 @@ import {
   TrashIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Game = {
   id: string;
@@ -53,7 +64,7 @@ export default function AllGames() {
   }, []);
 
   if (loading || isAdminLoading) {
-    return <div className="text-white text-center py-8">Loading games...</div>;
+    return <div className="text-foreground text-center py-8">Loading games...</div>;
   }
   
   const handleView = (gameId: string) => {
@@ -99,25 +110,24 @@ export default function AllGames() {
     onCancel: () => void;
   }) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-700 bg-opacity-80 z-50">
-        <div className="bg-gray-800 p-6 rounded-md">
-          <p className="text-white">Are you sure you want to delete this game?</p>
-          <div className="mt-4 flex justify-end space-x-4">
-            <button
-              onClick={onConfirm}
-              className="px-3 py-1 bg-red-500 text-white rounded"
-            >
-              Yes
-            </button>
-            <button
-              onClick={onCancel}
-              className="px-3 py-1 bg-gray-400 text-white rounded"
-            >
+      <Dialog open={true} onOpenChange={() => onCancel()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Game</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this game?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="destructive" onClick={onConfirm}>
+              Delete
+            </Button>
+            <Button variant="outline" onClick={onCancel}>
               Cancel
-            </button>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -129,94 +139,92 @@ export default function AllGames() {
   };
 
   const renderGameRow = (game: Game) => (
-    <div key={game.id} className="flex items-center justify-between p-3 bg-gray-700 rounded">
-      <div>
-        <p className="font-semibold text-white">{formatDateTime(game.date, game.start_time)}</p>
-        <p className="text-sm text-gray-300">Field: {game.field_name}</p>
-      </div>
-      <div className="flex space-x-3">
-        <button
-          onClick={() => handleView(game.id)}
-          className="text-blue-600 hover:text-blue-800 p-1 rounded"
-          aria-label="View game details"
-        >
-          <EyeIcon className="h-5 w-5" />
-        </button>
-        {activeTab === "past" && (
-          <button
-            onClick={() => handleRate(game.id)}
-            className="text-yellow-500 hover:text-yellow-700 p-1 rounded"
-            aria-label="Rate players"
-          >
-            <StarIcon className="h-5 w-5" />
-          </button>
-        )}
-        {isAdmin && activeTab === "upcoming" && (
-          <>
-            <button
-              onClick={() => handleEdit(game.id)}
-              className="text-yellow-600 hover:text-yellow-800 p-1 rounded"
-              aria-label="Edit game"
-            >
-              <PencilIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleDeleteClick(game.id)}
-              className="text-red-600 hover:text-red-800 p-1 rounded"
-              aria-label="Delete game"
-            >
-              <TrashIcon className="h-5 w-5" />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+    <Card key={game.id} className="mb-2.5 bg-secondary border-secondary">
+      <CardContent className="flex items-center justify-between p-[1.05rem]">
+        <div>
+          <p className="font-semibold text-foreground text-[1.05rem]">{formatDateTime(game.date, game.start_time)}</p>
+          <p className="text-[0.95rem] text-muted-foreground">Field: {game.field_name}</p>
+        </div>
+        <div className="flex space-x-1"> {/* Reduced from space-x-2.5 to space-x-1 */}
+          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleView(game.id)}>
+            <EyeIcon className="h-5 w-5" />
+          </Button>
+          {activeTab === "past" && (
+            <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleRate(game.id)}>
+              <StarIcon className="h-5 w-5" />
+            </Button>
+          )}
+          {isAdmin && activeTab === "upcoming" && (
+            <>
+              <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleEdit(game.id)}>
+                <PencilIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11"
+                onClick={() => handleDeleteClick(game.id)}
+              >
+                <TrashIcon className="h-5 w-5" />
+              </Button>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 
   // Conditionally render upcoming or past
   const currentList = activeTab === "upcoming" ? upcomingGames : previousGames;
 
   return (
-    <div className="bg-gray-700 rounded-lg p-4 mt-4">
-      <h2 className="text-2xl font-bold mb-4 text-white">Games</h2>
+    <Card className="bg-card">
+      <CardHeader>
+        <CardTitle className="text-foreground text-[1.3rem]">Games</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="upcoming" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>
+          <TabsList className="grid w-full grid-cols-2 bg-secondary h-[3.15rem]">
+            <TabsTrigger 
+              value="upcoming"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[1.05rem]"
+            >
+              Upcoming
+            </TabsTrigger>
+            <TabsTrigger 
+              value="past"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[1.05rem]"
+            >
+              Past
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="upcoming">
+            {upcomingGames.length === 0 ? (
+              <p className="text-muted-foreground">No upcoming games.</p>
+            ) : (
+              <div className="space-y-2">
+                {upcomingGames.map((game) => renderGameRow(game))}
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="past">
+            {previousGames.length === 0 ? (
+              <p className="text-muted-foreground">No past games.</p>
+            ) : (
+              <div className="space-y-2">
+                {previousGames.map((game) => renderGameRow(game))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
-      {/* Tab buttons to switch between upcoming/past */}
-      <div className="flex space-x-4 mb-6">
-        <button
-          className={`px-4 py-2 rounded ${
-            activeTab === "upcoming" ? "bg-gray-900 text-white" : "bg-gray-600 text-gray-300"
-          }`}
-          onClick={() => setActiveTab("upcoming")}
-        >
-          Upcoming
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${
-            activeTab === "past" ? "bg-gray-900 text-white" : "bg-gray-600 text-gray-300"
-          }`}
-          onClick={() => setActiveTab("past")}
-        >
-          Past
-        </button>
-      </div>
-
-      {/* List of games based on the active tab */}
-      {currentList.length === 0 ? (
-        <p className="text-gray-300">
-          {activeTab === "upcoming" ? "No upcoming games." : "No past games."}
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {currentList.map((game) => renderGameRow(game))}
-        </div>
-      )}
-
-      {showDeleteModal && (
-        <DeleteModal
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setShowDeleteModal(null)}
-        />
-      )}
-    </div>
+        {showDeleteModal && (
+          <DeleteModal
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setShowDeleteModal(null)}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
