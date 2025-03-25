@@ -44,11 +44,6 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
   const [error, setError] = useState<string | null>(null);
   const [createdGameId, setCreatedGameId] = useState<string>('');
   const [readableId, setReadableId] = useState<string>('');
-
-  // Format utilities
-  function formatDateForDisplay(date: Date | string): Date {
-    return typeof date === 'string' ? new Date(date) : date;
-  }
   
   function formatTimeFrom24Hour(time: string): string {
     // Convert from database time format to display format
@@ -321,8 +316,9 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
       <h2 className="text-2xl font-bold mb-6 text-white">{mode === 'create' ? 'Create New Game' : 'Edit Game'}</h2>
       
       <div className={styles.formGroup}>
-        <label>Field</label>
-        <select 
+      <label htmlFor="field-select">Field</label>
+      <select 
+          id="field-select" 
           value={selectedField}
           onChange={(e) => setSelectedField(e.target.value)}
           className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
@@ -348,8 +344,9 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
       </div>
 
       <div className={styles.formGroup}>
-        <label>Time</label>
+        <label htmlFor="time-select">Time</label>
         <select 
+          id="time-select"
           value={selectedTime}
           onChange={(e) => setSelectedTime(e.target.value)}
           className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
