@@ -7,12 +7,6 @@ import {
 
 // Mock functions for Supabase operations
 const mockFrom = jest.fn();
-const mockSelect = jest.fn();
-const mockUpdate = jest.fn();
-const mockEq = jest.fn();
-const mockOrder = jest.fn();
-const mockLimit = jest.fn();
-const mockSingle = jest.fn();
 
 // Mock the Supabase client
 jest.mock('@/app/utils/supabase/server', () => ({
@@ -20,9 +14,6 @@ jest.mock('@/app/utils/supabase/server', () => ({
     from: mockFrom
   }))
 }));
-
-// Import after mocking
-import { createClient } from '@/app/utils/supabase/server';
 
 // Test constants
 const mockPlayerId = 'player-123';
