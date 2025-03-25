@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import UnratedPlayersList from '../UnratedPlayersList';
 import { supabase } from '@/app/utils/supabaseClient';
@@ -40,11 +39,8 @@ global.fetch = jest.fn();
 // Fix the next/dynamic mock by making it return a component function directly
 jest.mock('next/dynamic', () => {
   return jest.fn().mockImplementation((importFunc, options) => {
-    // Create a component that will be returned by dynamic
     const MockedComponent = (props: { player: any; onRate: any; isSelf: any; pendingRating: any; }) => {
-      // This simulates what PlayerItem would do
       const { player, onRate, isSelf, pendingRating } = props;
-      
       return (
         <div data-testid={`player-${player.id}`} className="player-item">
           <div>{player.name}</div>
@@ -69,7 +65,6 @@ jest.mock('next/dynamic', () => {
         </div>
       );
     };
-    
     return MockedComponent;
   });
 });
@@ -82,7 +77,7 @@ describe('UnratedPlayersList', () => {
   const mockPlayers = [
     { id: 'player-1', name: 'John Smith', status: 'active' },
     { id: 'player-2', name: 'Jane Doe', status: 'active' },
-    { id: sessionUserId, name: 'Current User', status: 'active' } // This player is the current user
+    { id: sessionUserId, name: 'Current User', status: 'active' }
   ];
   
   const mockGame = {
@@ -91,19 +86,21 @@ describe('UnratedPlayersList', () => {
     start_time: '19:00'
   };
 
-  // Reset mocks before each test
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock fetch for game data
+    // Delay the resolution of game data so the loading state remains visible initially
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => mockGame
     });
     
-    // Default mock implementations
-    (fetchGamePlayers as jest.Mock).mockResolvedValue(mockPlayers);
-    (hasGameEnded as jest.Mock).mockReturnValue(true); // Game has ended by default
+    // Delay fetchGamePlayers so it doesn't resolve immediately
+    (fetchGamePlayers as jest.Mock).mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve(mockPlayers), 200))
+    );
+    
+    (hasGameEnded as jest.Mock).mockReturnValue(true);
     
     // Mock Supabase responses
     const mockSupabaseFrom = supabase.from as jest.Mock;
@@ -117,15 +114,19 @@ describe('UnratedPlayersList', () => {
     }));
   });
 
-  // Keep the test implementations as they were before
-  
-  // For "loading state initially" test, we may need to simplify:
-  test('renders loading state initially', () => {
+  test('renders loading state initially', async () => {
+    // Render the component
     render(<UnratedPlayersList sessionUserId={sessionUserId} gameId={gameId} />);
-      // Find loading elements (the pulse animation placeholders)
-      const loadingElements = document.querySelectorAll('.animate-pulse');
-      expect(loadingElements.length).toBeGreaterThan(0);
-  });
+    
+    // Immediately check for loading state.
+    // We do not wait for the fetch to resolve so that the loading indicator is still present.
+    const loadingElements = document.querySelectorAll('.animate-pulse');
+    expect(loadingElements.length).toBeGreaterThan(0);
 
-  // Rest of tests should work after the dynamic mock fix
+    // Wait until the data is loaded (loading state is replaced)
+    await waitFor(() => {
+      // Check that at least one player item is rendered
+      expect(screen.getByTestId('player-player-1')).toBeInTheDocument();
+    });
+  });
 });

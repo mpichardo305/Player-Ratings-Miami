@@ -3,6 +3,14 @@ import '@testing-library/jest-dom';
 import GameEditor from '../GameEditor';
 import { useRouter } from 'next/navigation';
 
+// Lazy import of createTestClient inside the factory function to avoid initialization issues
+jest.mock('@/app/utils/supabaseClient', () => {
+  const { createTestClient } = require('@/app/utils/supabase/test-client');
+  return {
+    supabase: createTestClient()
+  };
+});
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn()
@@ -10,7 +18,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock DatePicker component
 jest.mock('react-datepicker', () => {
-  return function MockDatePicker({ onChange, selected }: { onChange: (date: Date) => void, selected: Date | null }) {
+  return function MockDatePicker({ onChange, selected }: { onChange: (date: Date) => void; selected: Date | null }) {
     return (
       <input 
         data-testid="date-picker" 
@@ -39,26 +47,13 @@ jest.mock('../PlayerSelection', () => {
     return (
       <div data-testid="player-selection">
         <button data-testid="back" onClick={onBack}>Back</button>
-        <button 
-          data-testid="success" 
-          onClick={() => onSuccess('game-123', 'GAME-123')}
-        >
+        <button data-testid="success" onClick={() => onSuccess('game-123', 'GAME-123')}>
           Complete
         </button>
       </div>
     );
   };
 });
-
-// Mock Supabase client
-jest.mock('@/app/utils/supabaseClient', () => ({
-  supabase: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn()
-  }
-}));
 
 describe('GameEditor', () => {
   const mockRouter = {
@@ -97,32 +92,31 @@ describe('GameEditor', () => {
   test('proceeds to player selection when fields are filled', async () => {
     render(<GameEditor mode="create" />);
     
-    // Find selects by their container
+    // Find the Field select element by its role and label
     const fieldSelect = screen.getByRole('combobox', { name: /field/i });
     
-    // Find time select using a different approach
+    // Find time select by traversing the Time label's container
     const timeLabel = screen.getByText('Time');
     const formGroup = timeLabel.closest('.formGroup');
-    // Get the select element within this group
     const timeSelect = formGroup?.querySelector('select');
     
     // Fill out the form
     fireEvent.change(fieldSelect, { target: { value: 'KSP' } });
     
-    // Set date
+    // Set date via the mocked DatePicker
     fireEvent.change(screen.getByTestId('date-picker'), {
       target: { value: '2025-03-23' }
     });
     
-    // Set time
+    // Set time if the select element was found
     if (timeSelect) {
       fireEvent.change(timeSelect, { target: { value: '7:00 PM' } });
     }
     
-    // Click Next
+    // Click Next to proceed
     fireEvent.click(screen.getByText('Next'));
     
-    // Should show player selection
+    // Expect the player selection component to be displayed
     await waitFor(() => {
       expect(screen.getByTestId('player-selection')).toBeInTheDocument();
     });
@@ -131,25 +125,22 @@ describe('GameEditor', () => {
   test('shows success screen after player selection completes', async () => {
     render(<GameEditor mode="create" />);
     
-    // Find selects by their containers
+    // Find the Field select element by its role and label
     const fieldSelect = screen.getByRole('combobox', { name: /field/i });
     
-    // Find time select
+    // Find time select similarly
     const timeLabel = screen.getByText('Time');
     const formGroup = timeLabel.closest('.formGroup');
     const timeSelect = formGroup?.querySelector('select');
     
-    // Fill out form and go to next step
+    // Fill out the form and move to the next step
     fireEvent.change(fieldSelect, { target: { value: 'KSP' } });
-    
     fireEvent.change(screen.getByTestId('date-picker'), {
       target: { value: '2025-03-23' }
     });
-    
     if (timeSelect) {
       fireEvent.change(timeSelect, { target: { value: '7:00 PM' } });
     }
-    
     fireEvent.click(screen.getByText('Next'));
     
     // Complete player selection
@@ -158,7 +149,7 @@ describe('GameEditor', () => {
       fireEvent.click(screen.getByTestId('success'));
     });
     
-    // Should show success screen
+    // Expect success screen (e.g., text containing "success") to be displayed
     await waitFor(() => {
       expect(screen.getByText(/success/i)).toBeInTheDocument();
     });
@@ -167,29 +158,27 @@ describe('GameEditor', () => {
   test('resets form when Reset button is clicked', () => {
     render(<GameEditor mode="create" />);
     
-    // Find selects
+    // Find Field select by its role and label
     const fieldSelect = screen.getByRole('combobox', { name: /field/i });
     
-    // Find time select
+    // Find time select via its container
     const timeLabel = screen.getByText('Time');
     const formGroup = timeLabel.closest('.formGroup');
     const timeSelect = formGroup?.querySelector('select');
     
-    // Fill out form
+    // Fill out form fields
     fireEvent.change(fieldSelect, { target: { value: 'KSP' } });
-    
     fireEvent.change(screen.getByTestId('date-picker'), {
       target: { value: '2025-03-23' }
     });
-    
     if (timeSelect) {
       fireEvent.change(timeSelect, { target: { value: '7:00 PM' } });
     }
     
-    // Click Reset
+    // Click the Reset button
     fireEvent.click(screen.getByText('Reset'));
     
-    // Form should be reset - check that the first option (empty) is selected
+    // Expect the fields to be reset (empty value)
     expect(fieldSelect).toHaveValue('');
     if (timeSelect) {
       expect(timeSelect).toHaveValue('');
