@@ -80,28 +80,40 @@ describe('UnratedPlayersList', () => {
   });
 
   it('prevents self-rating', async () => {
-    render(<UnratedPlayersList playerId={mockPlayerId} gameId={mockGameId} />);
-    
-    // Wait for the component to load
+    await act(async () => {
+      render(<UnratedPlayersList playerId={mockPlayerId} gameId={mockGameId} />);
+    });
+
+    // Wait for initial loading and data fetching to complete
     await waitFor(() => {
       expect(screen.queryByTestId('loading-skeleton')).not.toBeInTheDocument();
     });
 
-    // Find the first rating button in the Current Player's section
-    const playerSection = screen.getByRole('heading', { name: /Current Player/i }).closest('div');
-    const ratingButton = playerSection?.querySelector('button');
-    
-    if (!ratingButton) {
+    // Find the rating buttons for the current player (who has id matching mockPlayerId)
+    const currentPlayerSection = screen.getByText('Current Player').closest('.player-item');
+    if (!currentPlayerSection) {
+      throw new Error('Current player section not found');
+    }
+
+    // Get the first star rating button
+    const ratingButtons = currentPlayerSection.querySelectorAll('button');
+    const firstRatingButton = ratingButtons[0];
+
+    if (!firstRatingButton) {
       throw new Error('Rating button not found');
     }
 
-    // Try to rate self
+    // Attempt to rate self
     await act(async () => {
-      fireEvent.click(ratingButton);
+      fireEvent.click(firstRatingButton);
     });
-    
-    // Verify toast error was called
-    expect(toast.error).toHaveBeenCalledWith("You cannot rate your own performance!");
+
+    // Check that self-rating was prevented
+    expect(toast.error).toHaveBeenCalledWith('You cannot rate your own performance!');
+
+    // Verify no rating was added
+    const pendingRatingsButton = screen.getByRole('button', { name: /No Ratings to Submit/i });
+    expect(pendingRatingsButton).toBeDisabled();
   });
 
   // Add more tests as needed...
