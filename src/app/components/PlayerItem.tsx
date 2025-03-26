@@ -136,5 +136,7 @@ export default function PlayerItem({
         </span>
       </div>
     </div>
+    </CardContent>
+  </Card> 
   );
 }
