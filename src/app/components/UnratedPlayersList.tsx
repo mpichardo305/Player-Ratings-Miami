@@ -259,6 +259,12 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
           <p className="text-gray-400">No players found for this game.</p>
         )}
 
+        {loading && (
+          <div data-testid="loading-skeleton" className="space-y-4">
+            {/* Your existing skeleton markup */}
+          </div>
+        )}
+
         {loading ? (
           // Show loading skeletons
           <div className="space-y-4">
