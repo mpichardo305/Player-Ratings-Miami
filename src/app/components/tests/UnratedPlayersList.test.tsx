@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import UnratedPlayersList from '../UnratedPlayersList';
 import { supabase } from '@/app/utils/supabaseClient';
@@ -53,7 +53,7 @@ describe('UnratedPlayersList', () => {
     (fetchGamePlayers as jest.Mock).mockResolvedValue(mockPlayers);
   });
 
-  it('renders loading skeleton initially', () => {
+  it('renders loading skeleton initially', async () => {
     render(<UnratedPlayersList playerId={mockPlayerId} gameId={mockGameId} />);
     expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
   });
@@ -75,24 +75,33 @@ describe('UnratedPlayersList', () => {
     await waitFor(() => {
       expect(screen.getByText(/game hasn't ended yet/i)).toBeInTheDocument();
     });
+    
+    expect(screen.getByRole('button', { name: /Game Has Not Ended Yet/i })).toBeDisabled();
   });
 
   it('prevents self-rating', async () => {
     render(<UnratedPlayersList playerId={mockPlayerId} gameId={mockGameId} />);
     
+    // Wait for the component to load
     await waitFor(() => {
       expect(screen.queryByTestId('loading-skeleton')).not.toBeInTheDocument();
     });
 
-    // Find the rating buttons for the current player
-    const currentPlayerStars = screen.getAllByRole('button', { 
-      name: /rate current player/i 
+    // Find the first rating button in the Current Player's section
+    const playerSection = screen.getByRole('heading', { name: /Current Player/i }).closest('div');
+    const ratingButton = playerSection?.querySelector('button');
+    
+    if (!ratingButton) {
+      throw new Error('Rating button not found');
+    }
+
+    // Try to rate self
+    await act(async () => {
+      fireEvent.click(ratingButton);
     });
     
-    // Try to rate self
-    fireEvent.click(currentPlayerStars[0]);
-    
-    expect(screen.getByText(/you cannot rate your own performance/i)).toBeInTheDocument();
+    // Verify toast error was called
+    expect(toast.error).toHaveBeenCalledWith("You cannot rate your own performance!");
   });
 
   // Add more tests as needed...
