@@ -96,12 +96,14 @@ export default function PlayerItem({
                 {/* Left half for half-star (e.g. 4.5) */}
                 <button
                   type="button"
+                  aria-label={`Rate ${player.name} ${starIndex - 0.5} stars`}
                   className="absolute left-0 top-0 w-1/2 h-full"
                   onClick={() => handleRatingClick(starIndex - 0.5)}
                 />
                 {/* Right half for full-star (e.g. 5) */}
                 <button
                   type="button"
+                  aria-label={`Rate ${player.name} ${starIndex} stars`}
                   className="absolute right-0 top-0 w-1/2 h-full"
                   onClick={() => handleRatingClick(starIndex)}
                 />
