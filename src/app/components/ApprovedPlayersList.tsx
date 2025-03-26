@@ -86,8 +86,8 @@ export default function ApprovedPlayersList({ sessionUserId, groupId, viewOnly =
       // Fetch ratings for these players
       const playerIds = approvedPlayers.map((p) => p.id);
       const { data: ratingsData, error: ratingsError } = await supabase
-        .from("ratings")
-        .select("player_id, rating, user_id")
+        .from("game_ratings")
+        .select("player_id, rating")
         .in("player_id", playerIds);
 
       if (ratingsError) {
