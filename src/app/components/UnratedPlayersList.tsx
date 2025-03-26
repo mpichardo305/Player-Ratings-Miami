@@ -33,7 +33,7 @@ type PendingRating = {
 };
 
 type UnratedPlayersListProps = {
-  sessionUserId: string;
+  playerId: string;
   gameId: string;
 };
 
@@ -43,7 +43,7 @@ type Game = {
   start_time: string;
 };
 
-export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPlayersListProps) {
+export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersListProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingRatings, setPendingRatings] = useState<PendingRating[]>([]);
@@ -57,31 +57,35 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
   const [hasRatedGame, setHasRatedGame] = useState<boolean>(false);
 
   const fetchPlayersAndRatings = async () => {
-    if (!gameId) return;
+    if (!gameId || !playerId) return;
     
     setLoading(true);
 
     try {
-      // Use fetchGamePlayers to get players for this game
       const gamePlayers = await fetchGamePlayers(gameId);
       
+      console.log("Fetched game players:", gamePlayers);
+      console.log("Player ID:", playerId);
+
+      // Check if current user is a player in this game using their player ID
+      const userIsPlayer = gamePlayers.some(player => player.id === playerId);
+      console.log("Is user player:", userIsPlayer);
+
+      setIsUserPlayer(userIsPlayer);
+
       if (gamePlayers.length === 0) {
         setPlayers([]);
         setIsUserPlayer(false);
         return;
       }
 
-      // Check if current user is a player in this game
-      const userIsPlayer = gamePlayers.some(player => player.id === sessionUserId);
-      setIsUserPlayer(userIsPlayer);
-
-      // Fetch ratings for these players to check if current user has already rated them
+      // Fetch ratings using player ID instead of sessionUserId
       const playerIds = gamePlayers.map((p) => p.id);
       const { data: ratingsData, error: ratingsError } = await supabase
-        .from("game_ratings") // Changed from "ratings" to "game_ratings"
+        .from("game_ratings")
         .select("player_id, rating, user_id")
         .in("player_id", playerIds)
-        .eq("user_id", sessionUserId);
+        .eq("user_id", playerId); // Changed from sessionUserId to playerId
 
       if (ratingsError) {
         console.error("❌ Error fetching ratings:", ratingsError);
@@ -111,7 +115,7 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
 
   useEffect(() => {
     fetchPlayersAndRatings();
-  }, [gameId]);
+  }, [gameId, playerId]);
 
   // Fetch game data to check if it has ended
   useEffect(() => {
@@ -141,9 +145,9 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
   }, [gameId]);
 
   // Function to store a rating in pending state
-  const handleRate = (playerId: string, rating: number) => {
+  const handleRate = (playerIdToRate: string, rating: number) => {
     // Prevent rating yourself
-    if (playerId === sessionUserId) {
+    if (playerIdToRate === playerId) { 
       console.warn("🚫 You can't rate yourself!");
       toast.error("You cannot rate your own performance!");
       return;
@@ -152,7 +156,7 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
     // Update the pending ratings
     setPendingRatings(prev => {
       // Find if we already have a pending rating for this player
-      const existingIndex = prev.findIndex(pr => pr.player_id === playerId);
+      const existingIndex = prev.findIndex(pr => pr.player_id === playerIdToRate);
       
       if (existingIndex >= 0) {
         // Update existing rating
@@ -161,14 +165,14 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
         return updated;
       } else {
         // Add new rating
-        return [...prev, { player_id: playerId, rating }];
+        return [...prev, { player_id: playerIdToRate, rating }];
       }
     });
     
     // Also update the UI to show the pending rating
     setPlayers(prev => 
       prev.map(player => 
-        player.id === playerId 
+        player.id === playerIdToRate 
           ? { ...player, pendingRating: rating } 
           : player
       )
@@ -194,7 +198,7 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
       // Prepare the ratings for batch insert
       const ratingsToSubmit = pendingRatings.map(pr => ({
         player_id: pr.player_id,
-        user_id: sessionUserId,
+        user_id: playerId, // Changed from sessionUserId to playerId
         rating: pr.rating,
         game_id: gameId
       }));
@@ -265,8 +269,8 @@ export default function UnratedPlayersList({ sessionUserId, gameId }: UnratedPla
         ) : (
           // Show actual players
           players.map((player) => {
-            const isSelf = player.id === sessionUserId;
-            const userRating = player.ratings?.find(r => r.user_id === sessionUserId)?.rating;
+            const isSelf = player.id === playerId;
+            const userRating = player.ratings?.find(r => r.user_id === playerId)?.rating;
             const pendingRating = player.pendingRating;
             
             return (
