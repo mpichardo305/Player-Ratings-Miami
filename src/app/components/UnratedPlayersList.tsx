@@ -83,9 +83,9 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
       const playerIds = gamePlayers.map((p) => p.id);
       const { data: ratingsData, error: ratingsError } = await supabase
         .from("game_ratings")
-        .select("player_id, rating, user_id")
+        .select("player_id, rating, player_id_rater")
         .in("player_id", playerIds)
-        .eq("user_id", playerId); // Changed from sessionUserId to playerId
+        .eq("player_id_rater", playerId); // Changed from sessionUserId to playerId
 
       if (ratingsError) {
         console.error("❌ Error fetching ratings:", ratingsError);
@@ -198,7 +198,7 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
       // Prepare the ratings for batch insert
       const ratingsToSubmit = pendingRatings.map(pr => ({
         player_id: pr.player_id,
-        user_id: playerId, // Changed from sessionUserId to playerId
+        player_id_rater: playerId, // rater's player ID
         rating: pr.rating,
         game_id: gameId
       }));
@@ -206,7 +206,7 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
       // Submit all ratings to game_ratings table
       const { error } = await supabase
         .from("game_ratings") // Using "game_ratings" correctly
-        .upsert(ratingsToSubmit, { onConflict: "player_id, user_id" });
+        .upsert(ratingsToSubmit, { onConflict: "player_id_rater, player_id" }); // Ensure we don't duplicate ratings
       
       if (error) {
         console.error("Error submitting ratings:", error.message);
