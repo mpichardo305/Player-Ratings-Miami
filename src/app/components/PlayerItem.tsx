@@ -93,44 +93,48 @@ export default function PlayerItem({
                   fillType = 'half';
                 }
 
-                return (
-                  <div key={starIndex} className="relative inline-block text-2xl">
-                    {/* Interactive buttons */}
-                    <button
-                      type="button"
-                      className="absolute left-0 top-0 w-1/2 h-full"
-                      onClick={() => handleRatingClick(starIndex - 0.5)}
-                      disabled={isSelf || viewOnly}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-0 top-0 w-1/2 h-full"
-                      onClick={() => handleRatingClick(starIndex)}
-                      disabled={isSelf || viewOnly}
-                    />
-                    {/* Background star - changed from text-muted to text-muted-foreground */}
-                    <span className="text-muted-foreground pointer-events-none">★</span>
-                    {/* Primary color star overlay */}
-                    {fillType !== 'empty' && (
-                      <span
-                        className="text-primary pointer-events-none absolute left-0 top-0 overflow-hidden whitespace-nowrap"
-                        style={{
-                          width: fillType === 'half' ? '50%' : '100%'
-                        }}
-                      >
-                        ★
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <span className="text-mutedForeground text-sm">
-              {userRating} {userRating === 1 ? 'star' : 'stars'}
-            </span>
-          </div>
+            return (
+              <div key={starIndex} className="relative inline-block text-2xl">
+                {/* Left half for half-star (e.g. 4.5) */}
+                <button
+                  type="button"
+                  aria-label={`Rate ${player.name} ${starIndex - 0.5} stars`}
+                  className="absolute left-0 top-0 w-1/2 h-full"
+                  onClick={() => handleRatingClick(starIndex - 0.5)}
+                />
+                {/* Right half for full-star (e.g. 5) */}
+                <button
+                  type="button"
+                  aria-label={`Rate ${player.name} ${starIndex} stars`}
+                  className="absolute right-0 top-0 w-1/2 h-full"
+                  onClick={() => handleRatingClick(starIndex)}
+                />
+                {/* Gray star background */}
+                <span className="text-gray-500 pointer-events-none">★</span>
+                {/* Yellow star overlay (full or half) */}
+                {fillType !== 'empty' && (
+                  <span
+                    className="text-yellow-400 pointer-events-none"
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      width: fillType === 'half' ? '50%' : '100%',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ★
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </CardContent>
-    </Card>
+        <span className="text-gray-400">
+          {userRating} {userRating === 1 ? 'star' : 'stars'}
+        </span>
+      </div>
+    </div>
   );
 }

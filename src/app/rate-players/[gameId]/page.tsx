@@ -23,20 +23,43 @@ function RatePlayersContent() {
   const gameId = params.gameId as string;
   
   const [userId, setUserId] = useState<string | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get the current user ID directly from Supabase
+  // Get the current user ID and corresponding player ID from Supabase
   useEffect(() => {
-    const getUserId = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        setUserId(data.user.id);
+    const getUserAndPlayerId = async () => {
+      try {
+        // Get user ID
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          setUserId(userData.user.id);
+          
+          // Get player ID for this user
+          const { data: playerData, error: playerError } = await supabase
+            .from('players')
+            .select('id')
+            .eq('user_id', userData.user.id)
+            .single();
+
+          if (playerError) {
+            console.error('Error fetching player:', playerError);
+            return;
+          }
+
+          if (playerData) {
+            console.log('Found player ID:', playerData.id);
+            setPlayerId(playerData.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error in getUserAndPlayerId:', error);
       }
     };
-    
-    getUserId();
+      
+    getUserAndPlayerId();
   }, []);
 
   // Fetch game data to verify it has ended
@@ -133,16 +156,12 @@ function RatePlayersContent() {
         </Card>
       )}
       
-      {userId && (
-        <Card>
-          <CardContent className="pt-6">
-            <UnratedPlayersList 
-              sessionUserId={userId}
-              gameId={gameId}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {userId && playerId && (
+        <UnratedPlayersList 
+          playerId={playerId}
+          gameId={gameId}
+        />
+        )}
       
       <div className="flex justify-start">
         <Button
