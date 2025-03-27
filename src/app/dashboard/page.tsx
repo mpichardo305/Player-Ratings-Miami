@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
@@ -9,23 +9,47 @@ import InviteDialog from "@/app/components/InviteDialog";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getUserPlayerId } from "../utils/playerDb";
 
 export default function Dashboard() {
   const router = useRouter();
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(
-    session?.user?.id ?? '',
-    selectedGroup?.id ?? ''
-  );
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [playerId, setPlayerId] = useState<string>('');
+  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
 
-  if (!session?.user) {
-    return <div className="flex justify-center items-center h-screen">Loading session...</div>;
-  }
+  const {
+    isAdmin: isGroupAdmin,
+    loading: isAdminLoading,
+  } = useGroupAdmin(playerId, selectedGroup?.id ?? "");
 
-  if (selectedGroup && isAdminLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading group admin status...</div>;
+  // Simplified group selection handler
+  const handleGroupSelect = (group: Group | null) => {
+    setSelectedGroup(group);
+  };
+
+  useEffect(() => {
+    async function fetchPlayerId() {
+      if (session?.user?.id) {
+        setIsLoadingPlayer(true);
+        const id = await getUserPlayerId(session.user.id);
+        setPlayerId(id ?? "");
+        setIsLoadingPlayer(false);
+      }
+    }
+    fetchPlayerId();
+  }, [session?.user?.id]);
+
+  // Simplify loading check to only essential states
+  const isLoading = !session?.user || isLoadingPlayer;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-600 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
   }
 
   function handleCreateGame(id: string): void {
