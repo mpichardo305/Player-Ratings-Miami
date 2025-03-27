@@ -15,6 +15,8 @@ export default function Players() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [playerId, setPlayerId] = useState<string>(''); // Add this line
+  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+
 
   const {
     isAdmin: isGroupAdmin,
@@ -24,20 +26,28 @@ export default function Players() {
   useEffect(() => {
     async function fetchPlayerId() {
       if (session?.user?.id) {
+        setIsLoadingPlayer(true);
         const id = await getUserPlayerId(session.user.id);
         setPlayerId(id ?? "");
+        setIsLoadingPlayer(false);
       }
     }
     fetchPlayerId();
   }, [session?.user?.id]);
+  
+  const isLoading = !session?.user || 
+  isLoadingPlayer || 
+  isAdminLoading || 
+  (selectedGroup && isAdminLoading);
 
-  if (!session?.user) {
-    return <div>Loading session...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-600 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
   }
 
-  if (!session?.user || (selectedGroup && isAdminLoading)) {
-    return <div>Loading...</div>;
-  }
   function handleCreateGame(id: string): void {
     router.push(`/create-game/groupId=${id}`);
   }
