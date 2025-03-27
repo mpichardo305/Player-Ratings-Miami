@@ -10,8 +10,7 @@
     "test": "NODE_ENV=test jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:membership": "jest src/app/db/tests/checkUserQueries.test.ts",
-    "prepare": "husky install"
+    "test:membership": "jest src/app/db/tests/checkUserQueries.test.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
