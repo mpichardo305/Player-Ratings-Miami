@@ -17,7 +17,7 @@ export default function Dashboard() {
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const [playerId, setPlayerId] = useState<string>('');
+  const [playerId, setPlayerId] = useState<string>("");
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
 
   const {
@@ -25,7 +25,6 @@ export default function Dashboard() {
     loading: isAdminLoading,
   } = useGroupAdmin(playerId, selectedGroup?.id ?? "");
 
-  // Simplified group selection handler
   const handleGroupSelect = (group: Group | null) => {
     setSelectedGroup(group);
   };
@@ -42,14 +41,14 @@ export default function Dashboard() {
     fetchPlayerId();
   }, [session?.user?.id]);
 
-  // Simplify loading check to only essential states
   const isLoading = !session?.user || isLoadingPlayer;
 
   if (isLoading) {
     return (
-      <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-        Loading...
-      </span></>
+      <div className="flex items-center justify-center min-h-screen bg-gray-600">
+        <Loader2 className="h-6 w-6 animate-spin text-white" />
+        <span className="ml-2 text-sm text-white">Loading...</span>
+      </div>
     );
   }
 
@@ -67,17 +66,17 @@ export default function Dashboard() {
 
       <Card className="bg-card">
         <CardHeader>
-          <CardTitle>Group Name
+          <CardTitle>
+            Group Name
             <span className="text-muted-foreground text-sm ml-2">
-              {selectedGroup ? `(${selectedGroup.name})` : ''}
+              {selectedGroup ? `(${selectedGroup.name})` : ""}
             </span>
           </CardTitle>
-          
         </CardHeader>
         <CardContent>
-          <GroupSelector 
-            sessionUserId={session.user.id} 
-            onGroupSelect={setSelectedGroup} 
+          <GroupSelector
+            sessionUserId={session.user.id}
+            onGroupSelect={handleGroupSelect}
           />
         </CardContent>
       </Card>
@@ -114,15 +113,15 @@ export default function Dashboard() {
       )}
 
       {selectedGroup && isGroupAdmin && (
-        <InviteDialog 
-          groupId={selectedGroup.id} 
+        <InviteDialog
+          groupId={selectedGroup.id}
           onClose={() => setShowApproveDialog(false)}
         />
       )}
 
       {showApproveDialog && selectedGroup && (
-        <ApprovePlayersDialog 
-          onClose={() => setShowApproveDialog(false)} 
+        <ApprovePlayersDialog
+          onClose={() => setShowApproveDialog(false)}
           onApprove={() => {}}
           groupId={selectedGroup.id}
           isGroupAdmin={true}
@@ -130,7 +129,7 @@ export default function Dashboard() {
       )}
 
       <Button
-        onClick={() => router.push('/')}
+        onClick={() => router.push("/")}
         variant="ghost"
         className="mt-4 border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
       >
