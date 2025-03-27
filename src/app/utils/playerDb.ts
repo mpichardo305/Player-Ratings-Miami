@@ -94,3 +94,21 @@ export const fetchExistingPlayerIds = async (gameId: string): Promise<string[]> 
     return [];
   }
 };
+export async function getUserPlayerId(user_id: string): Promise<string | null> {
+  try {
+    const { data: players, error: playersError } = await supabase
+      .from('players')
+      .select('id')
+      .eq('user_id', user_id) 
+
+    if (playersError || !players || players.length === 0) {
+      console.error("❌ Error fetching player details:", playersError);
+      return null; // Return null if there's an error or no players found
+    }
+
+    return players[0].id; // Return the player_id of the first player found
+  } catch (error) {
+    console.error("Error in getUserPlayerId:", error);
+    return null; // Return null in case of an unexpected error
+  }
+}
