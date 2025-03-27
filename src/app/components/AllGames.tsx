@@ -37,7 +37,7 @@ export default function AllGames() {
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [previousGames, setPreviousGames] = useState<Game[]>([]);
-  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("past");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   
   const router = useRouter();
@@ -210,7 +210,7 @@ export default function AllGames() {
         <CardTitle className="text-foreground text-3xl">Games</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="upcoming" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>
+        <Tabs defaultValue="past" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>
           <TabsList className="grid w-full grid-cols-2 bg-secondary h-[3.15rem]">
             <TabsTrigger 
               value="upcoming"
