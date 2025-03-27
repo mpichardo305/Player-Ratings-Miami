@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from 'lucide-react';
 
 // Shared constants
 const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
@@ -242,7 +243,9 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
   };
 
   if (loading) {
-    return <div className={styles.container}>Loading game details...</div>;
+    return <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+    Loading game details...
+  </span></>;
   }
 
   if (error) {

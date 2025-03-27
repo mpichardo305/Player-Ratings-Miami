@@ -22,6 +22,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   const [inviteUrl, setInviteUrl] = useState('')
   const [error, setError] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [copyConfirmation, setCopyConfirmation] = useState(false)
   const { toast } = useToast()
 
   const createInvite = async () => {
@@ -59,6 +60,8 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(inviteUrl)
+    setCopyConfirmation(true)
+    setTimeout(() => setCopyConfirmation(false), 2000)
     toast({
       title: "Link copied!",
       description: "The invite link has been copied to your clipboard.",
@@ -87,7 +90,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
           </Button>
         </DialogTrigger>
         {inviteUrl && (
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md bg-card">
             <DialogHeader>
               <DialogTitle>Invite Player</DialogTitle>
               <DialogDescription>
@@ -102,13 +105,20 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
                 className="w-full"
               />
               <div className="flex gap-2">
-                <Button 
-                  variant="secondary" 
-                  className="flex-1"
-                  onClick={handleCopy}
-                >
-                  Copy Link
-                </Button>
+                <div className="relative flex-1">
+                  <Button 
+                    variant="secondary" 
+                    className="w-full"
+                    onClick={handleCopy}
+                  >
+                    Copy Link
+                  </Button>
+                  {copyConfirmation && (
+                    <div className="absolute -bottom-12 left-0 right-0 text-center text-sm font-medium text-green-600 bg-green-100 p-2 rounded-md shadow-sm">
+                      Link copied!
+                    </div>
+                  )}
+                </div>
                 <Button 
                   variant="default" 
                   className="flex-1"

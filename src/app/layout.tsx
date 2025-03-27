@@ -5,6 +5,7 @@ import "./globals.css";
 import { GroupProvider } from './context/GroupContext';
 import MobileMenu from "./components/MobileMenu";
 import ToastProvider from './components/ToastProvider';
+import { Toaster } from "@/components/ui/toaster"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </GroupProvider>
         <ToastProvider />
+        <Toaster />
       </body>
     </html>
   );

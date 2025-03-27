@@ -10,6 +10,7 @@ import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserPlayerId } from "../utils/playerDb";
+import { Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -46,9 +47,9 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-600 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
+      <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+        Loading...
+      </span></>
     );
   }
 

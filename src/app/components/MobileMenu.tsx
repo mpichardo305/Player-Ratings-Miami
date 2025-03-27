@@ -2,16 +2,12 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { 
-  ChartBarIcon,
-  UserGroupIcon,
-  PlayIcon,
   ArrowLeftStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { 
   LayoutDashboard,
   Users,
   Trophy,
-  LogOut,
   Menu,
 } from "lucide-react";
 
@@ -94,7 +90,7 @@ export default function MobileMenu() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start space-x-2 text-[1.05rem] text-destructive hover:bg-transparent hover:text-destructive"
+              className="w-full justify-start space-x-2 text-[1.05rem] text-white hover:bg-transparent hover:text-destructive"
               onClick={handleLogout}
             >
               <ArrowLeftStartOnRectangleIcon className="h-[1.05rem] w-[1.05rem]" />

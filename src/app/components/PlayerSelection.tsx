@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from 'lucide-react';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -171,7 +172,9 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
             </div>
 
             {loading ? (
-              <p className="text-mutedForeground">Loading players...</p>
+              <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+              Loading players...
+            </span></>
             ) : (
               <div className="space-y-4">
                 {players.map(player => (

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import "react-phone-number-input/style.css";
 import { supabase } from "@/app/utils/supabaseClient";
+import { Loader2 } from "lucide-react";
 
 interface PhoneAuthProps {
   onVerificationSuccess?: () => void;
@@ -83,9 +84,9 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess, refreshPho
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center -mt-12">
+    <div className="relative min-h-screen flex flex-col items-center justify-center -mt-12 h-screen">
       {/* Background Image with Overlay */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0">
         <Image
           src="/no-slogan.jpg"
           alt="Soccer field"
@@ -93,7 +94,7 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess, refreshPho
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-background/90" /> {/* Dark overlay */}
+        <div className="absolute inset-0 bg-background/85" /> {/* Dark overlay */}
       </div>
 
       {/* Content */}
@@ -103,6 +104,8 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess, refreshPho
           <h1 className="text-4xl font-bold tracking-tight text-white">
             Rate Players in Miami's Soccer Games!
           </h1>
+          </div>
+          <div className="mb-4">
           <p className="text-xl text-muted-foreground">
             Join your group and rate your friends. Play hard. Rate harder!
           </p>
@@ -153,7 +156,9 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess, refreshPho
                   disabled={loading}
                   className="w-full"
                 >
-                  {loading ? "Verifying..." : "Verify"}
+                  {loading ? <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+        Loading...
+      </span></> : "Verify OTP"}
                 </Button>
               </div>
             )}

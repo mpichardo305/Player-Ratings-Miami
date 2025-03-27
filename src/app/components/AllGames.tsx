@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 
 type Game = {
   id: string;
@@ -65,7 +66,13 @@ export default function AllGames() {
   }, []);
 
   if (loading || isAdminLoading) {
-    return <div className="text-foreground text-center py-8">Loading games...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="text-sm ml-2">Loading games...</span>
+        
+      </div>
+    )
   }
   
   const handleView = (gameId: string) => {

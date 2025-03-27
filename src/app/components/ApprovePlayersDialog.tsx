@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
-import { X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Check, X } from "lucide-react";
 
 interface Player {
   id: string; // players.id is a UUID
@@ -114,45 +116,42 @@ const handleDecline = async (playerId: string, groupId: string) => {
 
 
   return (
-    <Dialog open={true} onOpenChange={() => onClose()}>
-      <DialogContent className="bg-gray-900 border-gray-800">
+    <Dialog open={true} onOpenChange={() => onClose()} >
+      <DialogContent className="sm:max-w-[425px] bg-card">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">
-            Pending Player Requests
-          </DialogTitle>
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-          >
-            <span className="sr-only"></span>
-          </button>
+          <DialogTitle>Pending Player Requests</DialogTitle>
         </DialogHeader>
-        <div className="mt-6 w-full">
+        <div className="mt-6 space-y-4">
           {pendingPlayers.length === 0 ? (
-            <p className="text-gray-400">No pending requests</p>
+            <p className="text-muted-foreground text-center">No pending requests</p>
           ) : (
             pendingPlayers.map((player) => (
-              <div
-                key={player.id}
-                className="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-md mb-3"
-              >
-                <span className="text-white">{player.name}</span>
-                <button
-                  onClick={() => handleApprove(player)}
-                  className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => {
-                    if (!groupId) return;
-                    handleDecline(player.id, groupId);
-                  }}
-                  className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
-                >
-                  Decline
-                </button>
-              </div>
+              <Card key={player.id} className="p-4 bg-secondary">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex-grow">{player.name}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleApprove(player)}
+                      size="sm"
+                      className="w-24 bg-green-600"
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      Approve
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!groupId) return;
+                        handleDecline(player.id, groupId);
+                      }}
+                      size="sm"
+                      className="w-24 bg-red-700"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Decline
+                    </Button>
+                  </div>
+                </div>
+              </Card>
             ))
           )}
         </div>

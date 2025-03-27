@@ -132,8 +132,8 @@ body {
     /* Slightly lighter cards */
     --primary: 217.2 91.2% 59.8%;
     /* Bright blue for primary actions */
-    --secondary: 217.2 32.6% 17.5%;
-    /* Darker blue for secondary elements */
+    --secondary: 221 46% 20%;
+      /* Updated for secondary elements */
     --tertiary: 220 16% 34%;
       /* #4B5563 - gray */
       --tertiary-foreground: 210 40% 98%;
