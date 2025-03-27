@@ -14,14 +14,18 @@ export default function Players() {
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const [playerId, setPlayerId] = useState<string>(''); // Add this line
+  const [playerId, setPlayerId] = useState<string>('');
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
-
 
   const {
     isAdmin: isGroupAdmin,
     loading: isAdminLoading,
   } = useGroupAdmin(playerId, selectedGroup?.id ?? "");
+
+  // Simplified group selection handler
+  const handleGroupSelect = (group: Group | null) => {
+    setSelectedGroup(group);
+  };
 
   useEffect(() => {
     async function fetchPlayerId() {
@@ -34,11 +38,9 @@ export default function Players() {
     }
     fetchPlayerId();
   }, [session?.user?.id]);
-  
-  const isLoading = !session?.user || 
-  isLoadingPlayer || 
-  isAdminLoading || 
-  (selectedGroup && isAdminLoading);
+
+  // Simplify loading check to only essential states
+  const isLoading = !session?.user || isLoadingPlayer;
 
   if (isLoading) {
     return (
@@ -51,15 +53,17 @@ export default function Players() {
   function handleCreateGame(id: string): void {
     router.push(`/create-game/groupId=${id}`);
   }
-console.log(isGroupAdmin, "isGroupAdmin boolean");
+
   return (
     <div className="min-h-screen bg-gray-600 p-4 relative">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-       
       </div>
       
-      <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} />
+      <GroupSelector 
+        sessionUserId={session.user.id} 
+        onGroupSelect={handleGroupSelect} 
+      />
       
       {session && !isGroupAdmin && (
         <div className="mt-4 p-3 bg-gray-700 rounded-lg text-white">
@@ -111,7 +115,7 @@ console.log(isGroupAdmin, "isGroupAdmin boolean");
         <p className="text-white">No groups found.</p>
       )}
 
-<button
+      <button
         onClick={() => router.push('/')}
         className="back-button"
       >
