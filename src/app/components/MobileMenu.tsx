@@ -1,105 +1,104 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { 
+  ArrowLeftStartOnRectangleIcon,
+} from "@heroicons/react/24/outline";
+import { 
+  LayoutDashboard,
+  Users,
+  Trophy,
+  Menu,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useState } from "react";
+
 
 export default function MobileMenu() {
   const router = useRouter();
-  const pathname = usePathname(); // Add this to get the current path
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
-  const handleLogout = async () => {
-    setIsMenuOpen(false);
+  const handleLogout = () => {
     router.push("/logout");
+    setOpen(false); // Close the sheet after logout
   };
 
-  // New navigation handler function
   const handleNavigation = (path: string) => {
-    setIsMenuOpen(false);
     router.push(path);
+    setOpen(false); // Close the sheet after navigation
   };
 
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      menuRef.current && 
-      buttonRef.current &&
-      !menuRef.current.contains(event.target as Node) &&
-      !buttonRef.current.contains(event.target as Node)
-    ) {
-      setIsMenuOpen(false);
-    }
+  if (pathname === '/login') return null;
+
+  // Helper function to determine if a path is active
+  const isActive = (path: string) => {
+    return pathname === path || pathname.startsWith(`${path}/`);
   };
 
-  useEffect(() => {
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-    
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMenuOpen]);
+  // Button class generator based on active state with hover states disabled
+  const getButtonClass = (path: string) => {
+    return `w-full justify-start space-x-2 text-[1.05rem] hover:bg-transparent hover:text-current ${
+      isActive(path) ? 'bg-primary text-primary-foreground' : ''
+    }`;
+  };
 
-  // Don't render the menu on the login page
-  if (pathname === '/login') {
-    return null;
-  }
   return (
-    <>
-      {/* Hamburger Menu Button */}
-      <div className="absolute top-4 right-4 z-50">
-        <button
-          ref={buttonRef}
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-white p-2 rounded-lg hover:bg-gray-700"
-        >
-          {isMenuOpen ? (
-            <XMarkIcon className="h-6 w-6" />
-          ) : (
-            <Bars3Icon className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40">
-          <div ref={menuRef} className="absolute right-0 top-0 h-full w-64 bg-gray-800 p-4 shadow-lg">
-            <div className="mt-16 flex flex-col space-y-1">
-            <button
-                onClick={() => handleNavigation('/dashboard')}
-                className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
-              >
-                Dashboard
-            </button>
-              <button
-                onClick={() => handleNavigation('/players')}
-                className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
-              >
-                Players
-              </button>
-              <button
-                onClick={() => handleNavigation('/games')}
-                className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
-              >
-                Games
-              </button>
-              <button
-                onClick={handleLogout}
-                className="text-white hover:bg-gray-700 px-4 py-1.5 rounded-lg text-left"
-              >
-                Logout
-              </button>
-              {/* Add more menu items here */}
-            </div>
+    <div className="fixed top-4 right-4 z-50">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="text-foreground h-12 w-12 hover:bg-transparent">
+            <Menu className="h-12 w-12" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent className="bg-secondary border-secondary [&>button>svg]:h-[1.65rem] [&>button>svg]:w-[1.65rem]">
+          <SheetHeader>
+            <SheetTitle className="text-foreground text-[1.05rem]">Menu</SheetTitle>
+          </SheetHeader>
+          <div className="mt-8 flex flex-col space-y-2">
+          <Button
+              variant="ghost"
+              className={getButtonClass('/games')}
+              onClick={() => handleNavigation('/games')}
+            >
+              <Trophy className="h-[1.05rem] w-[1.05rem]" />
+              <span>Games</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className={getButtonClass('/players')}
+              onClick={() => handleNavigation('/players')}
+            >
+              <Users className="h-[1.05rem] w-[1.05rem]" />
+              <span>Players</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className={getButtonClass('/dashboard')}
+              onClick={() => handleNavigation('/dashboard')}
+            >
+              <LayoutDashboard className="h-[1.05rem] w-[1.05rem]" />
+              <span>Dashboard</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start space-x-2 text-[1.05rem] text-white hover:bg-transparent hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <ArrowLeftStartOnRectangleIcon className="h-[1.05rem] w-[1.05rem]" />
+              <span>Logout</span>
+            </Button>
           </div>
-        </div>
-      )}
-    </>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }

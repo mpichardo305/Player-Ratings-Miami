@@ -1,6 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useToast } from "@/components/ui/toaster"
 
 interface InviteDialogProps {
   groupId: string
@@ -10,7 +21,9 @@ interface InviteDialogProps {
 export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   const [inviteUrl, setInviteUrl] = useState('')
   const [error, setError] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
   const [copyConfirmation, setCopyConfirmation] = useState(false)
+  const { toast } = useToast()
 
   const createInvite = async () => {
     if (inviteUrl) {
@@ -19,7 +32,6 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
     }
 
     try {
-      console.log('Creating invite for groupId:', groupId)
       const response = await fetch('/api/create-invite', {
         method: 'POST',
         headers: {
@@ -33,15 +45,14 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
       }
 
       const data = await response.json()
-      console.log('Response from create-invite API:', data)
       
       if (data.error) {
         setError(data.error)
       } else if (data.token) {
         setInviteUrl(`${window.location.origin}/invite/${data.token}`)
+        setIsOpen(true)
       }
     } catch (err) {
-      console.error('Error creating invite:', err)
       setError('Failed to create invite')
       setInviteUrl('')
     }
@@ -51,61 +62,78 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
     await navigator.clipboard.writeText(inviteUrl)
     setCopyConfirmation(true)
     setTimeout(() => setCopyConfirmation(false), 2000)
+    toast({
+      title: "Link copied!",
+      description: "The invite link has been copied to your clipboard.",
+      duration: 2000,
+    })
   }
 
   const handleClose = () => {
-    console.log('Closing dialog...')
     setInviteUrl('') 
     setError('') 
+    setIsOpen(false)
     onClose() 
   }
 
   return (
     <div className="mt-4">
-      <button 
-        onClick={createInvite} 
-        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-      >
-        Invite a Player
-      </button>
-      
-      {inviteUrl && (
-        <div className="mt-4 p-4 bg-gray-700 rounded-lg text-white">
-          <p className="mb-2 text-lg">Invite URL:</p>
-          <div className="flex flex-col gap-2">
-            <input 
-              type="text" 
-              value={inviteUrl} 
-              readOnly 
-              className="w-full p-2 border border-gray-500 rounded bg-gray-800 text-white"
-            />
-            <div className="flex gap-2 items-center">
-              <div className="relative flex-1">
-                <button 
-                  onClick={handleCopy}
-                  className="w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200 text-gray-800"
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            onClick={createInvite} 
+            variant="secondary"
+            size="lg"
+            className="w-full"
+          >
+            Invite a Player
+          </Button>
+        </DialogTrigger>
+        {inviteUrl && (
+          <DialogContent className="sm:max-w-md bg-card">
+            <DialogHeader>
+              <DialogTitle>Invite Player</DialogTitle>
+              <DialogDescription>
+                Share this link with the player you want to invite.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              <Input
+                type="text"
+                value={inviteUrl}
+                readOnly
+                className="w-full"
+              />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Button 
+                    variant="secondary" 
+                    className="w-full"
+                    onClick={handleCopy}
+                  >
+                    Copy Link
+                  </Button>
+                  {copyConfirmation && (
+                    <div className="absolute -bottom-12 left-0 right-0 text-center text-sm font-medium text-green-600 bg-green-100 p-2 rounded-md shadow-sm">
+                      Link copied!
+                    </div>
+                  )}
+                </div>
+                <Button 
+                  variant="default" 
+                  className="flex-1"
+                  onClick={handleClose}
                 >
-                  Copy  
-                </button>
-                {copyConfirmation && (
-                  <div className="absolute -bottom-12 left-0 right-0 text-center text-lg font-semibold text-green-600 bg-green-100 p-2 rounded-md shadow-sm">
-                    Link copied!
-                  </div>
-                )}
+                  Done
+                </Button>
               </div>
-              <button 
-                onClick={handleClose}
-                className="flex-1 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 transition-colors duration-200 text-gray-800"
-              >
-                Done
-              </button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
       
       {error && (
-        <p className="mt-2 text-red-500">{error}</p>
+        <p className="mt-2 text-destructive">{error}</p>
       )}
     </div>
   )

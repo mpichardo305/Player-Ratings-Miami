@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import styles from '../CreateGame.module.css';
 import { v4 as uuidv4 } from 'uuid';
 import { updateGamePlayers } from '../lib/updateGamePlayersService';
 import { createGame, GameCreate } from '../lib/gameService';  
-import { formatDateOnly, formatDatePreserveDay, formatTimeOnly } from '../utils/dateUtils';
+import { formatDatePreserveDay, formatTimeOnly } from '../utils/dateUtils';
 import { Player, fetchGroupPlayers, fetchExistingPlayerIds } from '../utils/playerDb';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from 'lucide-react';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -141,48 +145,85 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
 
   return (
-    <div className={styles.playerList}>
-      <h2 className="text-xl font-bold mb-2 text-white">{mode === 'create' ? 'Game Details' : 'Update Game Players'}</h2>
-      <div className={styles.gameInfo}>
-        <p>Field: {gameDetails.field_name}</p>
-        <p>Date: {`${formatDatePreserveDay(gameDetails.date.toString())}`}</p>
-        <p>Start Time: {`${formatTimeOnly(gameDetails.start_time)}`}</p>
-      </div>
-      <div className={styles.playerList}>
-        <p>Select the guys that will play (max {MAX_PLAYERS})</p>
-        <p className={selectedPlayers.size > MAX_PLAYERS ? styles.error : ''}>
-          {selectedPlayers.size}/{MAX_PLAYERS} players selected
-        </p>
-        {loading ? (
-          <p>Loading players...</p>
-        ) : (
-          players.map(player => (
-            <label 
-              key={player.id} 
-              className={`${styles.playerItem} ${selectedPlayers.has(player.id) ? styles.selectedPlayer : ''} ${selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id) ? styles.disabled : ''}`}
+    <Card className="bg-card">
+      <CardHeader>
+        <CardTitle className="text-foreground text-[1.3rem]">
+          {mode === 'create' ? 'Game Details' : 'Update Game Players'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-6">
+          <Card className="bg-secondary border-secondary">
+            <CardContent className="pt-6">
+              <div className="text-foreground space-y-2">
+                <p>Field: {gameDetails.field_name}</p>
+                <p>Date: {formatDatePreserveDay(gameDetails.date.toString())}</p>
+                <p>Start Time: {formatTimeOnly(gameDetails.start_time)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="text-foreground space-y-6">
+            <div>
+              <Label className="text-lg">Select players (max {MAX_PLAYERS})</Label>
+              <p className={`mt-1 ${selectedPlayers.size > MAX_PLAYERS ? "text-destructive" : "text-mutedForeground"}`}>
+                {selectedPlayers.size}/{MAX_PLAYERS} players selected
+              </p>
+            </div>
+
+            {loading ? (
+              <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+              Loading players...
+            </span></>
+            ) : (
+              <div className="space-y-4">
+                {players.map(player => (
+                    <div
+                    key={player.id}
+                    className="bg-secondary border-secondary rounded-lg p-3 hover:bg-secondary/80 transition-colors"
+                    >
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                      id={player.id}
+                      checked={selectedPlayers.has(player.id)}
+                      onCheckedChange={() => handlePlayerToggle(player.id)}
+                      disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
+                      className="bg-secondary border-primary"
+                      />
+                      <Label
+                      htmlFor={player.id}
+                      className="text-foreground cursor-pointer"
+                      >
+                      {player.name}
+                      </Label>
+                    </div>
+                    </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-between pt-4">
+            <Button
+              variant="secondary"
+              onClick={onBack}
+              disabled={submitting}
+              className="min-w-[100px]"
             >
-              <input
-                type="checkbox"
-                checked={selectedPlayers.has(player.id)}
-                onChange={() => handlePlayerToggle(player.id)}
-                disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
-              />
-              <span>{player.name}</span>
-            </label>
-          ))
-        )}
-      </div>
-      <div className={styles.buttonGroup}>
-        <button onClick={onBack} disabled={submitting}>Back</button>
-        <button 
-          onClick={handleSubmit} 
-          disabled={!isValidTeamSize || submitting}
-          className={!isValidTeamSize || submitting ? styles.buttonDisabled : ''}
-        >
-          {submitting ? submittingText : buttonText}
-        </button>
-      </div>
-    </div>
+              Back
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleSubmit}
+              disabled={!isValidTeamSize || submitting}
+              className="bg-primary text-primaryForeground min-w-[100px]"
+            >
+              {submitting ? submittingText : buttonText}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
