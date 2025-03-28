@@ -8,7 +8,6 @@ import ApprovedPlayersList from "@/app/components/ApprovedPlayersList";
 import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
 import InviteDialog from "@/app/components/InviteDialog";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
-import { Button } from "@/components/ui/button";
 
 export default function Players() {
   const router = useRouter();
@@ -25,8 +24,8 @@ export default function Players() {
 
 
   return (
-    <div className="min-h-screen bg- p-4 relative">
-      <h1 className="text-3xl font-bold mb-2 pt-2 text-white">Players</h1>
+    <div className="min-h-screen bg-gray-600 p-4 relative">
+      <h1 className="text-3xl font-bold mb-2 text-white">Players</h1>
       
       <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} hideEditIcon={true}/>
       
@@ -36,13 +35,12 @@ export default function Players() {
           <><div className="mt-4 flex gap-6">
               
             </div><div className="mt-4">
-                <Button
+                <button
                   onClick={() => setShowApproveDialog(true)}
-                  variant="default"
-                  className="w-full md:w-auto"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
                 >
                   Show Pending Players
-                </Button>
+                </button>
               </div></>
         )}
 

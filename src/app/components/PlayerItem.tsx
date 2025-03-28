@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import toast from 'react-hot-toast';
 
 type Rating = {
@@ -78,20 +77,19 @@ export default function PlayerItem({
   };
 
   return (
-    <Card className="bg-secondary border-secondary">
-      <CardContent className="pt-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex-1">
-            <h3 className="text-foreground text-lg font-semibold">{player.name}</h3>
-            <div className="flex space-x-1 mt-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((starIndex) => {
-                let fillType: 'empty' | 'half' | 'full' = 'empty';
+    <div className="bg-gray-800 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex-1">
+        <h3 className="font-semibold text-lg text-white">{player.name}</h3>
+        <div className="flex space-x-1 mt-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((starIndex) => {
+            // Determine if this star is empty, half, or full.
+            let fillType: 'empty' | 'half' | 'full' = 'empty';
 
-                if (userRating >= starIndex) {
-                  fillType = 'full';
-                } else if (userRating >= starIndex - 0.5) {
-                  fillType = 'half';
-                }
+            if (userRating >= starIndex) {
+              fillType = 'full';
+            } else if (userRating >= starIndex - 0.5) {
+              fillType = 'half';
+            }
 
             return (
               <div key={starIndex} className="relative inline-block text-2xl">
@@ -136,7 +134,5 @@ export default function PlayerItem({
         </span>
       </div>
     </div>
-    </CardContent>
-  </Card> 
   );
 }

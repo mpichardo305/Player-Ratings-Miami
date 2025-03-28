@@ -1,28 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Session } from '@supabase/supabase-js'
-import { usePhoneNumber } from '../hooks/usePhoneNumber'
+import { usePhoneNumber } from '../hooks/usePhoneNumber' // Import the hook
 import { checkPlayerMembership } from '../db/checkUserQueries'
 import { GROUP_ID } from '../utils/authUtils'
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
-import { Toaster, useToast } from "@/components/ui/toaster"
 
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
   const [session, setSession] = useState<Session | null>(null)
-  const { phoneNumber, isLoading: phoneLoading } = usePhoneNumber()
-  const [isLoading, setIsLoading] = useState(true)
+  const { phoneNumber, isLoading: phoneLoading } = usePhoneNumber() // Use the hook
+  const [isLoading, setIsLoading] = useState(true) 
   const [checkingApproval, setCheckingApproval] = useState(false)
   const [refreshCount, setRefreshCount] = useState(0)
   const [checkAttempted, setCheckAttempted] = useState(false)
   const router = useRouter()
-  const [showLogin, setShowLogin] = useState(false)
-  const { toast } = useToast()
+  const [showLogin, setShowLogin] = useState(false);
 
   // Get session data when component mounts
   useEffect(() => {
@@ -86,103 +82,97 @@ export default function PendingApproval() {
       } else {
         console.log("User not yet approved, showing message")
         setCheckAttempted(true)
-        toast({
-          title: "Not Approved Yet",
-          description: `You've checked ${newCount} ${newCount === 1 ? 'time' : 'times'}. Please wait for admin approval.`,
-          variant: "default",
-        })
       }
     } catch (error) {
       console.error('Error checking membership status:', error)
-      toast({
-        title: "Error",
-        description: "There was an error checking your status",
-        variant: "destructive",
-      })
+      alert("There was an error checking your status")
     } finally {
       setCheckingApproval(false)
     }
   }
 
+  // Combined loading state
   const isPageLoading = isLoading || phoneLoading
 
-  if (isPageLoading || checkingApproval) {
+  // Show loading state while data is being fetched
+  if (isPageLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-sm">
-            {checkingApproval ? 'Checking approval status...' : 'Loading user data...'}
-          </span>
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3">Loading user data...</span>
+      </div>
+    )
+  }
+
+  // Show loading state during approval check
+  if (checkingApproval) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3">Checking approval status...</span>
+      </div>
+    )
+  }
+
+  // Show login message if no phone number
+  if (showLogin && !isPageLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="max-w-md w-full p-6 rounded-lg border border-red-500 bg-gray-800">
+          <h1 className="text-2xl font-bold text-center mb-4">Not Logged In</h1>
+          <p className="text-center mb-4">
+            Please log in to check your approval status.
+          </p>
+          <div className="text-center">
+            <Link 
+              href="/login" 
+              className="inline-block px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+            >
+              Go to Login
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
-  if (showLogin && !isPageLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Not Logged In</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-muted-foreground">
-              Please log in to check your approval status.
-            </p>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button variant="default" asChild>
-              <a href="/login">Go to Login</a>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4">
-      <Toaster />
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center">Thank You for Signing Up!</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-center text-muted-foreground">
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="max-w-md w-full p-6 rounded-lg border border-gray-700 bg-gray-800">
+        <h1 className="text-2xl font-bold text-center mb-4">Thank You for Signing Up!</h1>
+        
+        <div className="space-y-4">
+          <p className="text-center">
             Your registration has been received and is now pending approval.
           </p>
           
-          <Card>
-            <CardContent className="pt-6 space-y-8">
-              <div>
-                <p className="text-md text-muted-foreground">
-                  A group admin needs to approve your membership.
-                </p>
-              </div>
-              
-              <div>
-                <h2 className="font-semibold mb-2">What you can do:</h2>
-                <p className="text-sm text-muted-foreground">
-                  Please message your admin to log in and approve your request.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <Button
-            onClick={checkApprovalStatus}
-            disabled={checkingApproval}
-            className="w-full sm:w-auto"
-          >
-            {checkingApproval && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Check Approval Status
-          </Button>
-        </CardFooter>
-      </Card>
+          <div className="p-4 rounded-lg bg-gray-700">
+            <h2 className="font-semibold mb-2">Next Steps:</h2>
+            <p className="mb-2">A group admin needs to approve your membership.</p>
+            <p>Please message your admin to log in and approve your request.</p>
+          </div>
+          
+          {checkAttempted && (
+            <div className="p-4 rounded-lg bg-gray-700 border border-yellow-600">
+              <p className="text-center font-semibold">
+                You have not been approved yet.
+              </p>
+              <p className="text-center text-sm mt-1">
+                You've checked {refreshCount} {refreshCount === 1 ? 'time' : 'times'}
+              </p>
+            </div>
+          )}
+          
+          <div className="text-center mt-6 space-y-3">
+            <button 
+              onClick={checkApprovalStatus}
+              className="inline-block px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+            >
+              Check Approval Status
+            </button>            
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

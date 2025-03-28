@@ -4,8 +4,6 @@ import { supabase } from "@/app/utils/supabaseClient";
 import dynamic from 'next/dynamic';
 import { isEqual } from 'lodash';
 import toast from 'react-hot-toast';
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent } from "@/components/ui/card";
 
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
@@ -192,46 +190,40 @@ export default function ApprovedPlayersList({ sessionUserId, groupId, viewOnly =
   };
 
   return (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700 pt-10 pb-10">
       {viewOnly && (
-      <Card className="bg-secondary border-secondary mx-auto">
-        <CardContent className="pt-4">
-        <p className="text-primary">🔒 This is view only</p>
-        </CardContent>
-      </Card>
+        <div className="mb-2 p-2 bg-gray-800 rounded-md">
+          <p className="text-amber-400 text-sm font-medium">🔒 This is view only</p>
+        </div>
       )}
-      
-      <ScrollArea className="h-[65vh]">
+
       {!loading && players.length === 0 && (
-        <Card className="bg-secondary border-secondary">
-        <CardContent className="pt-6">
-          <p className="text-mutedForeground">No approved players found.</p>
-        </CardContent>
-        </Card>
+        <p className="text-gray-400">No approved players found.</p>
       )}
-      
+
       {loading ? (
+        // Show loading skeletons
         <div className="space-y-4">
-        {[1, 2].map((i) => (
-          <Card key={i} className="bg-secondary border-secondary">
-          <CardContent className="h-20" />
-          </Card>
-        ))}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse h-20 bg-gray-700 rounded-lg"></div>
+          ))}
         </div>
       ) : (
-        <div className="space-y-4">
-        {players.map((player) => (
-          <PlayerItem 
-          key={player.id}
-          player={player}
-          onRate={handleRate} 
-          isSelf={player.id === sessionUserId}
-          viewOnly={viewOnly}
-          />
-        ))}
-        </div>
+        // Show actual players
+        players.map((player) => {
+          const isSelf = player.id === sessionUserId;
+          return (
+            <div key={player.id} className="player-item">
+              <PlayerItem 
+                player={player}  // No need to convert id to string anymore
+                onRate={handleRate} 
+                isSelf={isSelf}
+                viewOnly={viewOnly} // Pass viewOnly prop to PlayerItem
+              />
+            </div>
+          );
+        })
       )}
-      </ScrollArea>
     </div>
   );
 }

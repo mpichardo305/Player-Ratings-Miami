@@ -9,8 +9,6 @@ import PlayerNameForm from '@/app/components/PlayerNameForm'
 import { createInitialPlayer, updatePlayerName } from '@/app/db/playerQueries'
 import { createGroupMembership, markInviteAsUsed, updateInviteWithPlayer } from '@/app/db/inviteQueries'
 import { usePhoneNumber } from '@/app/hooks/usePhoneNumber'
-import { Loader2 } from 'lucide-react'
-import { useToast } from "@/components/ui/toaster"
 
 interface Invite {
   id: string
@@ -34,7 +32,6 @@ export default function InviteRegistration() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [inviteStatus, setInviteStatus] = useState<string>('');
-  const { toast } = useToast()
 
   useEffect(() => {
     // Check for existing session when component mounts
@@ -108,15 +105,6 @@ export default function InviteRegistration() {
       return () => clearTimeout(timer);
     }
   }, [inviteStatus, router]);
-  useEffect(() => {
-    if (!nextPage) {
-      toast({
-        title: "Complete Your Registration",
-        description: "You've been invited to join the group.",
-        duration: 3000,
-      })
-    }
-  }, [nextPage, toast])
 
   const { phoneNumber } = usePhoneNumber();
   const sanitizedPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : '';
@@ -191,18 +179,14 @@ export default function InviteRegistration() {
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6">
         <div className="p-4 text-center">
           <p className="text-xl mb-2">{error}</p>
-          <Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-        Redirecting to home page...
-      </span>
+          <p className="text-sm text-gray-400">Redirecting to home page...</p>
         </div>
       </div>
     );
   }
 
   if (isLoading) {
-    return <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-    Validating invite....
-  </span></>
+    return <div>Validating invite... </div>
   }
 
   console.log('Invite:', invite);
@@ -210,6 +194,8 @@ export default function InviteRegistration() {
     <div className="max-w-md mx-auto p-6">
         {!nextPage ? (
           <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
+            <h2 className="text-2xl font-semibold text-center">Complete Your Registration</h2>
+            <p className="text-gray-400 text-center mt-2">You've been invited to join the group.</p>
             <PhoneAuth onVerificationSuccess={handleSignupSuccess}/>
           </div>
         ) : (

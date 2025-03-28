@@ -3,7 +3,6 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/utils/supabaseClient';
-import { Loader2 } from 'lucide-react';
 
 interface SessionGuardProps {
   children: ReactNode;
@@ -66,9 +65,9 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-600 p-4">
-        <Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-        Verifying session...
-      </span>
+        <div className="text-white text-center p-8">
+          Verifying session...
+        </div>
       </div>
     );
   }
@@ -80,9 +79,9 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
     
     return (
       <div className="min-h-screen bg-gray-600 p-4">
-        <Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-        Redirecting to Login
-      </span>
+        <div className="text-white text-center p-8">
+          Redirecting to login...
+        </div>
       </div>
     );
   }

@@ -9,11 +9,6 @@ import { supabase } from '@/app/utils/supabaseClient';
 import { createGame } from '../lib/gameService';
 import { format, parseISO, parse } from 'date-fns';
 import { formatDatePreserveDay, formatDatePreserveDayAndYear } from '../utils/dateUtils';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Loader2 } from 'lucide-react';
 
 // Shared constants
 const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
@@ -243,9 +238,7 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
   };
 
   if (loading) {
-    return <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-    Loading game details...
-  </span></>;
+    return <div className={styles.container}>Loading game details...</div>;
   }
 
   if (error) {
@@ -298,7 +291,7 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
     };
 
     return (
-      <div className="min-h-screen bg p-4 relative">
+      <div className="min-h-screen bg-gray-600 p-4 relative">
       <h1 className="text-3xl font-bold text-white mb-4">Edit Game</h1>
       <PlayerSelection
         gameDetails={gameDetailsWithDates}
@@ -307,123 +300,89 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
         gameId={gameId}
         onSuccess={handleOperationSuccess}
       />
-      
+      <button
+        onClick={() => router.push('/dashboard')}
+        className="back-button"
+      >
+        <span>Cancel</span>
+      </button>
       </div>
     );
   }
 
   // Game details form (step 1)
   return (
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-foreground">
-            {mode === 'create' ? 'Create New Game' : 'Edit Game'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="field-select" className="text-foreground">Field</Label>
-              <Select
-                value={selectedField}
-                onValueChange={setSelectedField}
-              >
-                <SelectTrigger id="field-select" className="bg-secondary text-secondaryForeground">
-                  <SelectValue placeholder="Select Field" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-primary">
-                  {FIELD_OPTIONS.map(field => (
-                    <SelectItem 
-                      key={field} 
-                      value={field} 
-                      className="text-foreground"
-                    >
-                      {field}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <div className={styles.container}>
+      <h2 className="text-2xl font-bold mb-6 text-white">{mode === 'create' ? 'Create New Game' : 'Edit Game'}</h2>
+      
+      <div className={styles.formGroup}>
+      <label htmlFor="field-select">Field</label>
+      <select 
+          id="field-select" 
+          value={selectedField}
+          onChange={(e) => setSelectedField(e.target.value)}
+          className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
+        >
+          <option value="">Select Field</option>
+          {FIELD_OPTIONS.map(field => (
+            <option key={field} value={field}>{field}</option>
+          ))}
+        </select>
+      </div>
 
-            <div className="space-y-2">
-              <Label className="text-foreground">Date</Label>
-              <Card className="bg-secondary">
-                <CardContent className="p-2">
-                  <DatePicker
-                    selected={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    dateFormat="MMMM d, yyyy"
-                    placeholderText="Select date"
-                    className="bg-secondary text-secondaryForeground w-full"
-                    calendarClassName="bg-card border-primary"
-                    dayClassName={() => "text-foreground"}
-                  />
-                </CardContent>
-              </Card>
-            </div>
+      <div className={styles.formGroup}>
+        <label>Date</label>
+        <DatePicker
+          selected={selectedDate}
+          onChange={(date) => setSelectedDate(date)}
+          dateFormat="MMMM d, yyyy"
+          placeholderText="Select date"
+          className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
+          calendarClassName="bg-[#374151] border-[#4B5563]"
+          dayClassName={() => "text-white"}
+        />
+      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="time-select" className="text-foreground">Time</Label>
-              <Select
-                value={selectedTime}
-                onValueChange={setSelectedTime}
-              >
-                <SelectTrigger id="time-select" className="bg-secondary text-secondaryForeground">
-                  <SelectValue placeholder="Select Time" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-primary">
-                  {TIME_OPTIONS.map(time => (
-                    <SelectItem 
-                      key={time} 
-                      value={time} 
-                      className="text-foreground"
-                    >
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+      <div className={styles.formGroup}>
+        <label htmlFor="time-select">Time</label>
+        <select 
+          id="time-select"
+          value={selectedTime}
+          onChange={(e) => setSelectedTime(e.target.value)}
+          className="w-full p-2 bg-[#4B5563] text-white border border-[#4B5563] rounded focus:outline-none focus:border-gray-400"
+        >
+          <option value="">Select Time</option>
+          {TIME_OPTIONS.map(time => (
+            <option key={time} value={time}>{time}</option>
+          ))}
+        </select>
+      </div>
 
-          <div className="flex justify-end space-x-4 mt-6">
-            {mode === 'edit' ? (
-              <Button
-                variant="secondary"
-                onClick={handleCancel}
-                className="min-w-[100px]"
-              >
-                Cancel
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                onClick={handleReset}
-                className="min-w-[100px]"
-              >
-                Reset
-              </Button>
-            )}
-            {mode === 'create' ? (
-              <Button
-                variant="default"
-                onClick={handleNext}
-                className="min-w-[100px] bg-primary text-primaryForeground"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                variant="default"
-                onClick={handleSubmitGameDetails}
-                className="min-w-[100px] bg-primary text-primaryForeground"
-              >
-                Save & Continue
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-between mt-8">
+        {mode === 'edit' ? (
+        <button 
+          onClick={handleCancel}
+          className="px-4 py-2 bg-[#4B5563] text-white rounded hover:bg-gray-600"
+        >Cancel</button>
+        ) : (
+          <button 
+            onClick={handleReset}
+            className="px-4 py-2 bg-[#4B5563] text-white rounded hover:bg-gray-600"
+          >Reset</button>
+        )}
+        {mode === 'create' ? (
+          <button 
+            onClick={handleNext}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >Next</button>
+        ) : (
+          <button 
+            onClick={handleSubmitGameDetails}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >Save & Continue</button>
+        )}
+      </div>
+    </div>
   );
 };
 

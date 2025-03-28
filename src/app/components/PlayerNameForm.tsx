@@ -2,70 +2,45 @@
 
 import { useState } from 'react'
 import PageBackground from './PageBackground'
-import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-})
 
 interface PlayerNameFormProps {
   onSubmit: (name: string) => void;
 }
 
 export default function PlayerNameForm({ onSubmit }: PlayerNameFormProps) {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-    },
-  })
+  const [name, setName] = useState('')
 
-  function handleSubmit(values: z.infer<typeof formSchema>) {
-    onSubmit(values.name.trim())
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (name.trim()) {
+      onSubmit(name.trim())
+    }
   }
 
   return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-4xl text-white">
-            Welcome to Player Ratings Miami!
-          </h1>
-          <p className="text-gray-300">
-            Please enter your name to continue
-          </p>
+    <PageBackground>
+      <form onSubmit={handleSubmit} className="w-full max-w-md">
+        <div className="mb-4">
+          <label htmlFor="name" className="block text-lg font-medium text-gray-300 mb-2">
+            What's your name?
+          </label>
+          <input
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+            placeholder="Enter full name"
+            required
+          />
         </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>What's your name?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter full name" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full bg-green-500 text-white text-lg p-2 rounded hover:bg-green-600">
-              Continue
-            </Button>
-          </form>
-        </Form>
-      </div>
+        <button
+          type="submit"
+          className="w-full bg-green-600 text-white text-lg p-2 rounded hover:bg-green-700"
+        >
+          Continue
+        </button>
+      </form>
+    </PageBackground>
   )
 }
