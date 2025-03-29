@@ -6,10 +6,19 @@ export const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e';
 // Cache expiration in milliseconds (e.g., 5 minutes)
 const CACHE_EXPIRATION = 5 * 60 * 1000;
 
+// Add new interfaces and constants
+export const AUTH_REDIRECT_KEY = 'auth_redirect_state'
+export const REDIRECT_EXPIRY = 5 * 60 * 1000 // 5 minutes
+
 interface MembershipCache {
   isMember: boolean;
   timestamp: number;
   isFromCache?: boolean;
+}
+
+interface AuthRedirectState {
+  redirectUrl: string;
+  timestamp: number;
 }
 
 /**
@@ -90,4 +99,43 @@ export function clearMembershipCache(userId: string): void {
 // Force refresh membership from server
 export function forceRefreshMembership(userId: string): void {
   clearMembershipCache(userId);
+}
+
+export function saveRedirectUrl(url: string): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const state: AuthRedirectState = {
+      redirectUrl: url,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(AUTH_REDIRECT_KEY, JSON.stringify(state));
+    console.log('Saved redirect URL:', url);
+  } catch (error) {
+    console.error('Error saving redirect URL:', error);
+  }
+}
+
+export function handleAuthRedirect(router: any): void {
+  try {
+    const stateStr = localStorage.getItem(AUTH_REDIRECT_KEY);
+    localStorage.removeItem(AUTH_REDIRECT_KEY);
+    
+    if (!stateStr) {
+      router.push('/');
+      return;
+    }
+    
+    const state: AuthRedirectState = JSON.parse(stateStr);
+    if (Date.now() - state.timestamp > REDIRECT_EXPIRY || state.redirectUrl === '/') {
+      router.push('/');
+      return;
+    }
+    
+    console.log('Redirecting to:', state.redirectUrl);
+    router.push(state.redirectUrl);
+  } catch (error) {
+    console.error('Error handling redirect:', error);
+    router.push('/');
+  }
 }

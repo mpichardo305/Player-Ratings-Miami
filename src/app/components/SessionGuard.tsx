@@ -4,6 +4,7 @@ import { useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/utils/supabaseClient';
 import { Loader2 } from 'lucide-react';
+import { saveRedirectUrl } from '../utils/authUtils';
 
 interface SessionGuardProps {
   children: ReactNode;
@@ -20,15 +21,9 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error("Session error:", error);
-          setIsAuthenticated(false);
-          router.push('/login');
-          return;
-        }
-
-        if (!session) {
-          console.log("No session found, redirecting to login");
+        if (error || !session) {
+          console.log("No session found, saving path:", window.location.pathname);
+          saveRedirectUrl(window.location.pathname);
           setIsAuthenticated(false);
           router.push('/login');
           return;
