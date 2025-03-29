@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     siteName: "Player Ratings Miami",
     images: [
       {
-        url: "/invite-preview.jpeg",
+        url: "/invite-preview.jpg",
         width: 1200,
         height: 630,
         alt: "Join Player Ratings Miami",
@@ -51,7 +51,7 @@ export default function InviteLayout({
         />
         <meta
           property="og:image"
-          content={`${baseUrl}/invite-preview.jpeg`}
+          content={`${baseUrl}/invite-preview.jpg`}
         />
         <meta property="og:url" content={baseUrl} />
         <meta property="og:type" content="website" />
