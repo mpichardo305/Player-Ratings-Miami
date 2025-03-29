@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/(.*).jpg",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/jpeg"
+        }
+      ]
+    }
+  ]
+}
