@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 
 export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
   const baseUrl = 'https://player-ratings-miami.vercel.app'
-  const imageUrl = `${baseUrl}/invite-preview.jpeg`
+  const imageUrl = `${baseUrl}/invite-preview.jpg`
 
   return {
     title: "You've been invited! - Join the group on Player Ratings Miami",
