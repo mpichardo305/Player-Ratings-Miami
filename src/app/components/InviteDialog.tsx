@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/toaster"
+import { generateMetadata } from '@/app/invite/[token]/metadata'
 
 interface InviteDialogProps {
   groupId: string
@@ -59,9 +60,12 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(inviteUrl)
-    setCopyConfirmation(true)
-    setTimeout(() => setCopyConfirmation(false), 2000)
+    const metadata = await generateMetadata({ params: { token: inviteUrl.split('/').pop() ?? '' } })
+    const inviteMessage = `${inviteUrl}\n\n${metadata.title}`;
+
+    await navigator.clipboard.writeText(inviteMessage);
+    setCopyConfirmation(true);
+    setTimeout(() => setCopyConfirmation(false), 2000);
     toast({
       title: "Link copied!",
       description: "The invite link has been copied to your clipboard.",
