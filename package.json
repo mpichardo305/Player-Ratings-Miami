@@ -2,6 +2,11 @@
   "name": "player-ratings",
   "version": "0.1.0",
   "private": true,
+  "overrides": {
+  "react-datepicker": {
+    "date-fns": "3.6.0"
+  }
+},
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
