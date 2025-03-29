@@ -21,9 +21,20 @@ export const updateGamePlayers = async (gameId: string, players: GamePlayers): P
   }
 
   try {
+    // Step 1: Delete existing players for this game
+    const { error: deleteError } = await supabase
+      .from('game_players')
+      .delete()
+      .eq('game_id', gameId);
+
+    if (deleteError) {
+      console.error('Error deleting existing game players:', deleteError);
+      throw new Error(deleteError.message);
+    }
+
     console.log(`Adding ${players.players.length} players to game ${gameId}`);
 
-    // First, get player names from the players table
+    // Step 2: Get player names from the players table
     const { data: playerData, error: playerError } = await supabase
       .from('players')
       .select('id, name')
@@ -34,21 +45,20 @@ export const updateGamePlayers = async (gameId: string, players: GamePlayers): P
       throw new Error(playerError.message);
     }
 
-    // Create a mapping of player IDs to names
+    // Step 3: Create a mapping of player IDs to names
     const playerNameMap = new Map();
     playerData?.forEach(player => {
       playerNameMap.set(player.id, player.name);
     });
 
-    // Insert game_players records with player names
+    // Step 4: Insert new game_players records
     const { data, error } = await supabase
       .from('game_players')
-      .upsert(
+      .insert(
         players.players.map((playerId: string) => ({
           game_id: gameId,
           player_id: playerId,
           player_name: playerNameMap.get(playerId) || 'N/A',
-          
         }))
       );
 
@@ -57,7 +67,7 @@ export const updateGamePlayers = async (gameId: string, players: GamePlayers): P
       throw new Error(error.message);
     }
 
-    console.log('Successfully added players to game:', data);
+    console.log('Successfully updated players for game:', data);
     return { id: gameId };
   } catch (error) {
     console.error('Error in updateGamePlayers:', error);
