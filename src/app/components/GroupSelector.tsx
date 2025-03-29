@@ -1,9 +1,23 @@
-// /components/GroupSelector.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 import { useGroupAdmin } from '../hooks/useGroupAdmin';
-import { PencilIcon } from "@heroicons/react/24/outline";
+import { Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface Group {
   id: string;
@@ -82,10 +96,9 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
     fetchGroups();
   }, [sessionUserId, onGroupSelect, setSelectedGroupId]);
 
-  const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const groupId = e.target.value;
-    setSelectedGroupId(groupId);
-    const group = groups.find(g => g.id === groupId);
+  const handleGroupChange = (value: string) => {
+    setSelectedGroupId(value);
+    const group = groups.find(g => g.id === value);
     if (group) {
       onGroupSelect(group);
       setCurrentGroup(group);
@@ -111,49 +124,70 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
   };
 
   return (
-    <div className="mb-4">
+    <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <select
-          value={selectedGroupId || ''}
-          onChange={handleGroupChange}
-          className="bg-gray-700 text-white p-2 rounded"
-        >
-          {groups.map(group => (
-            <option key={group.id} value={group.id}>{group.name}</option>
-          ))}
-        </select>
+        <Select value={selectedGroupId || ''} onValueChange={handleGroupChange}>
+          <SelectTrigger className="w-[200px] bg-secondary border-input">
+            <SelectValue placeholder="Select a group" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-input">
+            {groups.map(group => (
+              <SelectItem 
+                key={group.id} 
+                value={group.id}
+                className="focus:bg-primary focus:text-primary-foreground"
+              >
+                {group.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {!hideEditIcon && isGroupAdmin && selectedGroupId && !editing && (
-          <div className="relative group">
-            <PencilIcon 
-              onClick={() => {
-                setEditing(true);
-                setNewName(groups.find(g => g.id === selectedGroupId)?.name || "");
-              }}
-              className="h-5 w-5 text-white cursor-pointer hover:text-blue-400 transition-colors"
-              aria-label="Edit group name"
-            />
-            <div className="absolute invisible group-hover:visible bg-gray-800 text-white text-xs px-2 py-1 rounded top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap">
-              Edit Group Name
-            </div>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setEditing(true);
+                    setNewName(groups.find(g => g.id === selectedGroupId)?.name || "");
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit Group Name</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
       
       {!hideEditIcon && isGroupAdmin && selectedGroupId && editing && (
-        <div className="mt-2 flex gap-2">
-          <input
+        <div className="flex items-center gap-2">
+          <Input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="bg-gray-700 text-white p-2 rounded"
+            className="bg-secondary border-input"
             autoFocus
           />
-          <button onClick={handleNameEdit} className="bg-green-500 px-4 py-2 rounded">
+          <Button
+            onClick={handleNameEdit}
+            variant="default"
+            className="bg-primary text-primary-foreground"
+          >
             Save
-          </button>
-          <button onClick={handleCancel} className="bg-red-500 px-4 py-2 rounded">
+          </Button>
+          <Button
+            onClick={handleCancel}
+            variant="destructive"
+          >
             Cancel
-          </button>
+          </Button>
         </div>
       )}
     </div>

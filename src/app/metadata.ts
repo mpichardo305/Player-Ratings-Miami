@@ -13,6 +13,12 @@ export const metadata = {
         height: 630,
         alt: "Player Ratings App in Miami",
       },
+      {
+        url: "/no-slogan.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Miami Soccer Art",
+      },
     ],
     type: "website",
   },

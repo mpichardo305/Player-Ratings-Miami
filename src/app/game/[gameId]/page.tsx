@@ -9,6 +9,9 @@ import { hasGameEnded } from "@/app/utils/gameUtils";
 import GameEditor from "@/app/components/GameEditor";
 import { supabase } from "@/app/utils/supabaseClient";
 import { Player, fetchGamePlayers } from "@/app/utils/playerDb";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Game = {
   id: string;
@@ -129,22 +132,10 @@ export default function GamePage() {
     }
   }, [game]);
 
-  // Debug panel 
-  const debugPanel = (
-    <div className="bg-gray-800 text-white p-4 mb-4 rounded-lg text-xs">
-      <h3 className="font-bold mb-1">Debug Info</h3>
-      <div>User ID: {session?.user?.id || 'none'}</div>
-      <div>Game Group: {game?.group_id || 'none'}</div>
-      <div>Is Admin: {isAdmin ? 'Yes' : 'No'}</div>
-      <div>Mode: {mode}</div>
-    </div>
-  );
-
   if (loading || isAdminLoading) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        {/* {debugPanel} */}
-        <div className="text-white text-center p-8">
+      <div className="min-h-screen bg-background p-4">
+        <div className="text-foreground text-center p-8">
           Loading game details...
         </div>
       </div>
@@ -153,8 +144,7 @@ export default function GamePage() {
 
   if (error && (mode !== 'edit' || !isAdmin)) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        {debugPanel}
+      <div className="min-h-screen bg-background p-4">
         <div className="text-red-500 text-center p-8">{error}</div>
       </div>
     );
@@ -162,8 +152,7 @@ export default function GamePage() {
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        {debugPanel}
+      <div className="min-h-screen bg-background p-4">
         <div className="text-red-500 text-center p-8">Game not found</div>
       </div>
     );
@@ -172,8 +161,7 @@ export default function GamePage() {
   // Prevent unauthorized edit access
   if (mode === 'edit' && !isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        {/* {debugPanel} */}
+      <div className="min-h-screen bg-background p-4">
         <div className="text-red-500 text-center p-8">
           You do not have permission to edit this game.
         </div>
@@ -184,91 +172,104 @@ export default function GamePage() {
   // View Mode
   if (mode === 'view') {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        {/* {debugPanel} */}
-        <h1 className="text-3xl font-bold mb-6 text-white">Game Details</h1>
-        
-        <div className="bg-gray-700 rounded-lg p-6">
-          <h2 className="text-2xl font-semibold text-white mb-4">{`${game.field_name}`}</h2>
-          <h3 className="text-xl font-semibold text-white mb-4">{`${groupName}`}</h3>
-          <div className="flex justify-between gap-4">
-            <div className="flex-1">
-              <p className="text-gray-300 text-sm">Date</p>
-              <p className="text-white">{`${(formatDatePreserveDay(game.date))}`}</p>
-            </div>
-            <div className="flex-1">
-              <p className="text-gray-300 text-sm">Start Time</p>
-              <p className="text-white">{`${(formatTimeOnly(game.start_time))}`}</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Player Roster */}
-        <div className="mt-6 bg-gray-700 rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-white mb-4">Roster</h3>
-          {playersLoading ? (
-            <p className="text-white">Loading players...</p>
-          ) : players.length === 0 ? (
-            <p className="text-white">No players assigned to this game.</p>
-          ) : (
-            <div className="max-h-[40vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-700 pr-2">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {players.map((player) => (
-                  <div key={player.id} className="bg-gray-800 p-3 rounded-lg">
-                    <p className="text-white">{player.name}</p>
-                  </div>
-                ))}
+      <div className="min-h-screen bg-background p-4">
+        <Card className="bg-card">
+          <CardHeader>
+            <CardTitle className="text-foreground text-[1.3rem]">
+              Game Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Game Info */}
+              <div>
+                <h2 className="text-xl font-semibold text-foreground mb-2">{game.field_name}</h2>
+                <h3 className="text-lg text-foreground/90 mb-4">{groupName}</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="bg-tertiary">
+                    <CardContent className="p-4 bg-secondary">
+                      <p className="text-sm text-muted-foreground">Date</p>
+                      <p className="text-foreground">{formatDatePreserveDay(game.date)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-tertiary">
+                    <CardContent className="p-4 bg-secondary">
+                      <p className="text-sm text-muted-foreground">Start Time</p>
+                      <p className="text-foreground">{formatTimeOnly(game.start_time)}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Player Roster */}
+              <Card className="bg-tertiary">
+                <CardHeader>
+                  <CardTitle className="text-lg text-foreground">Roster</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {playersLoading ? (
+                    <p className="text-foreground">Loading players...</p>
+                  ) : players.length === 0 ? (
+                    <p className="text-muted-foreground">No players assigned to this game.</p>
+                  ) : (
+                    <ScrollArea className="h-[40vh]">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {players.map((player) => (
+                          <Card key={player.id} className="bg-secondary">
+                            <CardContent className="p-3">
+                              <p className="text-foreground">{player.name}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+                {isGameEnded && (
+                  <Button 
+                    className="bg-green-500 text-white hover:bg-green-600"
+                    onClick={() => router.push(`/rate-players/${gameId}`)}
+                  >
+                    Rate Players
+                  </Button>
+                )}
+                {isAdmin && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      onClick={() => router.push(`/game/${gameId}?mode=edit`)}
+                    >
+                      Edit Game Details
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => router.push(`/manage-players/${gameId}`)}
+                    >
+                      Manage Players
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
-          )}
-        </div>
-        
-        {/* Rate Players button - visible to all users but only after game has ended */}
-        {isGameEnded && (
-          <div className="mt-6">
-            <button
-              onClick={() => router.push(`/rate-players/${gameId}`)}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Rate Players
-            </button>
-          </div>
-        )}
-        
-        {/* Add buttons for different operations */}
-        {isAdmin && (
-          <div className="mt-6 flex gap-8">
-            <button
-              onClick={() => router.push(`/game/${gameId}?mode=edit`)}
-              className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-            >
-              Edit Game Details
-            </button>
-            <button
-              onClick={() => router.push(`/manage-players/${gameId}`)}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Manage Players
-            </button>
-          </div>
-        )}
-        <div className="mt-6">
-        <button
+          </CardContent>
+        </Card>
+        <Button
         onClick={() => router.push('/')}
-        className="back-button"
+        variant="ghost"
+        className="border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
       >
-        <span>Back</span>
-      </button>
-        </div>
+        Back
+      </Button>
       </div>
     );
   }
   
   // Edit Mode - Use the unified GameEditor component
   return (
-    <div className="min-h-screen bg-gray-600 p-4">
-      {/* {debugPanel} */}
       <GameEditor mode="edit" gameId={gameId} />
-    </div>
   );
 }

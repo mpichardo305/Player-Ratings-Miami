@@ -7,9 +7,12 @@ import GroupSelector, { Group } from "@/app/components/GroupSelector";
 import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
 import InviteDialog from "@/app/components/InviteDialog";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserPlayerId } from "../utils/playerDb";
+import { Loader2 } from "lucide-react";
 
-export default function Players() {
+export default function Dashboard() {
   const router = useRouter();
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -44,9 +47,9 @@ export default function Players() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-600 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
+      <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+        Loading...
+      </span></>
     );
   }
 
@@ -55,72 +58,84 @@ export default function Players() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-600 p-4 relative">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-5xl">
+          Dashboard
+        </h1>
       </div>
-      
-      <GroupSelector 
-        sessionUserId={session.user.id} 
-        onGroupSelect={handleGroupSelect} 
-      />
-      
+
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle>Group Name
+            <span className="text-muted-foreground text-sm ml-2">
+              {selectedGroup ? `(${selectedGroup.name})` : ''}
+            </span>
+          </CardTitle>
+          
+        </CardHeader>
+        <CardContent>
+          <GroupSelector 
+            sessionUserId={session.user.id} 
+            onGroupSelect={setSelectedGroup} 
+          />
+        </CardContent>
+      </Card>
+
       {session && !isGroupAdmin && (
-        <div className="mt-4 p-3 bg-gray-700 rounded-lg text-white">
-          <p>There is nothing to see here yet. Adding more controls soon.</p>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">
+              There is nothing to see here yet. Adding more controls soon.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedGroup && session && isGroupAdmin && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Button
+            onClick={() => handleCreateGame(selectedGroup.id)}
+            variant="default"
+            size="lg"
+            className="w-full"
+          >
+            Create Game
+          </Button>
+          <Button
+            onClick={() => setShowApproveDialog(true)}
+            variant="secondary"
+            size="lg"
+            className="w-full"
+          >
+            Show Pending Players
+          </Button>
         </div>
       )}
-      
-      {selectedGroup ? (
-        isGroupAdmin ? (
-          <>
-            {session && isGroupAdmin && (
-              <>
-                <div className="mt-4 flex gap-6">
-                  <button
-                    onClick={() => handleCreateGame(selectedGroup.id)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                  >
-                    Create Game
-                  </button>
-                </div>
-                <div className="mt-4">
-                  <button
-                    onClick={() => setShowApproveDialog(true)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                  >
-                    Show Pending Players
-                  </button>
-                </div>
-                <InviteDialog 
-                  groupId={selectedGroup.id} 
-                  onClose={() => setShowApproveDialog(false)}
-                />
-              </>
-            )}
 
-            {showApproveDialog && selectedGroup && (
-              <ApprovePlayersDialog 
-                onClose={() => setShowApproveDialog(false)} 
-                onApprove={() => {}}
-                groupId={selectedGroup.id}
-                isGroupAdmin={true}
-              />
-            )}
-          </>
-        ) : (
-          <div></div>
-        )
-      ) : (
-        <p className="text-white">No groups found.</p>
+      {selectedGroup && isGroupAdmin && (
+        <InviteDialog 
+          groupId={selectedGroup.id} 
+          onClose={() => setShowApproveDialog(false)}
+        />
       )}
 
-      <button
+      {showApproveDialog && selectedGroup && (
+        <ApprovePlayersDialog 
+          onClose={() => setShowApproveDialog(false)} 
+          onApprove={() => {}}
+          groupId={selectedGroup.id}
+          isGroupAdmin={true}
+        />
+      )}
+
+      <Button
         onClick={() => router.push('/')}
-        className="back-button"
+        variant="ghost"
+        className="mt-4 border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
       >
-        <span>Cancel</span>
-      </button>
+        Back
+      </Button>
     </div>
   );
 }

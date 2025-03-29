@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import PhoneInput from "react-phone-number-input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import "react-phone-number-input/style.css";
 import { supabase } from "@/app/utils/supabaseClient";
+import { Loader2 } from "lucide-react";
 
 interface PhoneAuthProps {
   onVerificationSuccess?: () => void;
@@ -80,49 +84,91 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onVerificationSuccess, refreshPho
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white px-6">
-      <div className="w-full max-w-md bg-gray-800 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-semibold text-center">Welcome to Player Ratings</h2>
-        <p className="text-gray-400 text-center mt-2">Enter your phone number to get started</p>
+    <div className="relative min-h-screen flex flex-col items-center justify-center -mt-12 h-screen">
+      {/* Background Image with Overlay */}
+      <div className="fixed inset-0 z-0">
+        <Image
+          src="/no-slogan.jpg"
+          alt="Soccer field"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-background/85" /> {/* Dark overlay */}
+      </div>
 
-        {error && <p className="text-red-500 text-center mt-3">{error}</p>}
-
-        <div className="mt-5">
-          {!verification ? (
-            <>
-              <PhoneInput
-                defaultCountry="US"
-                value={phone}
-                onChange={(value) => setPhone(value || "")}
-                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleLogin}
-                disabled={loading}
-                className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition"
-              >
-                {loading ? "Sending..." : "Send OTP"}
-              </button>
-            </>
-          ) : (
-            <>
-              <input
-                type="number"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Enter OTP"
-                className="w-full p-3 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={verifyOTP}
-                disabled={loading}
-                className="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition"
-              >
-                {loading ? "Verifying..." : "Verify"}
-              </button>
-            </>
-          )}
+      {/* Content */}
+      <div className="relative z-10 w-full px-4 space-y-4 max-w-lg text-center">
+        {/* Marketing Section */}
+        <div className="space-y-2 mb-4">
+          <h1 className="text-4xl font-bold tracking-tight text-white">
+            Rate Players in Miami's Soccer Games!
+          </h1>
+          </div>
+          <div className="mb-4">
+          <p className="text-xl text-muted-foreground">
+            Join your group and rate your friends. Play hard. Rate harder!
+          </p>
         </div>
+
+        {/* Auth Card */}
+        <Card className="bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
+        <CardHeader className="space-y-2"> {/* Added space-y-2 */}
+          <CardTitle className="text-2xl"> {/* Changed from default to text-2xl */}
+            Welcome to Player Ratings
+          </CardTitle>
+          <CardDescription className="text-lg"> {/* Changed from default to text-lg */}
+            Enter your phone number to get started
+          </CardDescription>
+        </CardHeader>
+          <CardContent>
+            {error && (
+              <p className="text-destructive text-sm mb-4">{error}</p>
+            )}
+
+            {!verification ? (
+              <div className="space-y-4">
+                <PhoneInput
+                  defaultCountry="US"
+                  value={phone}
+                  onChange={(value) => setPhone(value || "")}
+                  className="w-full"
+                />
+                <Button
+                  onClick={handleLogin}
+                  disabled={loading}
+                  className="w-full bg-green-500"
+                >
+                  {loading ? "Sending..." : "Send OTP"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <input
+                  type="number"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Enter OTP"
+                  className="w-full p-3 rounded-lg bg-secondary text-secondary-foreground"
+                />
+                <Button
+                  onClick={verifyOTP}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
+        Loading...
+      </span></> : "Verify OTP"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Additional Info */}
+        {/* <p className="text-sm text-muted-foreground">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p> */}
       </div>
     </div>
   );

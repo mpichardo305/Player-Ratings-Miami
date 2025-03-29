@@ -5,6 +5,7 @@ import "./globals.css";
 import { GroupProvider } from './context/GroupContext';
 import MobileMenu from "./components/MobileMenu";
 import ToastProvider from './components/ToastProvider';
+import { Toaster } from "@/components/ui/toaster"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <meta property="og:title" content="Player Ratings Miami" />
         <meta property="og:description" content="Rate and track local soccer players!" />
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </GroupProvider>
         <ToastProvider />
+        <Toaster />
       </body>
     </html>
   );
