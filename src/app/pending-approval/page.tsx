@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { Toaster, useToast } from "@/components/ui/toaster"
+import { handleAuthRedirect } from '../utils/authUtils';
 
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
@@ -68,7 +69,9 @@ export default function PendingApproval() {
     }
     
     setCheckingApproval(true)
-    
+    const handleLoginSuccess = () => {
+      handleAuthRedirect(router);
+    };
     try {
       console.log(`Checking membership for phone: ${phoneNumber} and group: ${GROUP_ID}`)
       const result = await checkPlayerMembership(phoneNumber, GROUP_ID)
@@ -82,7 +85,7 @@ export default function PendingApproval() {
       // Redirect if approved, otherwise show message
       if (result.isMember) {
         console.log("User approved, redirecting to home")
-        router.push('/')
+        handleLoginSuccess()
       } else {
         console.log("User not yet approved, showing message")
         setCheckAttempted(true)

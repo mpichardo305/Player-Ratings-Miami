@@ -7,7 +7,7 @@ import AllGames from './components/AllGames'
 import { supabase } from '@/app/utils/supabaseClient'
 import { usePhoneNumber } from './hooks/usePhoneNumber'
 import { checkPlayerMembership } from './db/checkUserQueries'
-import { getMembershipFromCache, setMembershipCache, clearMembershipCache, GROUP_ID } from './utils/authUtils'
+import { getMembershipFromCache, setMembershipCache, clearMembershipCache, GROUP_ID, saveRedirectUrl } from './utils/authUtils'
 
 export default function Home() {
   const { phoneNumber } = usePhoneNumber()
@@ -20,7 +20,10 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
-        // If not authenticated, redirect to login page
+        // Don't save redirect for home page
+        if (window.location.pathname !== '/') {
+          saveRedirectUrl(window.location.pathname);
+        }
         router.push('/login')
         return
       }

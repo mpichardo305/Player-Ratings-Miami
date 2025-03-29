@@ -8,7 +8,7 @@ import PhoneAuth from '../components/PhoneAuth'
 import { usePhoneNumber } from '../hooks/usePhoneNumber'
 import { checkPlayerMembership } from '../db/checkUserQueries'
 import InviteRegistration from '../invite/[token]/page'
-import { getMembershipFromCache, cacheMembershipStatus, GROUP_ID } from '../utils/authUtils'
+import { getMembershipFromCache, cacheMembershipStatus, GROUP_ID, handleAuthRedirect } from '../utils/authUtils'
 
 
 export default function LoginPage() {
@@ -77,7 +77,11 @@ export default function LoginPage() {
       }
     }
   }, [session, membershipChecked])
-
+  
+  // Standard login page
+  const handleLoginSuccess = () => {
+    handleAuthRedirect(router);
+  };
   // Check membership status
   useEffect(() => {
     if (membershipChecked && !isRefreshing) {
@@ -118,7 +122,7 @@ export default function LoginPage() {
 
           // Redirect based on membership status
           if (result.isMember) {
-            router.push('/')
+            handleLoginSuccess()
           } else {
             router.push('/waiting-list')
           }
@@ -241,7 +245,6 @@ export default function LoginPage() {
     }
   }
 
-  // Standard login page
   return (
     <div>
       <RefreshIndicator />
