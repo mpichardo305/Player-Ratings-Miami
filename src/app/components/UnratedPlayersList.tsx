@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { fetchGamePlayers } from "@/app/utils/playerDb";
 import { hasGameEnded } from "@/app/utils/gameUtils";
 import toast from "react-hot-toast";
+import { checkTimeSinceGameStarted } from "@/app/utils/gameUtils";
 
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
@@ -15,6 +16,7 @@ const PlayerItem = dynamic(() => import('./PlayerItem'), {
 type Rating = {
   rating: number;
   player_id: string;
+  player_id_rater?: string; // Add this field
   user_id?: string;
 };
 
@@ -55,6 +57,7 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
   const [gameLoading, setGameLoading] = useState<boolean>(true);
   // Add a new state to track if the user has already rated players in this game
   const [hasRatedGame, setHasRatedGame] = useState<boolean>(false);
+  const [isRatingWindowClosed, setIsRatingWindowClosed] = useState(false);
 
   const fetchPlayersAndRatings = async () => {
     if (!gameId || !playerId) return;
@@ -85,7 +88,8 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
         .from("game_ratings")
         .select("player_id, rating, player_id_rater")
         .in("player_id", playerIds)
-        .eq("player_id_rater", playerId); // Changed from sessionUserId to playerId
+        .eq("player_id_rater", playerId)
+        .eq("game_id", gameId);  
 
       if (ratingsError) {
         console.error("❌ Error fetching ratings:", ratingsError);
@@ -98,11 +102,12 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
         setHasRatedGame(true);
       }
 
-      // Map ratings to players
+      // Map ratings to players with the correct rating value
       const playersWithRatings = gamePlayers.map((player) => {
         const playerRating = ratingsData?.find((r) => r.player_id === player.id);
         return {
           ...player,
+          avg_rating: playerRating?.rating || 0, // Set the rating directly here
           ratings: playerRating ? [playerRating] : [],
         };
       });
@@ -142,6 +147,21 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
     };
 
     fetchGame();
+  }, [gameId]);
+
+  useEffect(() => {
+    const checkRatingWindow = async () => {
+      if (!gameId) return;
+      
+      try {
+        const hoursSinceStart = await checkTimeSinceGameStarted(gameId);
+        setIsRatingWindowClosed(hoursSinceStart > 72); // 72 hours = 3 days
+      } catch (error) {
+        console.error('Error checking rating window:', error);
+      }
+    };
+
+    checkRatingWindow();
   }, [gameId]);
 
   // Function to store a rating in pending state
@@ -238,7 +258,8 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
   const isSubmitDisabled = isSubmitting || 
                           pendingRatings.length === 0 || 
                           isUserPlayer === false ||
-                          !isGameEnded;
+                          !isGameEnded ||
+                          isRatingWindowClosed;
 
   return (
     <div className="space-y-4">
@@ -253,6 +274,12 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
       {!isGameEnded && !gameLoading && (
         <div className="mb-4 p-3 rounded bg-red-600 text-white">
           This game hasn't ended yet. Ratings can only be submitted after the game has finished.
+        </div>
+      )}
+
+      {isRatingWindowClosed && (
+        <div className="mb-4 p-3 rounded bg-red-600 text-white">
+          The rating window for this game has closed. Ratings must be submitted within 72 hours after the game starts.
         </div>
       )}
       
@@ -291,12 +318,8 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
                 <PlayerItem 
                   player={{
                     ...player,
-                    // Show the user's previous rating if it exists, otherwise use 0
-                    avg_rating: userRating || 0,
-                    ratings: player.ratings ? player.ratings.map(r => ({ 
-                      rating: r.rating, 
-                      user_id: r.user_id 
-                    })) : []
+                    avg_rating: player.ratings?.[0]?.rating || 0, // Use the first rating if it exists
+                    ratings: player.ratings || []
                   }}
                   onRate={handleRate} 
                   isSelf={isSelf}
@@ -348,9 +371,11 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
               ? 'Game Has Not Ended Yet'
               : isUserPlayer === false
                 ? 'Only Players Can Rate'
-                : pendingRatingsCount > 0
-                  ? `${hasRatedGame ? 'Update' : 'Submit'} ${pendingRatingsCount} Rating${pendingRatingsCount !== 1 ? 's' : ''}`
-                  : 'No Ratings to Submit'
+                : isRatingWindowClosed
+                  ? 'Rating Window Closed'
+                  : pendingRatingsCount > 0
+                    ? `${hasRatedGame ? 'Update' : 'Submit'} ${pendingRatingsCount} Rating${pendingRatingsCount !== 1 ? 's' : ''}`
+                    : 'No Ratings to Submit'
           }
         </button>
       </div>
