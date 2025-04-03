@@ -145,7 +145,7 @@ export default function GamePage() {
       try {
         const hoursSinceStart = await checkTimeSinceGameStarted(gameId);
         setGameFinished(hoursSinceStart > 1);
-        setEditingWindowClosed(hoursSinceStart > 72)
+        setEditingWindowClosed(hoursSinceStart > 4)
       } catch (error) {
         console.error('Error checking game status:', error);
       }
