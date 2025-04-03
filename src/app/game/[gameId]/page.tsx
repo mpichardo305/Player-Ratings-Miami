@@ -43,6 +43,8 @@ export default function GamePage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
   const [showRaters, setShowRaters] = useState(false);
+  const [editingWindowClosed, setEditingWindowClosed] = useState(false);
+  
   
   // Fetch game data
   useEffect(() => {
@@ -142,7 +144,8 @@ export default function GamePage() {
       
       try {
         const hoursSinceStart = await checkTimeSinceGameStarted(gameId);
-        setGameFinished(hoursSinceStart > 1); // Set to true if more than 1 hour has passed
+        setGameFinished(hoursSinceStart > 1);
+        setEditingWindowClosed(hoursSinceStart > 72)
       } catch (error) {
         console.error('Error checking game status:', error);
       }
@@ -261,12 +264,14 @@ export default function GamePage() {
                     <Button
                       variant="secondary"
                       onClick={() => router.push(`/game/${gameId}?mode=edit`)}
+                      disabled={editingWindowClosed}
                     >
                       Edit Game Details
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={() => router.push(`/manage-players/${gameId}`)}
+                      disabled={editingWindowClosed}
                     >
                       Manage Players
                     </Button>
