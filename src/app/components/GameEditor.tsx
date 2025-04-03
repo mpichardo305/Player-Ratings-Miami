@@ -243,9 +243,11 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
   };
 
   if (loading) {
-    return <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-    Loading game details...
-  </span></>;
+    return <><div className="flex justify-center items-center h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <span className="text-sm ml-2">Loading game details...</span>
+    
+  </div></>;
   }
 
   if (error) {

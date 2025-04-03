@@ -16,6 +16,7 @@ const PlayerItem = dynamic(() => import('./PlayerItem'), {
 type Rating = {
   rating: number;
   player_id: string;
+  player_id_rater?: string; // Add this field
   user_id?: string;
 };
 
@@ -101,11 +102,12 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
         setHasRatedGame(true);
       }
 
-      // Map ratings to players
+      // Map ratings to players with the correct rating value
       const playersWithRatings = gamePlayers.map((player) => {
         const playerRating = ratingsData?.find((r) => r.player_id === player.id);
         return {
           ...player,
+          avg_rating: playerRating?.rating || 0, // Set the rating directly here
           ratings: playerRating ? [playerRating] : [],
         };
       });
@@ -316,12 +318,8 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
                 <PlayerItem 
                   player={{
                     ...player,
-                    // Show the user's previous rating if it exists, otherwise use 0
-                    avg_rating: userRating || 0,
-                    ratings: player.ratings ? player.ratings.map(r => ({ 
-                      rating: r.rating, 
-                      user_id: r.user_id 
-                    })) : []
+                    avg_rating: player.ratings?.[0]?.rating || 0, // Use the first rating if it exists
+                    ratings: player.ratings || []
                   }}
                   onRate={handleRate} 
                   isSelf={isSelf}

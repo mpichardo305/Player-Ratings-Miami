@@ -60,10 +60,10 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-600 p-4">
-        <Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-        Verifying session...
-      </span>
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="text-sm ml-2">Verifying the session...</span>
+        
       </div>
     );
   }
