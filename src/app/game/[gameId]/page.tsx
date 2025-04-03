@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import RatersList from '@/app/components/RatersList';
+import {checkTimeSinceGameStarted} from "@/app/lib/gameService";
 
 type Game = {
   id: string;
@@ -37,6 +38,7 @@ export default function GamePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersLoading, setPlayersLoading] = useState(true);
   const [isGameEnded, setIsGameEnded] = useState(false);
+  const [gameFinished, setGameFinished] = useState(false);
   
   const [initialLoad, setInitialLoad] = useState(true);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
@@ -134,12 +136,27 @@ export default function GamePage() {
     }
   }, [game]);
 
+  useEffect(() => {
+    const checkGameStatus = async () => {
+      if (!gameId) return;
+      
+      try {
+        const hoursSinceStart = await checkTimeSinceGameStarted(gameId);
+        setGameFinished(hoursSinceStart > 1); // Set to true if more than 1 hour has passed
+      } catch (error) {
+        console.error('Error checking game status:', error);
+      }
+    };
+
+    checkGameStatus();
+  }, [gameId]);
+
   if (loading || isAdminLoading) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="text-foreground text-center p-8">
-          Loading game details...
-        </div>
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="text-sm ml-2">Loading game details...</span>
+        
       </div>
     );
   }
@@ -257,7 +274,7 @@ export default function GamePage() {
                       variant="secondary"
                       onClick={() => setShowRaters(true)}
                     >
-                      See Who Voted
+                      See Who Rated
                     </Button>
                   </>
                 )}
@@ -272,7 +289,7 @@ export default function GamePage() {
       >
         Back
       </Button>
-      {showRaters && isAdmin && (
+      {showRaters && isAdmin && gameFinished && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="relative w-full max-w-lg">
             <Button

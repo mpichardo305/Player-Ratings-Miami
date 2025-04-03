@@ -33,7 +33,11 @@ export default function RatersList({ gameId }: RatersListProps) {
   }, [gameId]);
 
   if (loading) {
-    return <div className="text-center p-4">Loading raters...</div>;
+    return <div className="flex justify-center items-center h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <span className="text-sm ml-2">Loading raters...</span>
+    
+  </div>;
   }
 
   if (error) {
