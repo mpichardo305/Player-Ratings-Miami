@@ -85,7 +85,8 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
         .from("game_ratings")
         .select("player_id, rating, player_id_rater")
         .in("player_id", playerIds)
-        .eq("player_id_rater", playerId); // Changed from sessionUserId to playerId
+        .eq("player_id_rater", playerId)
+        .eq("game_id", gameId);  
 
       if (ratingsError) {
         console.error("❌ Error fetching ratings:", ratingsError);
