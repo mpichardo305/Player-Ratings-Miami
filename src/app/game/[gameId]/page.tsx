@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import RatersList from '@/app/components/RatersList';
-import {checkTimeSinceGameStarted} from "@/app/lib/gameService";
+import {checkTimeSinceGameStarted} from "@/app/utils/gameUtils";
 
 type Game = {
   id: string;
