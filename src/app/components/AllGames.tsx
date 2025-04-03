@@ -200,9 +200,6 @@ export default function AllGames() {
     </Card>
   );
 
-  // Conditionally render upcoming or past
-  const currentList = activeTab === "upcoming" ? upcomingGames : previousGames;
-
   return (
     <Card className="bg-card">
       <CardHeader>

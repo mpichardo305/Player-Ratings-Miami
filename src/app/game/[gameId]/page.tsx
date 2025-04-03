@@ -12,6 +12,7 @@ import { Player, fetchGamePlayers } from "@/app/utils/playerDb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import RatersList from '@/app/components/RatersList';
 
 type Game = {
   id: string;
@@ -39,6 +40,7 @@ export default function GamePage() {
   
   const [initialLoad, setInitialLoad] = useState(true);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
+  const [showRaters, setShowRaters] = useState(false);
   
   // Fetch game data
   useEffect(() => {
@@ -251,6 +253,12 @@ export default function GamePage() {
                     >
                       Manage Players
                     </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowRaters(true)}
+                    >
+                      See Who Voted
+                    </Button>
                   </>
                 )}
               </div>
@@ -264,6 +272,20 @@ export default function GamePage() {
       >
         Back
       </Button>
+      {showRaters && isAdmin && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-lg">
+            <Button
+              variant="ghost"
+              className="absolute right-2 top-2"
+              onClick={() => setShowRaters(false)}
+            >
+              ✕
+            </Button>
+            <RatersList gameId={gameId} />
+          </div>
+        </div>
+      )}
       </div>
     );
   }
