@@ -206,7 +206,9 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
       // Submit all ratings to game_ratings table
       const { error } = await supabase
         .from("game_ratings") // Using "game_ratings" correctly
-        .upsert(ratingsToSubmit, { onConflict: "player_id_rater, player_id" }); // Ensure we don't duplicate ratings
+        .upsert(ratingsToSubmit, { 
+          onConflict: "player_id_rater, player_id, game_id"
+        }); 
       
       if (error) {
         console.error("Error submitting ratings:", error.message);
