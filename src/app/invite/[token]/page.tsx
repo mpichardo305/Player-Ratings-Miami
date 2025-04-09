@@ -104,7 +104,7 @@ export default function InviteRegistration() {
     if (inviteStatus === 'invalid' || inviteStatus === 'already_used') {
       const timer = setTimeout(() => {
         router.push('/');
-      }, 2000); // 2 seconds delay before redirect
+      }, 3000); // 3 seconds delay before redirect
       return () => clearTimeout(timer);
     }
   }, [inviteStatus, router]);
