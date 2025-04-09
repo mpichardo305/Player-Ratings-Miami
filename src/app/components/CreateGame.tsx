@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-const FIELD_OPTIONS = ['KSP', 'Killian', 'Revo'];
+const FIELD_OPTIONS = ['KSP', 'Tropical','Killian', 'Revo'];
 const TIME_OPTIONS = ['9:00 AM', '10:00 AM', '11:00 AM', '7:00 PM', '8:00 PM', '9:00 PM'];
 const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
 
