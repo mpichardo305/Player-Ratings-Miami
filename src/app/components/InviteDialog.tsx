@@ -60,8 +60,13 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
   }
 
   const handleCopy = async () => {
-    const metadata = await generateMetadata({ params: { token: inviteUrl.split('/').pop() ?? '' } })
-    const inviteMessage = `${inviteUrl}\n\n${metadata.title}`;
+    // Extract the token cleanly without any potential URL encoding
+    const token = inviteUrl.split('/').pop() ?? '';
+    const cleanUrl = `${window.location.origin}/invite/${token}`;
+    const metadata = await generateMetadata({ params: { token } });
+    
+    // Create message with explicit line breaks
+    const inviteMessage = `${cleanUrl}\n\n${metadata.title}`;
 
     await navigator.clipboard.writeText(inviteMessage);
     setCopyConfirmation(true);
@@ -70,7 +75,7 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
       title: "Link copied!",
       description: "The invite link has been copied to your clipboard.",
       duration: 2000,
-    })
+    });
   }
 
   const handleClose = () => {

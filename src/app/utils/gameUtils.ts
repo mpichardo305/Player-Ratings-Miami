@@ -22,39 +22,29 @@ export const hasGameEnded = (gameDate: string, gameStartTime: string, hoursAfter
  * @returns number of hours passed since game start time (negative if game hasn't started yet)
  */
 export const checkTimeSinceGameStarted = async (gameId: string): Promise<number> => {
-  const { data, error } = await supabase
+  const { data: game } = await supabase
     .from('games')
     .select('date, start_time')
     .eq('id', gameId)
     .single();
 
-  if (error) {
-    console.error('Error fetching game details:', error);
-    throw new Error('Failed to fetch game details');
-  }
+  if (!game) throw new Error('Game not found');
 
-  if (!data) {
-    throw new Error('Game not found');
-  }
-
-  // Combine date and start_time to create game start datetime
-  const gameDate = new Date(data.date);
-  const [hours, minutes] = data.start_time.split(':');
-  const isPM = data.start_time.toLowerCase().includes('pm');
-  
-  let hour = parseInt(hours);
-  if (isPM && hour !== 12) hour += 12;
-  if (!isPM && hour === 12) hour = 0;
-  
-  gameDate.setHours(hour);
-  gameDate.setMinutes(parseInt(minutes));
-
-  // Get current time
+  // Create dates using the local timezone
+  const gameStart = new Date(`${game.date}T${game.start_time}`);
   const now = new Date();
-  
-  // Calculate difference in milliseconds
-  const timeDifference = now.getTime() - gameDate.getTime();
-  
-  // Convert to hours and return
-  return timeDifference / (1000 * 60 * 60);
+
+  // Calculate difference in hours
+  const diffMs = now.getTime() - gameStart.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  // Debug logging
+  console.log({
+    gameStartTime: gameStart.toLocaleString(),
+    currentTime: now.toLocaleString(),
+    diffHours: diffHours,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  });
+
+  return diffHours;
 };
