@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import dynamic from 'next/dynamic';
 import { isEqual } from 'lodash';
@@ -42,10 +42,10 @@ type ApprovedPlayersListProps = {
   viewOnly?: boolean; // New prop to disable rating functionality
 };
 
-export default function PlayerListAndStats({ sessionUserId, groupId, viewOnly = false }: ApprovedPlayersListProps) {
+const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = false }: ApprovedPlayersListProps, ref) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // New state for refresh button
+  const [refreshing, setRefreshing] = useState(false);
   const [metrics, setMetrics] = useState<MetricCard[]>([]); // Add metrics state
   const [metricsLoading, setMetricsLoading] = useState(true); // Add loading state for metrics
   const previousPlayersRef = useRef<Player[]>([]);
@@ -223,20 +223,20 @@ export default function PlayerListAndStats({ sessionUserId, groupId, viewOnly = 
     }
   };
 
+  // Expose refreshData method
+  useImperativeHandle(ref, () => ({
+    refreshData: async () => {
+      await fetchPlayersAndRatings(true);
+      const updatedPlayers = previousPlayersRef.current;
+      const newMetrics = await calculateMetrics(updatedPlayers);
+      setMetrics(newMetrics);
+    }
+  }));
+
   return (
     <div className="space-y-4 mt-6">
       {/* Add refresh button */}
-      <div className="flex justify-end mb-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
+     
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -281,7 +281,7 @@ export default function PlayerListAndStats({ sessionUserId, groupId, viewOnly = 
       </Card>
       )}
       
-      <ScrollArea className="h-[65vh]">
+      <ScrollArea className="h-[calc(100vh-300px)] rounded-md border border-secondary p-4">
       {!loading && players.length === 0 && (
         <Card className="bg-secondary border-secondary">
         <CardContent className="pt-6">
@@ -314,4 +314,6 @@ export default function PlayerListAndStats({ sessionUserId, groupId, viewOnly = 
       </ScrollArea>
     </div>
   );
-}
+});
+
+export default PlayerListAndStats;

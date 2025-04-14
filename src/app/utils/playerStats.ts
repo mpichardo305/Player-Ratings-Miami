@@ -26,6 +26,15 @@ interface GameRating {
   }[];
 }
 
+// Add this interface to properly type the Supabase response
+interface GamePlayerResponse {
+  game_id: string;
+  player_id: string;
+  players: {
+    name: string;
+  } | null;
+}
+
 export async function getGameData() {
   const { data: games, error: gamesError } = await supabase
     .from('games')
@@ -50,19 +59,16 @@ export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
         name
       )
     `)
-    .limit(1000);
+    .limit(1000) as { data: GamePlayerResponse[] | null; error: any };
 
   if (playersError || !gamePlayers || gamePlayers.length === 0) {
     console.error('Error fetching game count:', playersError);
     return null;
   }
 
-  // Add debug logging
-  console.log('Total game players found:', gamePlayers.length);
-  console.log('Sample players:', gamePlayers.slice(0, 3));
-
   // Group and count games by player
   const playerCounts = gamePlayers.reduce((acc, curr) => {
+    // TypeScript now knows the exact shape of curr.players
     if (!curr.players?.name) {
       console.log('Skipping player with missing data:', curr);
       return acc;
@@ -77,10 +83,7 @@ export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
     return acc;
   }, {} as Record<string, { count: number; name: string }>);
 
-  // Log player counts for debugging
-  console.log('Player counts:', playerCounts);
-
-  // Find player with most games
+  // Rest of the function remains the same
   const entries = Object.entries(playerCounts);
   if (entries.length === 0) return null;
 
