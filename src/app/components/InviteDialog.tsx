@@ -63,10 +63,10 @@ export default function InviteDialog({ groupId, onClose }: InviteDialogProps) {
     // Extract the token cleanly without any potential URL encoding
     const token = inviteUrl.split('/').pop() ?? '';
     const cleanUrl = `${window.location.origin}/invite/${token}`;
-    const metadata = await generateMetadata({ params: { token } });
+    // const metadata = await generateMetadata({ params: { token } });
     
     // Create message with explicit line breaks
-    const inviteMessage = `${cleanUrl}\n\n${metadata.title}`;
+    const inviteMessage = `${cleanUrl}`;
 
     await navigator.clipboard.writeText(inviteMessage);
     setCopyConfirmation(true);
