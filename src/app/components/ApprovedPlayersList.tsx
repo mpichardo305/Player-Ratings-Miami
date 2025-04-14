@@ -105,7 +105,7 @@ export default function ApprovedPlayersList({ sessionUserId, groupId, viewOnly =
       const playersWithRatings = approvedPlayers.reverse().map((player) => {
         const playerRatings = ratingsData?.filter((r) => r.player_id === player.id) || [];
         const sum = playerRatings.reduce((acc, curr) => acc + curr.rating, 0);
-        const avg = playerRatings.length > 0 ? Math.ceil(sum / playerRatings.length) : 0;
+        const avg = playerRatings.length > 0 ? Math.round((sum / playerRatings.length) * 2) / 2 : 0;
 
         return {
           ...player,

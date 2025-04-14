@@ -9,6 +9,7 @@ import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
 import InviteDialog from "@/app/components/InviteDialog";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { Button } from "@/components/ui/button";
+import GroupStats from "../components/PlayerListAndStats";
 
 export default function Players() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function Players() {
               isGroupAdmin={true}
             />
           )}
-          <ApprovedPlayersList 
+          <GroupStats
             sessionUserId={session.user.id} 
             groupId={selectedGroup.id} 
             viewOnly={true} 
