@@ -48,9 +48,10 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-        Loading...
-      </span></>
+      <div className="h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin mb-4" />
+        <span className="text-lg">Loading...</span>
+      </div>
     );
   }
 

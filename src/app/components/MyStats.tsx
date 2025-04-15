@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { getPlayerStats } from "../utils/playerStats";
 
 interface PlayerGameStats {
+  winRatios: number;
   gamesPlayed: number;
   currentStreak: number;
   initialAverage: number;
@@ -39,6 +40,7 @@ export default function MyStats() {
         const playerStats = await getPlayerStats(playerId);
         if (playerStats) {
           setStats({
+            winRatios: playerStats[5].value,
             gamesPlayed: playerStats[0].value,
             currentStreak: playerStats[1].value,
             initialAverage: playerStats[2].value,
@@ -65,6 +67,11 @@ export default function MyStats() {
   }
 
   const statCards = [
+    {
+      title: "Win Ratio",
+      value: `${(stats?.winRatios ?? 0).toFixed(1)}%`,
+      description: "Games won out of total games played"
+    },
     {
       title: "Rating Delta",
       value: `${(stats?.improvement ?? 0) > 0 ? '+' : ''}${stats?.improvement?.toFixed(1) ?? "0.0"}`,

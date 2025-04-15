@@ -48,6 +48,47 @@ interface GameRatingResponse {
   };
 }
 
+interface PlayerWinRatio
+ {
+  player_id: string;
+  name: string;
+  win_ratio: number; 
+}
+
+export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
+  const { data, error } = await supabase
+    .from('game_players')
+    .select(`
+      player_id,
+      players (
+        name
+      ),
+      count,
+      wins:game_players(count)
+    `)
+    .eq('game_outcome', 'win')
+    .order('total_games', { ascending: false });
+
+  if (error || !data) {
+    console.error('Error fetching player win ratios:', error);
+    return null;
+  }
+
+  // Calculate win ratios for each player
+  const playerWinRatios = data.map((player: any) => {
+    const win_ratio = player.total_games > 0 
+      ? (player.wins / player.total_games) * 100 
+      : 0;
+
+    return {
+      player_id: player.player_id,
+      name: player.players.name,
+      win_ratio: Number(win_ratio.toFixed(2)) // Format to 2 decimal places
+    };
+  });
+
+  return playerWinRatios;
+}
 export async function getGameData() {
   const { data: games, error: gamesError } = await supabase
     .from('games')
@@ -359,6 +400,10 @@ export async function getBestPlayer(): Promise<PlayerStats | null> {
 
 export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | null> {
   try {
+    // Get win ratio data for the player
+    const winRatios = await getPlayerWinRatios();
+    const playerWinRatio = winRatios?.find(p => p.player_id === playerId)?.win_ratio || 0;
+
     const { data: gameRatings, error: ratingsError } = await supabase
       .from('game_ratings')
       .select(`
@@ -426,7 +471,8 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
         { player_id: playerId, name: "Current Streak", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: Number(firstThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Latest 3-Game Average", value: Number(lastThreeAvg.toFixed(1)) },
-        { player_id: playerId, name: "Rating Improvement", value: improvement }
+        { player_id: playerId, name: "Rating Improvement", value: improvement },
+        { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) }
       ];
     } else {
       // Return stats for players with less than 3 games
@@ -435,7 +481,8 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
         { player_id: playerId, name: "Current Streak", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: 0 },
         { player_id: playerId, name: "Latest 3-Game Average", value: 0 },
-        { player_id: playerId, name: "Rating Improvement", value: 0 }
+        { player_id: playerId, name: "Rating Improvement", value: 0 },
+        { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) }
       ];
     }
 
