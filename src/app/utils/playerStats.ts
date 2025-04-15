@@ -60,30 +60,42 @@ export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
     .from('game_players')
     .select(`
       player_id,
+      game_outcome,
       players (
         name
-      ),
-      count,
-      wins:game_players(count)
-    `)
-    .eq('game_outcome', 'win')
-    .order('total_games', { ascending: false });
+      )
+    `);
 
   if (error || !data) {
     console.error('Error fetching player win ratios:', error);
     return null;
   }
 
-  // Calculate win ratios for each player
-  const playerWinRatios = data.map((player: any) => {
-    const win_ratio = player.total_games > 0 
-      ? (player.wins / player.total_games) * 100 
-      : 0;
+  const playerStats = data.reduce((acc, player) => {
+    const { player_id, game_outcome, players } = player;
 
+    if (!acc[player_id]) {
+      acc[player_id] = {
+        totalGames: 0,
+        wins: 0,
+        name: players?.[0]?.name || ''
+      };
+    }
+
+    acc[player_id].totalGames += 1;
+    if (game_outcome === 'win') {
+      acc[player_id].wins += 1;
+    }
+
+    return acc;
+  }, {} as Record<string, { totalGames: number; wins: number; name: string }>);
+
+  const playerWinRatios = Object.entries(playerStats).map(([playerId, stats]) => {
+    const winRatio = stats.totalGames > 0 ? (stats.wins / stats.totalGames) * 100 : 0;
     return {
-      player_id: player.player_id,
-      name: player.players.name,
-      win_ratio: Number(win_ratio.toFixed(2)) // Format to 2 decimal places
+      player_id: playerId,
+      name: stats.name,
+      win_ratio: Number(winRatio.toFixed(2))
     };
   });
 
