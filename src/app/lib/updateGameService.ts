@@ -121,3 +121,105 @@ export const updateTeams = async (gameId: string, teamUpdates: TeamUpdate[]): Pr
     throw error;
   }
 };
+
+export const updateGameScore = async (gameId: string, scoreA: number, scoreB: number, winner: string): Promise<void> => {
+  try {
+    if (!gameId) {
+      throw new Error('Missing gameId');
+    }
+
+    // First check if a game score record exists
+    const { data: existingScore, error: fetchError } = await supabase
+      .from('game_score')
+      .select('*')
+      .eq('game_id', gameId)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is the "not found" error code
+      console.error('Error fetching game score:', fetchError);
+      throw new Error(fetchError.message);
+    }
+
+    let error;
+    if (!existingScore) {
+      // Create new record if it doesn't exist
+      const { error: insertError } = await supabase
+        .from('game_score')
+        .insert({ 
+          game_id: gameId,
+          score_a: scoreA, 
+          score_b: scoreB, 
+          winner_name: winner
+        });
+      error = insertError;
+    } else {
+      // Update existing record
+      const { error: updateError } = await supabase
+        .from('game_score')
+        .update({ 
+          score_a: scoreA, 
+          score_b: scoreB, 
+          winner_name: winner
+        })
+        .eq('game_id', gameId);
+      error = updateError;
+    }
+
+    if (error) {
+      console.error('Error updating/creating game score:', error);
+      throw new Error(error.message);
+    }
+
+    console.log(`Successfully ${!existingScore ? 'created' : 'updated'} game score for game:`, gameId);
+  } catch (error) {
+    console.error('Error in updateGameScore:', error);
+    throw error;
+  }
+};
+
+export const updateGamePlayerWon = async (gameId: string, winner: 'A' | 'B' | 'tie'): Promise<void> => {
+  try {
+    if (!gameId) {
+      throw new Error('Missing gameId');
+    }
+
+    // Fetch existing game players with their team assignments
+    const { data: gamePlayers, error: fetchError } = await supabase
+      .from('game_players')
+      .select('*')
+      .eq('game_id', gameId);
+
+    if (fetchError) {
+      console.error('Error fetching game players:', fetchError);
+      throw new Error(fetchError.message);
+    }
+
+    // For each player, determine their game outcome based on their team and the winner
+    for (const player of gamePlayers) {
+      let gameOutcome: 'win' | 'lose' | 'tie';
+
+      if (winner === 'tie') {
+        gameOutcome = 'tie';
+      } else {
+        gameOutcome = player.team === winner ? 'win' : 'lose';
+      }
+
+      // Update the player's game_outcome
+      const { error: updateError } = await supabase
+        .from('game_players')
+        .update({ game_outcome: gameOutcome })
+        .eq('game_id', gameId)
+        .eq('player_id', player.player_id);
+
+      if (updateError) {
+        console.error(`Error updating game outcome for player ${player.player_id}:`, updateError);
+        throw new Error(updateError.message);
+      }
+    }
+
+    console.log('Successfully updated game outcomes for all players in game:', gameId);
+  } catch (error) {
+    console.error('Error in updateGamePlayerWon:', error);
+    throw error;
+  }
+};
