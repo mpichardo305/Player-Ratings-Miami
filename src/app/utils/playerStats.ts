@@ -9,9 +9,13 @@ interface PlayerStats {
 interface GamePlayer {
   player_id: string;
   games_played: number;
+  games: {
+    date: string;
+    start_time: string;
+  };
   players: {
     name: string;
-  }[];
+  };
 }
 
 interface GameRating {
@@ -23,7 +27,7 @@ interface GameRating {
   };
   players: {
     name: string;
-  }[];
+  } | null;
 }
 
 // Add this interface to properly type the Supabase response
@@ -33,6 +37,15 @@ interface GamePlayerResponse {
   players: {
     name: string;
   } | null;
+}
+
+interface GameRatingResponse {
+  player_id: string;
+  rating: number;
+  game_id: string;
+  players: {
+    name: string;
+  };
 }
 
 export async function getGameData() {
@@ -96,151 +109,339 @@ export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
   };
 }
 
-// export async function getMostImproved(): Promise<PlayerStats | null> {
-//   const games = await getGameData();
-//   if (!games) return null;
 
-//   const gameIds = games.map(game => game.id);
+export async function getStreakLeader(): Promise<PlayerStats | null> {
+  const { data: gamePlayers, error: playersError } = await supabase
+    .from('game_players')
+    .select(`
+      game_id,
+      player_id,
+      games!inner (
+        date,
+        start_time
+      ),
+      players (
+        name
+      )
+    `)
+    .limit(1000) as { data: any[] | null; error: any };
 
-//   const { data, error } = await supabase
-//     .from('game_ratings')
-//     .select(`
-//       player_id,
-//       rating,
-//       game_id,
-//       games!inner (
-//         date,
-//         start_time
-//       ),
-//       players!inner (
-//         name
-//       )
-//     `)
-//     .in('game_id', gameIds)
-//     .order('games.date', { ascending: false }); // Changed to games.date
+  if (playersError || !gamePlayers || gamePlayers.length === 0) {
+    console.error('Error fetching games for streak:', playersError);
+    return null;
+  }
 
-//   if (error || !data) {
-//     console.error('Error fetching ratings:', error);
-//     return null;
-//   }
+  // Group games by player
+  const playerGames = gamePlayers.reduce((acc, curr) => {
+    if (!curr.players?.name || !curr.games?.date) {
+      console.log('Skipping player with missing data:', curr);
+      return acc;
+    }
 
-//   // Group by player and calculate improvement
-//   const improvements = (data as unknown as GameRating[]).reduce((acc, curr) => {
-//     const player = acc.get(curr.player_id) || { 
-//       ratings: [], 
-//       name: curr.players[0]?.name || '',
-//       dates: []
-//     };
+    const player = acc.get(curr.player_id) || {
+      games: [],
+      name: curr.players.name
+    };
+
+    player.games.push(new Date(`${curr.games.date} ${curr.games.start_time}`));
+    acc.set(curr.player_id, player);
+    return acc;
+  }, new Map<string, { games: Date[], name: string }>());
+
+  let maxStreak = { player_id: '', name: '', value: 0 };
+
+  // Calculate streaks for each player
+  playerGames.forEach((player: { games: any[]; name: any; }, playerId: any) => {
+    // Sort games by date ascending
+    player.games.sort((a, b) => b.getTime() - a.getTime());
     
-//     try {
-//       if (curr.games?.date && curr.games?.start_time) {
-//         const dateStr = `${curr.games.date} ${curr.games.start_time}`;
-//         const date = new Date(dateStr);
-        
-//         // Validate the date is valid before adding
-//         if (!isNaN(date.getTime())) {
-//           player.ratings.push(curr.rating);
-//           player.dates.push(date);
-//         } else {
-//           console.error('Invalid date created:', dateStr);
-//         }
-//       }
-//     } catch (error) {
-//       console.error('Error parsing date:', error, {
-//         date: curr.games?.date,
-//         time: curr.games?.start_time,
-//         player: curr.player_id
-//       });
-//     }
-    
-//     acc.set(curr.player_id, player);
-//     return acc;
-//   }, new Map<string, { ratings: number[], dates: Date[], name: string }>());
+    let currentStreak = 1;
+    for (let i = 1; i < player.games.length; i++) {
+      const daysDiff = Math.abs((player.games[i].getTime() - player.games[i-1].getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff <= 7) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
 
-//   let maxImprovement = { player_id: '', name: '', value: 0 };
-  
-//   improvements.forEach((player, playerId) => {
-//     if (player.ratings.length >= 2) {
-//       // Sort ratings by date before calculating improvement
-//       const ratingsByDate = player.ratings
-//         .map((rating, i) => ({ rating, date: player.dates[i] }))
-//         .sort((a, b) => b.date.getTime() - a.date.getTime())
-//         .map(item => item.rating);
+    console.log(`Player ${player.name}: ${currentStreak} game streak`); // Debug log
+
+    if (currentStreak > maxStreak.value) {
+      maxStreak = {
+        player_id: playerId,
+        name: player.name,
+        value: currentStreak
+      };
+    }
+  });
+
+  console.log('Final streak leader:', maxStreak); // Debug log
+  return maxStreak.player_id ? maxStreak : null;
+}
+
+export async function getMostImproved(): Promise<PlayerStats | null> {
+  const { data: gameRatings, error: ratingsError } = await supabase
+    .from('game_ratings')
+    .select(`
+      player_id,
+      rating,
+      game_id,
+      players (
+        name
+      )
+    `)
+    .limit(1000) as { data: GameRatingResponse[] | null; error: any };
+
+  if (ratingsError || !gameRatings || gameRatings.length === 0) {
+    console.error('Error fetching ratings:', ratingsError);
+    return null;
+  }
+
+  // Group ratings by player
+  const playerStats = gameRatings.reduce((acc, curr) => {
+    if (!curr.players?.name) {
+      console.log('Skipping rating with missing player data:', curr);
+      return acc;
+    }
+
+    const playerId = curr.player_id;
+    const player = acc.get(playerId) || {
+      name: curr.players.name,
+      ratings: new Map<string, number>(), // Map of game_id to rating
+      uniqueGames: new Set<string>()      // Set of unique game_ids
+    };
+
+    // Only store one rating per game
+    player.ratings.set(curr.game_id, curr.rating);
+    player.uniqueGames.add(curr.game_id);
+    acc.set(playerId, player);
+    return acc;
+  }, new Map<string, { 
+    name: string; 
+    ratings: Map<string, number>; 
+    uniqueGames: Set<string>;
+  }>());
+
+  let maxImprovement = { player_id: '', name: '', value: 0 };
+
+  console.log('\n--- Player Improvement Details ---');
+  const improvements: { name: string; improvement: number; firstAvg: number; lastAvg: number; gamesPlayed: number }[] = [];
+
+  playerStats.forEach((stats, playerId) => {
+    // Check if player has played at least 3 unique games
+    if (stats.uniqueGames.size >= 3) {
+      const ratingsArray = Array.from(stats.ratings.values());
+      // Sort ratings chronologically (oldest to newest)
+      ratingsArray.sort((a, b) => a - b);
       
-//       const improvement = ratingsByDate[0] - ratingsByDate[ratingsByDate.length - 1];
-//       if (improvement > maxImprovement.value) {
-//         maxImprovement = {
-//           player_id: playerId,
-//           name: player.name,
-//           value: improvement
-//         };
-//       }
-//     }
-//   });
+      // Calculate average of first 3 games and last 3 games
+      const firstThreeAvg = ratingsArray.slice(0, 3)
+        .reduce((sum, rating) => sum + rating, 0) / 3;
+      const lastThreeAvg = ratingsArray.slice(-3)
+        .reduce((sum, rating) => sum + rating, 0) / 3;
+      
+      const improvement = lastThreeAvg - firstThreeAvg;
 
-//   return maxImprovement.player_id ? maxImprovement : null;
-// }
+      improvements.push({
+        name: stats.name,
+        improvement,
+        firstAvg: firstThreeAvg,
+        lastAvg: lastThreeAvg,
+        gamesPlayed: stats.uniqueGames.size
+      });
 
-// export async function getStreakLeader(): Promise<PlayerStats | null> {
-//   const games = await getGameData();
-//   if (!games) return null;
+      if (improvement > maxImprovement.value) {
+        maxImprovement = {
+          player_id: playerId,
+          name: stats.name,
+          value: Number(improvement.toFixed(1))
+        };
+      }
+    }
+  });
 
-//   const gameIds = games.map(game => game.id);
+  // Sort and log improvements
+  improvements
+    .sort((a, b) => b.improvement - a.improvement)
+    .forEach(({ name, improvement, firstAvg, lastAvg, gamesPlayed }) => {
+      console.log(
+        `Player ${name}:\n` +
+        `  Games Played: ${gamesPlayed}\n` +
+        `  Initial 3-Game Average: ${firstAvg.toFixed(1)}\n` +
+        `  Latest 3-Game Average: ${lastAvg.toFixed(1)}\n` +
+        `  Improvement: ${improvement > 0 ? '+' : ''}${improvement.toFixed(1)}\n`
+      );
+    });
 
-//   const { data, error } = await supabase
-//     .from('game_players')
-//     .select(`
-//       player_id,
-//       games:games!inner (
-//         date,
-//         start_time
-//       ),
-//       players:players!inner (
-//         name
-//       )
-//     `)
-//     .in('game_id', gameIds)
-//     .order('games.date', { ascending: false });
+  console.log('\nMost Improved Player:', {
+    name: maxImprovement.name,
+    improvement: maxImprovement.value.toFixed(1)
+  });
 
-//   if (error || !data) {
-//     console.error('Error fetching games:', error);
-//     return null;
-//   }
+  return maxImprovement.player_id ? maxImprovement : null;
+}
 
-//   // Group by player and calculate consecutive games
-//   const streaks = data.reduce((acc, curr) => {
-//     const player = acc.get(curr.player_id) || { 
-//       games: [] as Date[], 
-//       currentStreak: 0,
-//       name: curr.players[0].name 
-//     };
-//     player.games.push(new Date(`${curr.games[0].date} ${curr.games[0].start_time}`));
-//     acc.set(curr.player_id, player);
-//     return acc;
-//   }, new Map<string, { games: Date[], name: string }>());
-  
-//   let maxStreak = { player_id: '', name: '', value: 0 };
+export async function getBestPlayer(): Promise<PlayerStats | null> {
+  const { data: gameRatings, error: ratingsError } = await supabase
+    .from('game_ratings')
+    .select(`
+      player_id,
+      rating,
+      game_id,
+      players (
+        name
+      )
+    `)
+    .limit(1000) as { data: GameRatingResponse[] | null; error: any };
 
-//   streaks.forEach((player, playerId) => {
-//     player.games.sort((a, b) => a.getTime() - b.getTime()); // Sort games by date
-//     let currentStreak = 1;
-//     for (let i = 1; i < player.games.length; i++) {
-//       const daysDiff = Math.abs((player.games[i].getTime() - player.games[i - 1].getTime()) / (1000 * 60 * 60 * 24));
-//       if (daysDiff <= 7) { // Consider games within 7 days as consecutive
-//         currentStreak++;
-//       } else {
-//         break;
-//       }
-//     }
-//     if (currentStreak > maxStreak.value) {
-//       maxStreak = {
-//         player_id: playerId,
-//         name: player.name,
-//         value: currentStreak
-//       };
-//     }
-//   });
+  if (ratingsError || !gameRatings || gameRatings.length === 0) {
+    console.error('Error fetching ratings:', ratingsError);
+    return null;
+  }
 
-//   return maxStreak.player_id ? maxStreak : null;
-// }
+  // Group ratings by player and calculate averages
+  const playerStats = gameRatings.reduce((acc, curr) => {
+    if (!curr.players?.name) {
+      console.log('Skipping player with missing data:', curr);
+      return acc;
+    }
+
+    const playerId = curr.player_id;
+    const player = acc.get(playerId) || {
+      name: curr.players.name,
+      ratings: new Map<string, number>(), // Map of game_id to rating
+      uniqueGames: new Set<string>()      // Set of unique game_ids
+    };
+
+    // Only store one rating per game
+    player.ratings.set(curr.game_id, curr.rating);
+    player.uniqueGames.add(curr.game_id);
+    acc.set(playerId, player);
+    return acc;
+  }, new Map<string, { 
+    name: string; 
+    ratings: Map<string, number>; 
+    uniqueGames: Set<string>;
+  }>());
+
+  let bestPlayer: PlayerStats | null = null;
+  let highestAverage = 0;
+
+  console.log('\n--- Player Rating Averages ---');
+  playerStats.forEach((stats, playerId) => {
+    // Check if player has played at least 3 unique games
+    if (stats.uniqueGames.size >= 3) {
+      // Calculate average using ratings from unique games
+      const ratingsArray = Array.from(stats.ratings.values());
+      const average = ratingsArray.reduce((sum, rating) => sum + rating, 0) / ratingsArray.length;
+      
+      console.log(`Player ${stats.name}:`, {
+        uniqueGames: stats.uniqueGames.size,
+        gamesRated: ratingsArray.length,
+        averageRating: average.toFixed(1)
+      });
+
+      if (average > highestAverage) {
+        highestAverage = average;
+        bestPlayer = {
+          player_id: playerId,
+          name: stats.name,
+          value: Number(average.toFixed(1))
+        };
+      }
+    }
+  });
+
+  console.log('\nBest Player:', bestPlayer);
+  return bestPlayer;
+}
+
+export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | null> {
+  try {
+    const { data: gameRatings, error: ratingsError } = await supabase
+      .from('game_ratings')
+      .select(`
+        player_id,
+        rating,
+        game_id,
+        players (
+          name
+        )
+      `)
+      .eq('player_id', playerId)
+      .limit(1000) as { data: GameRatingResponse[] | null; error: any };
+
+    if (ratingsError || !gameRatings || gameRatings.length === 0) {
+      console.error('Error fetching ratings:', ratingsError);
+      return null;
+    }
+
+    // Group ratings by player
+    const playerStats = gameRatings.reduce((acc, curr) => {
+      if (!curr.players?.name) {
+        console.log('Skipping rating with missing player data:', curr);
+        return acc;
+      }
+
+      const playerId = curr.player_id;
+      const player = acc.get(playerId) || {
+        name: curr.players.name,
+        ratings: new Map<string, number>(),  // Map of game_id to rating
+        uniqueGames: new Set<string>()       // Set of unique game_ids
+      };
+
+      // Only store one rating per game
+      player.ratings.set(curr.game_id, curr.rating);
+      player.uniqueGames.add(curr.game_id);
+      acc.set(playerId, player);
+      return acc;
+    }, new Map<string, {
+      name: string;
+      ratings: Map<string, number>;
+      uniqueGames: Set<string>;
+    }>());
+
+    const playerData = playerStats.get(playerId);
+    if (!playerData) return null;
+
+    const ratingsArray = Array.from(playerData.ratings.values());
+    const gamesPlayed = playerData.uniqueGames.size;
+
+    // Calculate stats only if player has 3 or more games
+    if (gamesPlayed >= 3) {
+      // Sort ratings chronologically (oldest to newest)
+      ratingsArray.sort((a, b) => a - b);
+      
+      // Calculate average of first 3 games and last 3 games
+      const firstThreeAvg = ratingsArray.slice(0, 3)
+        .reduce((sum, rating) => sum + rating, 0) / 3;
+      const lastThreeAvg = ratingsArray.slice(-3)
+        .reduce((sum, rating) => sum + rating, 0) / 3;
+      
+      const improvement = Number((lastThreeAvg - firstThreeAvg).toFixed(1));
+
+      return [
+        { player_id: playerId, name: "Games Played", value: gamesPlayed },
+        { player_id: playerId, name: "Current Streak", value: gamesPlayed },
+        { player_id: playerId, name: "Initial 3-Game Average", value: Number(firstThreeAvg.toFixed(1)) },
+        { player_id: playerId, name: "Latest 3-Game Average", value: Number(lastThreeAvg.toFixed(1)) },
+        { player_id: playerId, name: "Rating Improvement", value: improvement }
+      ];
+    } else {
+      // Return stats for players with less than 3 games
+      return [
+        { player_id: playerId, name: "Games Played", value: gamesPlayed },
+        { player_id: playerId, name: "Current Streak", value: gamesPlayed },
+        { player_id: playerId, name: "Initial 3-Game Average", value: 0 },
+        { player_id: playerId, name: "Latest 3-Game Average", value: 0 },
+        { player_id: playerId, name: "Rating Improvement", value: 0 }
+      ];
+    }
+
+  } catch (error) {
+    console.error('Error calculating player stats:', error);
+    return null;
+  }
+}
 

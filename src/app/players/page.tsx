@@ -47,15 +47,16 @@ export default function Players() {
         
         {/* Move refresh button here and add margin-top */}
         <div className="flex justify-end">
-          <Button 
+            <Button 
             variant="outline" 
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
-          >
+            className="text-[#3B82F6] border-[#3B82F6] hover:bg-[#3B82F6] hover:text-white"
+            >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
+            </Button>
         </div>
       </div>
 

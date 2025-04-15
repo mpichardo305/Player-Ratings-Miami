@@ -6,9 +6,7 @@ import { isEqual } from 'lodash';
 import toast from 'react-hot-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react"; // Import the refresh icon
-import { getMostGamesPlayed } from "@/app/utils/playerStats";
+import { getMostGamesPlayed, getStreakLeader, getMostImproved, getBestPlayer } from "@/app/utils/playerStats";
 
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
@@ -162,28 +160,16 @@ const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = fals
     };
   }, [groupId, players.length]); // Add players.length as dependency
 
-  // Add handleRefresh function
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchPlayersAndRatings(true);
-    const updatedPlayers = previousPlayersRef.current; // get the latest
-    const newMetrics = await calculateMetrics(updatedPlayers);
-    setMetrics(newMetrics);
-    setRefreshing(false);
-    
-  };
-
   const calculateMetrics = async (players: Player[]): Promise<MetricCard[]> => {
     try {
       setMetricsLoading(true);
       
-      const getBestPlayer = () => {
-        if (!players.length) return null;
-        const best = [...players].sort((a, b) => b.avg_rating - a.avg_rating)[0];
-        return best ? { 
+      const getBestPlayerMetric = async () => {
+        const best = await getBestPlayer();
+        return best ? {
           title: "Best Player",
           value: best.name,
-          description: `Rating: ${best.avg_rating.toFixed(1)}` 
+          description: `Rating: ${best.value}`
         } : null;
       };
 
@@ -196,14 +182,36 @@ const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = fals
         } : null;
       };
 
+      const getStreakLeaderPlayer = async () => {
+        const streakLeader = await getStreakLeader();
+        console.log('Streak Leader Data:', streakLeader); // Debug log
+        return streakLeader ? {
+          title: "Current Streak Leader",
+          value: streakLeader.name,
+          description: `${streakLeader.value} consecutive games`
+        } : null;
+      };
+
+      const getMostImprovedPlayer = async () => {
+        const mostImproved = await getMostImproved();
+        console.log('Most Improved Data:', mostImproved); // Debug log
+        return mostImproved ? {
+          title: "Most Improved",
+          value: mostImproved.name,
+          description: `+${mostImproved.value.toFixed(1)} rating gain`
+        } : null;
+      };
+
       // Fetch all metrics in parallel
-      const [bestPlayer, gamesPlayer] = await Promise.all([
-        getBestPlayer(),
-        getMostGamesPlayedPlayer()
+      const [bestPlayer, gamesPlayer, streakLeader, mostImproved] = await Promise.all([
+        getBestPlayerMetric(),
+        getMostGamesPlayedPlayer(),
+        getStreakLeaderPlayer(),
+        getMostImprovedPlayer()
       ]);
 
       // Filter out null values and combine metrics
-      const metrics = [bestPlayer, gamesPlayer]
+      const metrics = [bestPlayer, gamesPlayer, streakLeader, mostImproved]
         .filter((metric): metric is MetricCard => metric !== null);
       
       // Debug logging
@@ -274,11 +282,14 @@ const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = fals
         )}
       </div>
       {viewOnly && (
+        <>
       <Card className="bg-secondary border-secondary mx-auto">
-        <CardContent className="pt-4">
-        <p className="text-primary">🔒 This is view only</p>
-        </CardContent>
+      <CardContent className="pt-6">
+          <h3 className="font-semibold text-lg">Player Ratings</h3>
+          <p className="text-sm text-primary pt-1 mb-1">🔒 This is view only</p> 
+      </CardContent>
       </Card>
+      </>
       )}
       
       <ScrollArea className="h-[calc(100vh-300px)] rounded-md border border-secondary p-4">

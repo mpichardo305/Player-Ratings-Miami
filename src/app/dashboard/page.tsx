@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserPlayerId } from "../utils/playerDb";
 import { Loader2 } from "lucide-react";
+import MyStats from "../components/MyStats";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -72,7 +73,6 @@ export default function Dashboard() {
               {selectedGroup ? `(${selectedGroup.name})` : ''}
             </span>
           </CardTitle>
-          
         </CardHeader>
         <CardContent>
           <GroupSelector 
@@ -81,6 +81,9 @@ export default function Dashboard() {
           />
         </CardContent>
       </Card>
+
+      {/* Add MyStats for all users */}
+      <MyStats />
 
       {session && !isGroupAdmin && (
         <Card>
