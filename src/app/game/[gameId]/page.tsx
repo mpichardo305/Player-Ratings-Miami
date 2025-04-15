@@ -264,14 +264,14 @@ export default function GamePage() {
                     <Button
                       variant="secondary"
                       onClick={() => router.push(`/game/${gameId}?mode=edit`)}
-                      disabled={editingWindowClosed}
+                      // disabled={editingWindowClosed}
                     >
                       Edit Game Details
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={() => router.push(`/manage-players/${gameId}`)}
-                      disabled={editingWindowClosed}
+                      // disabled={editingWindowClosed}
                     >
                       Manage Players
                     </Button>
