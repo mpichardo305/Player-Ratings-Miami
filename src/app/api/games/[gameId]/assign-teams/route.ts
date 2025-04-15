@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateTeams } from '../../../../lib/updateGameService';
 import { supabase } from '@/app/utils/supabaseClient';
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-export const revalidate = 0;
-
 export async function PUT(
   request: NextRequest,
   context: any
@@ -13,7 +9,7 @@ export async function PUT(
   console.log('PUT assign teams received');
   
   try {
-    const gameId = context.params.gameId;
+    const { gameId } = context.params;
     const requestBody = await request.json();
     console.log('Request body:', requestBody);
 
@@ -37,10 +33,11 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  context: any
 ) {
   try {
-    const gameId = params.gameId;
+    const { gameId } = context.params;
+    console.log('GET teams received for gameId:', gameId);
 
     if (!gameId) {
       return NextResponse.json({ error: 'Missing gameId' }, { status: 400 });
