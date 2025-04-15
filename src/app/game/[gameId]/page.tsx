@@ -251,7 +251,15 @@ export default function GamePage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-                {isGameEnded && (
+              {isGameEnded && isAdmin && (
+                  <Button 
+                    className="bg-green-500 text-white hover:bg-green-600"
+                    onClick={() => router.push(`/game/${gameId}/score?mode=edit`)}
+                  >
+                    Publish Score
+                  </Button>
+                )}
+                {isGameEnded && !isAdmin && (
                   <Button 
                     className="bg-green-500 text-white hover:bg-green-600"
                     onClick={() => router.push(`/rate-players/${gameId}`)}
