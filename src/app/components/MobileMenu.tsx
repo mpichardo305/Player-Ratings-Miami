@@ -67,8 +67,8 @@ export default function MobileMenu() {
           <div className="mt-8 flex flex-col space-y-2">
           <Button
               variant="ghost"
-              className={getButtonClass('/games')}
-              onClick={() => handleNavigation('/games')}
+              className={getButtonClass('/leaderboard')}
+              onClick={() => handleNavigation('/leaderboard')}
             >
               <Trophy className="h-[1.05rem] w-[1.05rem]" />
               <span>Leaderboard</span>

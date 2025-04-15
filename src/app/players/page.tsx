@@ -41,7 +41,7 @@ export default function Players() {
   return (
     <div className="min-h-screen bg- p-4 relative">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold pt-2 text-white">Players</h1>
+        <h1 className="text-3xl font-bold pt-2 pb-2 text-white">Players</h1>
         
         <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} hideEditIcon={true}/>
         

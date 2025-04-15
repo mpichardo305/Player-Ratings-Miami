@@ -149,14 +149,13 @@ const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = fals
   }));
 
   return (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-4 mt-4">
       {viewOnly && (
-        <Card className="bg-secondary border-secondary mx-auto">
-          <CardContent className="pt-6">
-            <h3 className="font-semibold text-lg">Player Ratings</h3>
-            <p className="text-sm text-primary pt-1 mb-1">🔒 This is view only</p> 
-          </CardContent>
-        </Card>
+         <Card className="bg-secondary border-secondary mx-auto">
+         <CardContent className="pt-4">
+         <p className="text-primary">🔒 This is view only</p>
+         </CardContent>
+       </Card>
       )}
       
       <ScrollArea className="h-[calc(100vh-300px)] rounded-md border border-secondary p-4">
