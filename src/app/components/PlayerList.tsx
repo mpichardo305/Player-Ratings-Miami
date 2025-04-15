@@ -6,6 +6,8 @@ import { isEqual } from 'lodash';
 import toast from 'react-hot-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "react-feather";
 
 // Dynamic import of PlayerItem with no SSR
 const PlayerItem = dynamic(() => import('./PlayerItem'), { 
@@ -27,13 +29,15 @@ type Player = {
   ratings: Rating[];
 };
 
-type ApprovedPlayersListProps = {
+interface PlayerListAndStats {
   sessionUserId: string;
   groupId: string;
-  viewOnly?: boolean;
-};
+  viewOnly: boolean;
+  onRefresh: () => Promise<void>;
+  isRefreshing: boolean;
+}
 
-const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = false }: ApprovedPlayersListProps, ref) => {
+const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = false, onRefresh, isRefreshing }: PlayerListAndStats, ref) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -151,11 +155,23 @@ const PlayerListAndStats = forwardRef(({ sessionUserId, groupId, viewOnly = fals
   return (
     <div className="space-y-4 mt-4">
       {viewOnly && (
-         <Card className="bg-secondary border-secondary mx-auto">
-         <CardContent className="pt-4">
-         <p className="text-primary">🔒 This is view only</p>
-         </CardContent>
-       </Card>
+        <Card className="bg-secondary border-secondary max-w-[400px] mx-auto">
+          <CardContent className="py-2 px-3">
+            <div className="flex justify-between items-center">
+              <span className="text-primary">🔒 This is view only</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="text-[#3B82F6] border-[#3B82F6] hover:bg-[#3B82F6] hover:text-white"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
       
       <ScrollArea className="h-[calc(100vh-300px)] rounded-md border border-secondary p-4">

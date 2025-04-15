@@ -44,28 +44,16 @@ export default function Players() {
         <h1 className="text-3xl font-bold pt-2 pb-2 text-white">Players</h1>
         
         <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} hideEditIcon={true}/>
-        
-        {/* Move refresh button here and add margin-top */}
-        <div className="flex justify-end">
-            <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="text-[#3B82F6] border-[#3B82F6] hover:bg-[#3B82F6] hover:text-white"
-            >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-        </div>
       </div>
 
       {selectedGroup ? (
-        <>
-        {session && isGroupAdmin && (
-          <><div className="mt-4 flex gap-6">
-            
-            </div><div className="mt-2">
+        <div className="space-y-4">
+          {session && isGroupAdmin && (
+            <>
+              <div className="flex gap-6">
+                {/* ... existing code ... */}
+              </div>
+              <div>
                 <Button
                   onClick={() => setShowApproveDialog(true)}
                   variant="default"
@@ -73,8 +61,9 @@ export default function Players() {
                 >
                   Show Pending Players
                 </Button>
-              </div></>
-        )}
+              </div>
+            </>
+          )}
 
           {showApproveDialog && selectedGroup && (
             <ApprovePlayersDialog 
@@ -89,8 +78,10 @@ export default function Players() {
             sessionUserId={session.user.id} 
             groupId={selectedGroup.id} 
             viewOnly={true} 
+            onRefresh={handleRefresh}
+            isRefreshing={refreshing}
           />
-        </>
+        </div>
       ) : (
         <p className="text-white">No groups found.</p>
       )}
