@@ -9,9 +9,9 @@ import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
 import InviteDialog from "@/app/components/InviteDialog";
 import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
 import { Button } from "@/components/ui/button";
-import GroupStats from "../components/PlayerListAndStats";
+import GroupStats from "../components/PlayerList";
 import { RefreshCw } from "lucide-react";
-import PlayerListAndStats from "../components/PlayerListAndStats";
+import PlayerListAndStats from "../components/PlayerList";
 
 export default function Players() {
   const router = useRouter();
