@@ -155,70 +155,106 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
     setActiveTab("teamA");
   };
 
-  const TeamListView = () => (
-    <div className="space-y-6">
-      <div>
-        <Label className="text-lg font-semibold">Team A</Label>
-        <div className="mt-2 space-y-2">
-          {players
-            .filter(player => teamAPlayers.includes(player.id))
-            .map(player => (
-              <div key={player.id} className="py-2 px-4 bg-secondary rounded-md">
-                {player.name}
-              </div>
-            ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="text-lg font-semibold">Team B</Label>
-        <div className="mt-2 space-y-2">
-          {players
-            .filter(player => teamBPlayers.includes(player.id))
-            .map(player => (
-              <div key={player.id} className="py-2 px-4 bg-secondary rounded-md">
-                {player.name}
-              </div>
-            ))}
-        </div>
-      </div>
-
-      <div className="flex space-x-4 mt-6">
-        {/* Only show Back and Submit when NOT in view mode */}
-        {!mode && (
-          <>
+  const TeamListView = () => {
+    if (teamAPlayers.length === 0 && teamBPlayers.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <p className="text-lg text-muted-foreground">Teams have not been assigned</p>
+          {mode && (
             <Button 
-              variant="outline" 
-              className="flex-1" 
-              onClick={() => setIsViewMode(false)}
+              className="mt-4"
+              onClick={() => router.push(`/game/${gameId}?mode=view`)}
+              variant="default"
             >
-              Back
+              View Game Details
             </Button>
-            {isGroupAdmin && (
+          )}
+        </div>
+      );
+    }
+
+    if (players.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <p className="text-lg text-muted-foreground">Teams have not been assigned</p>
+          {mode && (
+            <Button 
+              className="mt-4"
+              onClick={() => router.push(`/game/${gameId}?mode=view`)}
+              variant="default"
+            >
+              View Game Details
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <Label className="text-lg font-semibold">Team A</Label>
+          <div className="mt-2 space-y-2">
+            {players
+              .filter(player => teamAPlayers.includes(player.id))
+              .map(player => (
+                <div key={player.id} className="py-2 px-4 bg-secondary rounded-md">
+                  {player.name}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-lg font-semibold">Team B</Label>
+          <div className="mt-2 space-y-2">
+            {players
+              .filter(player => teamBPlayers.includes(player.id))
+              .map(player => (
+                <div key={player.id} className="py-2 px-4 bg-secondary rounded-md">
+                  {player.name}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        <div className="flex space-x-4 mt-6">
+          {/* Only show Back and Submit when NOT in view mode */}
+          {!mode && (
+            <>
               <Button 
+                variant="outline" 
                 className="flex-1" 
-                onClick={handleSubmit}
-                disabled={teamAPlayers.length > MAX_PLAYERS || teamBPlayers.length > MAX_PLAYERS}
+                onClick={() => setIsViewMode(false)}
               >
-                Submit
+                Back
               </Button>
-            )}
-          </>
-        )}
-        
-        {/* Show View Game Details button when in view mode */}
-        {mode && (
-          <Button 
-            className="flex-1"
-            onClick={() => router.push(`/game/${gameId}?mode=view`)}
-            variant="default"
-          >
-            View Game Details
-          </Button>
-        )}
+              {isGroupAdmin && (
+                <Button 
+                  className="flex-1" 
+                  onClick={handleSubmit}
+                  disabled={teamAPlayers.length > MAX_PLAYERS || teamBPlayers.length > MAX_PLAYERS}
+                >
+                  Submit
+                </Button>
+              )}
+            </>
+          )}
+          
+          {/* Show View Game Details button when in view mode */}
+          {mode && (
+            <Button 
+              className="flex-1"
+              onClick={() => router.push(`/game/${gameId}?mode=view`)}
+              variant="default"
+            >
+              View Game Details
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (mode) {
     if (loading) {
