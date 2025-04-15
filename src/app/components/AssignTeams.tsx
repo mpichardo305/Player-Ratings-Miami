@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, EyeIcon } from "lucide-react";
 import { fetchGamePlayers } from "@/app/utils/playerDb";
 import { Label } from "@/components/ui/label";
+import { useSession } from "../hooks/useSession";
+import { useGroupAdmin } from "../hooks/useGroupAdmin";
+import { Group } from "./GroupSelector";
 
 type Player = {
   id: string;
@@ -17,7 +20,12 @@ type Player = {
 
 const MAX_PLAYERS = 6; // or whatever your maximum number is
 
-export default function AssignTeams({ gameId }: { gameId: string }) {
+interface AssignTeamsProps {
+  gameId: string;
+  mode?: boolean;
+}
+
+export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) {
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
   const [activeTab, setActiveTab] = useState<"teamA" | "teamB">("teamA");
@@ -26,21 +34,55 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
   const [isTeamAComplete, setIsTeamAComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
+  const session = useSession();
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '');
   const router = useRouter();
 
   useEffect(() => {
-    const fetchPlayers = async () => {
+    const fetchTeams = async () => {
       try {
-        const gamePlayers = await fetchGamePlayers(gameId);
-        setPlayers(gamePlayers);
+        // First fetch player details if not present
+        if (players.length === 0) {
+          const gamePlayers = await fetchGamePlayers(gameId);
+          setPlayers(gamePlayers);
+        }
+
+        // Fetch team assignments
+        const response = await fetch(`/api/games/${gameId}/assign-teams`);
+        if (!response.ok) throw new Error('Failed to fetch teams');
+        
+        const data = await response.json();
+        console.log('Fetched team data:', data); // Debug log
+
+        if (!data.players || !Array.isArray(data.players)) {
+          console.error('Invalid data structure:', data);
+          return;
+        }
+
+        const teamA: string[] = [];
+        const teamB: string[] = [];
+        
+        data.players.forEach((player: { player_id: string; team: string }) => {
+          if (player.team === 'A') teamA.push(player.player_id);
+          if (player.team === 'B') teamB.push(player.player_id);
+        });
+
+        console.log('Team A:', teamA); // Debug log
+        console.log('Team B:', teamB); // Debug log
+
+        setTeamAPlayers(teamA);
+        setTeamBPlayers(teamB);
+        
       } catch (error) {
-        console.error("Error fetching players:", error);
+        console.error("Error fetching team assignments:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchPlayers();
-  }, [gameId]);
+
+    fetchTeams();
+  }, [gameId, players.length]);
 
   const handleTeamNext = () => {
     setIsTeamAComplete(true);
@@ -142,23 +184,65 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
       </div>
 
       <div className="flex space-x-4 mt-6">
-        <Button 
-          variant="outline" 
-          className="flex-1" 
-          onClick={() => setIsViewMode(false)}
-        >
-          Back
-        </Button>
-        <Button 
-          className="flex-1" 
-          onClick={handleSubmit}
-          disabled={teamAPlayers.length > MAX_PLAYERS || teamBPlayers.length > MAX_PLAYERS}
-        >
-          Submit
-        </Button>
+        {/* Only show Back and Submit when NOT in view mode */}
+        {!mode && (
+          <>
+            <Button 
+              variant="outline" 
+              className="flex-1" 
+              onClick={() => setIsViewMode(false)}
+            >
+              Back
+            </Button>
+            {isGroupAdmin && (
+              <Button 
+                className="flex-1" 
+                onClick={handleSubmit}
+                disabled={teamAPlayers.length > MAX_PLAYERS || teamBPlayers.length > MAX_PLAYERS}
+              >
+                Submit
+              </Button>
+            )}
+          </>
+        )}
+        
+        {/* Show View Game Details button when in view mode */}
+        {mode && (
+          <Button 
+            className="flex-1"
+            onClick={() => router.push(`/game/${gameId}?mode=view`)}
+            variant="default"
+          >
+            View Game Details
+          </Button>
+        )}
       </div>
     </div>
   );
+
+  if (mode) {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading teams...</span>
+        </div>
+      );
+    }
+
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-5xl">Team Assignments</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <TeamListView />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (
@@ -169,11 +253,15 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
     );
   }
 
+  function onBack() {
+    router.push(`/game/${gameId}?mode=view`);
+  }
+
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Assign Teams</CardTitle>
+        <CardTitle className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-5xl"> Assign Teams</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -219,7 +307,7 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
                             id={`teamA-${player.id}`}
                             checked={true}
                             onCheckedChange={() => handlePlayerSelection(player.id, "teamA")}
-                            disabled={isTeamAComplete && !isEditing}
+                            disabled={!isGroupAdmin || (isTeamAComplete && !isEditing)}
                           />
                           <label htmlFor={`teamA-${player.id}`}>{player.name}</label>
                         </div>
@@ -253,7 +341,8 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
                   </>
                 )}
 
-                {!isTeamAComplete && (
+                {!isTeamAComplete && isGroupAdmin && (  // Only show Next button to admins
+                  <>
                   <Button 
                     className="w-full mt-4" 
                     onClick={handleTeamNext}
@@ -261,6 +350,16 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
                   >
                     Next
                   </Button>
+                  <div className="flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    onClick={()=> onBack()}
+                    className="min-w-[100px]"
+                  >
+                    Back
+                  </Button>
+            </div>
+                  </>
                 )}
               </TabsContent>
 
@@ -285,7 +384,7 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
                             id={`teamB-${player.id}`}
                             checked={true}
                             onCheckedChange={() => handlePlayerSelection(player.id, "teamB")}
-                            disabled={!isEditing && isTeamAComplete}
+                            disabled={!isGroupAdmin || (!isEditing && isTeamAComplete)}
                           />
                         </div>
                       </div>
@@ -306,7 +405,7 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
                               id={`teamB-${player.id}`}
                               checked={false}
                               onCheckedChange={() => handlePlayerSelection(player.id, "teamB")}
-                              disabled={!isEditing && isTeamAComplete}
+                              disabled={!isGroupAdmin || (!isEditing && isTeamAComplete)}
                             />
                           </div>
                         </div>
@@ -316,7 +415,7 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
               </TabsContent>
             </Tabs>
 
-            {isTeamAComplete && (
+            {isTeamAComplete && isGroupAdmin && (
               <div className="flex space-x-4 mt-6">
                 <Button 
                   variant="outline" 

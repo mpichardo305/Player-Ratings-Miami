@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -19,6 +20,7 @@ interface PlayerSelectionProps {
 }
 
 const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', onSuccess }: PlayerSelectionProps) => {
+  const router = useRouter();
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -140,6 +142,10 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
     }
   };
 
+  const handleAssignTeams = () => {
+    router.push(`/game/${gameId}/teams`);
+  };
+
   const isValidTeamSize = selectedPlayers.size <= MAX_PLAYERS;
   const buttonText = mode === 'create' ? 'Create Game' : 'Update Players';
   const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
@@ -203,23 +209,38 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
             )}
           </div>
 
-          <div className="flex justify-between pt-4">
-            <Button
-              variant="secondary"
-              onClick={onBack}
-              disabled={submitting}
-              className="min-w-[100px]"
-            >
-              Back
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleSubmit}
-              disabled={!isValidTeamSize || submitting}
-              className="bg-primary text-primaryForeground min-w-[100px]"
-            >
-              {submitting ? submittingText : buttonText}
-            </Button>
+          <div className="flex flex-col space-y-4 pt-4">
+            
+
+            <div className="flex flex-col space-y-2">
+              {selectedPlayers.size === MAX_PLAYERS && mode === 'update' && (
+                <Button
+                  variant="default"
+                  onClick={handleAssignTeams}
+                  className="w-full"
+                >
+                  Assign Teams
+                </Button>
+              )}
+              <Button
+                variant="secondary"
+                onClick={handleSubmit}
+                disabled={!isValidTeamSize || submitting}
+                className="bg-primary text-primaryForeground w-full"
+              >
+                {submitting ? submittingText : buttonText}
+              </Button>
+            </div>
+            <div className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={submitting}
+                className="min-w-[100px]"
+              >
+                Back
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
