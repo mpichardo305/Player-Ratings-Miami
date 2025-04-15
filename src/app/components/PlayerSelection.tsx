@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { updateGamePlayers } from '../lib/updateGamePlayersService';
+import { updateGamePlayers } from '../lib/updateGameService';
 import { createGame, GameCreate } from '../lib/gameService';  
 import { formatDatePreserveDay, formatTimeOnly } from '../utils/dateUtils';
 import { Player, fetchGroupPlayers, fetchExistingPlayerIds } from '../utils/playerDb';

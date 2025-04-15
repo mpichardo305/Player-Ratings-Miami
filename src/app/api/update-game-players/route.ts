@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateGamePlayers } from '../../lib/updateGamePlayersService';
+import { updateGamePlayers } from '../../lib/updateGameService';
 
 export async function PUT(
   request: NextRequest,

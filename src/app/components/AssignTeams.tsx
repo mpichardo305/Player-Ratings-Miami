@@ -61,15 +61,18 @@ export default function AssignTeams({ gameId }: { gameId: string }) {
 
   const handleSubmit = async () => {
     try {
+      // Transform the teamA and teamB arrays into the expected format
+      const teamUpdates = [
+        ...teamAPlayers.map(playerId => ({ playerId, team: 'A' })),
+        ...teamBPlayers.map(playerId => ({ playerId, team: 'B' }))
+      ];
+
       const response = await fetch(`/api/games/${gameId}/assign-teams`, {
-        method: "POST",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          teamA: teamAPlayers,
-          teamB: teamBPlayers,
-        }),
+        body: JSON.stringify(teamUpdates)
       });
 
       if (!response.ok) {

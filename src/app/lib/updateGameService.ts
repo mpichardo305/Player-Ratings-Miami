@@ -74,3 +74,50 @@ export const updateGamePlayers = async (gameId: string, players: GamePlayers): P
     throw error;
   }
 };
+
+interface TeamUpdate {
+  playerId: string;
+  team: 'A' | 'B';
+}
+
+export const updateTeams = async (gameId: string, teamUpdates: TeamUpdate[]): Promise<void> => {
+  try {
+    if (!gameId || !teamUpdates.length) {
+      throw new Error('Missing gameId or team updates');
+    }
+
+    // Fetch existing game_players for the specified game
+    const { data: existingPlayers, error: fetchError } = await supabase
+      .from('game_players')
+      .select('*')
+      .eq('game_id', gameId)
+      .in(
+        'player_id',
+        teamUpdates.map(update => update.playerId)
+      );
+
+    if (fetchError) {
+      console.error('Error fetching game players:', fetchError);
+      throw new Error(fetchError.message);
+    }
+
+    // Update each player's team
+    for (const update of teamUpdates) {
+      const { error: updateError } = await supabase
+        .from('game_players')
+        .update({ team: update.team })
+        .eq('game_id', gameId)
+        .eq('player_id', update.playerId);
+
+      if (updateError) {
+        console.error(`Error updating team for player ${update.playerId}:`, updateError);
+        throw new Error(updateError.message);
+      }
+    }
+
+    console.log('Successfully updated teams for game:', gameId);
+  } catch (error) {
+    console.error('Error in updateTeam:', error);
+    throw error;
+  }
+};
