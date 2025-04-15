@@ -37,10 +37,10 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { gameId: string } }
+  { params }: { params: { gameId: string } }
 ) {
   try {
-    const gameId = context.params.gameId;
+    const gameId = params.gameId;
 
     if (!gameId) {
       return NextResponse.json({ error: 'Missing gameId' }, { status: 400 });
