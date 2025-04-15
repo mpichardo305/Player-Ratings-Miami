@@ -1,65 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { updateTeams } from '../../../../lib/updateGameService';
-import { supabase } from '@/app/utils/supabaseClient';
+import { NextRequest, NextResponse } from 'next/server'
+import { updateTeams } from '@/app/lib/updateGameService'
+import { supabase } from '@/app/utils/supabaseClient'
 
-export async function PUT(
-  request: NextRequest,
-  context: any
-) {
-  console.log('PUT assign teams received');
-  
+export async function PUT(request: Request) {
   try {
-    const { gameId } = context.params;
-    const requestBody = await request.json();
-    console.log('Request body:', requestBody);
-
+    const gameId = request.url.split('/games/')[1].split('/')[0]
+    const teams = await request.json()
+    
     if (!gameId) {
-      console.error('Missing gameId in params');
-      return NextResponse.json({ error: 'Missing gameId' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing gameId' }, { status: 400 })
     }
 
-    await updateTeams(gameId, requestBody);
-    
-    return NextResponse.json({ success: true });
-
+    await updateTeams(gameId, teams)
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Unexpected error in assign-teams route:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error('Error in PUT handler:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  context: any
-) {
+export async function GET(request: Request) {
   try {
-    const { gameId } = context.params;
-    console.log('GET teams received for gameId:', gameId);
-
+    // Get gameId from URL path segments
+    const gameId = request.url.split('/games/')[1].split('/')[0]
+    
     if (!gameId) {
-      return NextResponse.json({ error: 'Missing gameId' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing gameId' }, { status: 400 })
     }
 
     const { data, error } = await supabase
       .from('game_players')
       .select('player_id, player_name, team')
-      .eq('game_id', gameId);
+      .eq('game_id', gameId)
 
     if (error) {
-      console.error('Error fetching team assignments:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ players: data });
-
+    return NextResponse.json({ players: data })
   } catch (error) {
-    console.error('Unexpected error in get-teams route:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error('Error in GET handler:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
