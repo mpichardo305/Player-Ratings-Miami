@@ -568,55 +568,96 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
 
 export async function getLongestWinStreak(): Promise<PlayerStats | null> {
   try {
-    // Get all players first
-    const { data: players, error: playersError } = await supabase
-      .from('players')
-      .select('id, name');
+    // Fetch all game outcomes, ordered by player and game time (most recent first)
+    // Join with players table to get names and filter out null names early
+    const { data: gameOutcomes, error: gamesError } = await supabase
+      .from('game_players')
+      .select(`
+        player_id,
+        game_outcome,
+        created_at,
+        players!inner (
+          name
+        )
+      `)
+      .not('players.name', 'is', null) // Ensure player name is not null
+      .order('player_id')
+      .order('created_at', { ascending: false });
 
-    if (playersError || !players) {
-      console.error('Error fetching players:', playersError);
+    if (gamesError || !gameOutcomes || gameOutcomes.length === 0) {
+      console.error('Error fetching game outcomes for win streak:', gamesError);
       return null;
     }
 
     let maxStreak = { player_id: '', name: '', value: 0 };
+    let currentStreak = 0;
+    let currentPlayerId: string | null = null;
+    let currentPlayerName: string | null = null;
 
-    // Check win streak for each player
-    for (const player of players) {
-      const { data: recentGames, error: gamesError } = await supabase
-        .from('game_players')
-        .select('game_outcome')
-        .eq('player_id', player.id)
-        .order('created_at', { ascending: false });
+    console.log(`Processing ${gameOutcomes.length} game outcomes for win streaks...`);
 
-      if (gamesError) {
-        console.error(`Error fetching games for player ${player.name}:`, gamesError);
+    for (const game of gameOutcomes) {
+      // Type assertion to help TypeScript understand the joined data
+      const playerInfo = (game.players as { name: string }[])[0];
+
+      // Skip if player name is somehow still null (should be filtered by query)
+      if (!playerInfo?.name) {
         continue;
       }
 
-      // Calculate win streak
-      let currentStreak = 0;
-      for (const game of recentGames || []) {
-        if (game.game_outcome === 'win') {
-          currentStreak++;
-        } else {
-          break;
+      // If we are starting or switching to a new player
+      if (game.player_id !== currentPlayerId) {
+        // First, check if the previous player's streak was the max
+        if (currentPlayerId && currentStreak > maxStreak.value) {
+           maxStreak = {
+             player_id: currentPlayerId,
+             name: currentPlayerName!, // We know name is not null here
+             value: currentStreak
+           };
+           console.log(`Potential new max streak: ${currentPlayerName} with ${currentStreak} wins.`);
         }
+        // Reset for the new player
+        currentPlayerId = game.player_id;
+        currentPlayerName = playerInfo.name;
+        currentStreak = 0; // Reset streak count for the new player
       }
 
-      // Update max streak if current player has a higher streak
-      if (currentStreak > maxStreak.value) {
-        maxStreak = {
-          player_id: player.id,
-          name: player.name,
-          value: currentStreak
-        };
+      // Check the game outcome for the current player
+      if (game.game_outcome === 'win') {
+        currentStreak++;
+      } else {
+        // Streak broken for the current player, check if it was the max
+         if (currentPlayerId && currentStreak > maxStreak.value) {
+           maxStreak = {
+             player_id: currentPlayerId,
+             name: currentPlayerName!,
+             value: currentStreak
+           };
+           console.log(`Potential new max streak after loss: ${currentPlayerName} with ${currentStreak} wins.`);
+         }
+        // Since the games are ordered chronologically descending for each player,
+        // once a non-win is encountered, we can skip the rest of their games
+        // by setting currentStreak to -1 (or some indicator) and advancing
+        // until the player_id changes. However, a simpler approach for now
+        // is just to reset the streak and continue processing, letting the
+        // player change logic handle the final max check.
+        currentStreak = 0; // Reset streak as it's broken
       }
-
-      console.log(`${player.name}'s win streak: ${currentStreak}`);
     }
 
-    console.log('Longest win streak:', maxStreak);
+    // Final check for the last player processed
+    if (currentPlayerId && currentStreak > maxStreak.value) {
+      maxStreak = {
+        player_id: currentPlayerId,
+        name: currentPlayerName!,
+        value: currentStreak
+      };
+       console.log(`Final check max streak: ${currentPlayerName} with ${currentStreak} wins.`);
+    }
+
+    console.log('Longest win streak found:', maxStreak);
     return maxStreak.value > 0 ? maxStreak : null;
+
   } catch (error) {
     console.error('Error calculating longest win streak:', error);
     return null;
