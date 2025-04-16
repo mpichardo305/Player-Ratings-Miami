@@ -12,6 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScoreCheckModal } from '@/app/components/ScoreCheckModal';
 import { useGroupAdmin } from '@/app/hooks/useGroupAdmin';
 import { useSession } from "@/app/hooks/useSession";
+import { useGroupName } from "@/app/hooks/useGroupName";
+import { GameDetailsCard } from "@/app/components/GameDetailsCard";
+
 
 type Game = {
   id: string;
@@ -34,6 +37,7 @@ function RatePlayersContent() {
   const session = useSession();
   const [groupId, setGroupId] = useState<string>('');
   const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', groupId);
+  const { groupName, loading: groupNameLoading } = useGroupName(groupId);
 
   // Add effect to show score check modal when admin is determined
   useEffect(() => {
@@ -126,7 +130,7 @@ function RatePlayersContent() {
   if (error) {
     return (
       <div className="container mx-auto p-6">
-        <Card className="bg-destructive text-destructive-foreground">
+        <Card className="bg-muted border-muted-foreground/50">
           <CardContent className="pt-6">
             <p>{error}</p>
             <Button
@@ -158,27 +162,12 @@ function RatePlayersContent() {
       </div>
       
       {game && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{game.field_name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Date</p>
-                <p className="text-sm font-medium">
-                  {formatDatePreserveDay(game.date)}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Time</p>
-                <p className="text-sm font-medium">
-                  {formatTimeOnly(game.start_time)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <GameDetailsCard
+          fieldName={game.field_name ?? ''}
+          date={game.date.toString()}
+          startTime={game.start_time}
+          groupName={groupName}
+        />
       )}
       
       {userId && playerId && (

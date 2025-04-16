@@ -263,23 +263,21 @@ export default function UnratedPlayersList({ playerId, gameId }: UnratedPlayersL
 
   return (
     <div className="space-y-4">
-      {/* Add alert for users who already rated players in this game */}
-      {hasRatedGame && (
-        <div className="mb-4 p-3 rounded bg-blue-600 text-white">
+      {/* Show rating window closed message or already rated message, but not both */}
+      {isRatingWindowClosed ? (
+        <div className="mb-4 p-3 rounded bg-amber-500/90 text-amber-950">
+          The rating window for this game has closed. Ratings must be submitted within 72 hours after the game starts.
+        </div>
+      ) : hasRatedGame && (
+        <div className="mb-4 p-3 rounded bg-sky-500/80 text-sky-950">
           You already submitted a rating for this game.
         </div>
       )}
 
-      {/* Show warning if game hasn't ended yet */}
+      {/* Show game not ended warning */}
       {!isGameEnded && !gameLoading && (
         <div className="mb-4 p-3 rounded bg-red-600 text-white">
           This game hasn't ended yet. Ratings can only be submitted after the game has finished.
-        </div>
-      )}
-
-      {isRatingWindowClosed && (
-        <div className="mb-4 p-3 rounded bg-red-600 text-white">
-          The rating window for this game has closed. Ratings must be submitted within 72 hours after the game starts.
         </div>
       )}
       

@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { GameDetailsCard } from './GameDetailsCard';
+import { useGroupName } from '@/app/hooks/useGroupName';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -27,6 +29,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
+  const { groupName, loading: groupNameLoading } = useGroupName(GROUP_ID);
   const MAX_PLAYERS = 12;
 
   // Generate Game ID
@@ -151,6 +154,15 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const buttonText = mode === 'create' ? 'Create Game' : 'Update Players';
   const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
 
+  if (loading || groupNameLoading) {
+    return (
+      <div className="flex items-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="text-sm ml-2">Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <Card className="bg-card">
       <CardHeader className="pb-2 pt-4"> {/* Reduced top and bottom padding */}
@@ -159,26 +171,13 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4"> {/* Reduced spacing between elements */}
-        <div className="space-y-4"> {/* Reduced spacing */}
-          <Card className="bg-secondary border-secondary">
-            <CardContent className="py-2"> {/* Reduced padding */}
-              <div className="flex justify-between items-center gap-4 text-foreground text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Field:</span>
-                  <span>{gameDetails.field_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Date:</span>
-                  <span>{formatDatePreserveDay(gameDetails.date.toString())}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Time:</span>
-                  <span>{formatTimeOnly(gameDetails.start_time)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="space-y-4">
+          <GameDetailsCard
+            fieldName={gameDetails.field_name}
+            date={gameDetails.date.toString()}
+            startTime={gameDetails.start_time}
+            groupName={groupName}
+          />
           <div className="text-foreground space-y-6">
             <div>
               <Label className="text-lg">Select players (max {MAX_PLAYERS})</Label>
