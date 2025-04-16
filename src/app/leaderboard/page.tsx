@@ -35,7 +35,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedGroup ? (
-        <LeaderboardStats />
+        <LeaderboardStats groupId={selectedGroup.id} key={selectedGroup.id} />
       ) : (
         <p className="text-white">No groups found.</p>
       )}
