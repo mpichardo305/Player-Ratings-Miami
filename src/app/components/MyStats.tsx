@@ -6,6 +6,7 @@ import { getUserPlayerId } from "../utils/playerDb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { getPlayerStats } from "../utils/playerStats";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PlayerGameStats {
   winRatios: number;
@@ -87,35 +88,37 @@ export default function MyStats() {
       value: stats?.currentStreak ?? 0,
       description: "Consecutive games played"
     },
-    {
-      title: "Games Played",
-      value: stats?.gamesPlayed ?? 0,
-      description: "Total games participated"
-    },
+    // {
+    //   title: "Games Played",
+    //   value: stats?.gamesPlayed ?? 0,
+    //   description: "Total games participated"
+    // },
   ];
 
   return (
     <div className="space-y-4">
       <Card className="bg-card">
         <CardHeader>
-          <CardTitle className="text-2xl">My Statistics</CardTitle>
+          <CardTitle className="text-1xl">My Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {statCards.map((stat, index) => (
-              <Card key={index} className="bg-secondary border-secondary">
-                <CardContent className="p-6">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stat.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <ScrollArea className="h-[400px] rounded-md">
+            <div className="grid grid-cols-2 gap-4">
+              {statCards.map((stat, index) => (
+                <Card key={index} className="bg-secondary border-secondary">
+                  <CardContent className="p-6">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stat.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>

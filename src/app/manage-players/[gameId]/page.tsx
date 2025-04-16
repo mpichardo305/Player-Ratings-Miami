@@ -1,11 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import GameEditor from '@/app/components/GameEditor';
 import { useState, useEffect } from 'react';
 import { useSession } from "@/app/hooks/useSession";
 import { useGroupAdmin } from '@/app/hooks/useGroupAdmin';
-import { useRouter } from 'next/router';
 
 export default function ManagePlayersPage() {
   const params = useParams();

@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMostGamesPlayed, getStreakLeader, getMostImproved, getBestPlayer } from "@/app/utils/playerStats";
+import { Trophy, MoveRight, Flame, TrendingUp } from "lucide-react";
 
 type MetricCard = {
   title: string;
   value: string;
   description: string;
+  icon: React.JSX.Element;
 };
 
 const LeaderboardStats = () => {
@@ -22,7 +24,8 @@ const LeaderboardStats = () => {
         return best ? {
           title: "Best Player",
           value: best.name,
-          description: `Rating: ${best.value}`
+          description: `Rating: ${best.value}`,
+          icon: <Trophy className="w-5 h-5 text-yellow-500" />
         } : null;
       };
 
@@ -31,7 +34,8 @@ const LeaderboardStats = () => {
         return mostGames ? {
           title: "Most Games Played",
           value: mostGames.name,
-          description: `${mostGames.value} games`
+          description: `${mostGames.value} games`,
+          icon: <MoveRight className="w-5 h-5 text-blue-500" />
         } : null;
       };
 
@@ -40,7 +44,8 @@ const LeaderboardStats = () => {
         return streakLeader ? {
           title: "Current Streak Leader",
           value: streakLeader.name,
-          description: `${streakLeader.value} consecutive games`
+          description: `${streakLeader.value} consecutive games`,
+          icon: <Flame className="w-5 h-5 text-orange-500" />
         } : null;
       };
 
@@ -49,7 +54,8 @@ const LeaderboardStats = () => {
         return mostImproved ? {
           title: "Most Improved",
           value: mostImproved.name,
-          description: `+${mostImproved.value.toFixed(1)} rating gain`
+          description: `+${mostImproved.value.toFixed(1)} rating gain`,
+          icon: <TrendingUp className="w-5 h-5 text-green-500" />
         } : null;
       };
 
@@ -74,6 +80,19 @@ const LeaderboardStats = () => {
     calculateMetrics().then(setMetrics);
   }, []);
 
+  const renderMetricCard = (metric: MetricCard, index: number) => (
+    <Card key={index} className="bg-secondary border-secondary">
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 mb-2">
+          {metric.icon}
+          <h3 className="font-semibold text-lg">{metric.title}</h3>
+        </div>
+        <p className="text-2xl font-bold text-primary mb-1">{metric.value}</p>
+        <p className="text-sm text-muted-foreground">{metric.description}</p>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-4 mt-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -90,15 +109,7 @@ const LeaderboardStats = () => {
             </Card>
           ))
         ) : (
-          metrics.map((metric, index) => (
-            <Card key={index} className="bg-secondary border-secondary">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold text-lg mb-2">{metric.title}</h3>
-                <p className="text-2xl font-bold text-primary mb-1">{metric.value}</p>
-                <p className="text-sm text-muted-foreground">{metric.description}</p>
-              </CardContent>
-            </Card>
-          ))
+          metrics.map((metric, index) => renderMetricCard(metric, index))
         )}
       </div>
     </div>

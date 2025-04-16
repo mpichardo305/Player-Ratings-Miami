@@ -9,6 +9,9 @@ import { hasGameEnded } from '@/app/utils/gameUtils';
 import { formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScoreCheckModal } from '@/app/components/ScoreCheckModal';
+import { useGroupAdmin } from '@/app/hooks/useGroupAdmin';
+import { useSession } from "@/app/hooks/useSession";
 
 type Game = {
   id: string;
@@ -27,6 +30,17 @@ function RatePlayersContent() {
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showScoreCheck, setShowScoreCheck] = useState(false);
+  const session = useSession();
+  const [groupId, setGroupId] = useState<string>('');
+  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', groupId);
+
+  // Add effect to show score check modal when admin is determined
+  useEffect(() => {
+    if (isGroupAdmin) {
+      setShowScoreCheck(true);
+    }
+  }, [isGroupAdmin]);
 
   // Get the current user ID and corresponding player ID from Supabase
   useEffect(() => {
@@ -76,6 +90,7 @@ function RatePlayersContent() {
         
         // Set the game data from the API response
         setGame(data);
+        setGroupId(data.group_id);
         
         // Check if game has ended
         if (!hasGameEnded(data.date, data.start_time)) {
@@ -93,6 +108,10 @@ function RatePlayersContent() {
       fetchGame();
     }
   }, [gameId]);
+
+  const handleNoScore = () => {
+    router.push(`/game/${gameId}/score?mode=edit`);
+  };
 
   if (loading) {
     return (
@@ -125,6 +144,12 @@ function RatePlayersContent() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <ScoreCheckModal 
+        isOpen={showScoreCheck}
+        onClose={() => setShowScoreCheck(false)}
+        onNo={handleNoScore}
+        gameId={gameId} // Pass the current game ID
+      />
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Rate Players</h1>
         <p className="text-muted-foreground">

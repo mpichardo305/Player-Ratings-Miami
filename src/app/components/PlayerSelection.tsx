@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -152,19 +153,28 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
 
   return (
     <Card className="bg-card">
-      <CardHeader>
+      <CardHeader className="pb-2 pt-4"> {/* Reduced top and bottom padding */}
         <CardTitle className="text-foreground text-[1.3rem]">
           {mode === 'create' ? 'Game Details' : 'Update Game Players'}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-6">
+      <CardContent className="space-y-4"> {/* Reduced spacing between elements */}
+        <div className="space-y-4"> {/* Reduced spacing */}
           <Card className="bg-secondary border-secondary">
-            <CardContent className="pt-6">
-              <div className="text-foreground space-y-2">
-                <p>Field: {gameDetails.field_name}</p>
-                <p>Date: {formatDatePreserveDay(gameDetails.date.toString())}</p>
-                <p>Start Time: {formatTimeOnly(gameDetails.start_time)}</p>
+            <CardContent className="py-2"> {/* Reduced padding */}
+              <div className="flex justify-between items-center gap-4 text-foreground text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Field:</span>
+                  <span>{gameDetails.field_name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Date:</span>
+                  <span>{formatDatePreserveDay(gameDetails.date.toString())}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Time:</span>
+                  <span>{formatTimeOnly(gameDetails.start_time)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -182,29 +192,71 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
               Loading players...
             </span></>
             ) : (
-              <div className="space-y-4">
-                {players.map(player => (
-                    <div
-                    key={player.id}
-                    className="bg-secondary border-secondary rounded-lg p-3 hover:bg-secondary/80 transition-colors"
-                    >
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                      id={player.id}
-                      checked={selectedPlayers.has(player.id)}
-                      onCheckedChange={() => handlePlayerToggle(player.id)}
-                      disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
-                      className="bg-secondary border-primary"
-                      />
-                      <Label
-                      htmlFor={player.id}
-                      className="text-foreground cursor-pointer"
-                      >
-                      {player.name}
-                      </Label>
+              <div className="space-y-6">
+                {/* Selected Players Section */}
+                <div className="mb-6">
+                  <Label className="text-sm text-muted-foreground mb-2 block">Selected Players</Label>
+                  <ScrollArea className="h-[200px] rounded-md border border-secondary p-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {players
+                        .filter(player => selectedPlayers.has(player.id))
+                        .map(player => (
+                          <div
+                            key={player.id}
+                            className="bg-secondary border-secondary rounded-lg p-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`selected-${player.id}`}
+                                checked={true}
+                                onCheckedChange={() => handlePlayerToggle(player.id)}
+                                className="bg-secondary border-primary"
+                              />
+                              <Label
+                                htmlFor={`selected-${player.id}`}
+                                className="text-foreground cursor-pointer text-sm truncate"
+                              >
+                                {player.name}
+                              </Label>
+                            </div>
+                          </div>
+                        ))}
                     </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Available Players Section */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Available Players</Label>
+                  <ScrollArea className="h-[300px] rounded-md border border-secondary p-4">
+                    <div className="space-y-4">
+                      {players
+                        .filter(player => !selectedPlayers.has(player.id))
+                        .map(player => (
+                          <div
+                            key={player.id}
+                            className="bg-secondary border-secondary rounded-lg p-3 hover:bg-secondary/80 transition-colors"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Checkbox
+                                id={player.id}
+                                checked={false}
+                                onCheckedChange={() => handlePlayerToggle(player.id)}
+                                disabled={selectedPlayers.size >= MAX_PLAYERS}
+                                className="bg-secondary border-primary"
+                              />
+                              <Label
+                                htmlFor={player.id}
+                                className="text-foreground cursor-pointer"
+                              >
+                                {player.name}
+                              </Label>
+                            </div>
+                          </div>
+                        ))}
                     </div>
-                ))}
+                  </ScrollArea>
+                </div>
               </div>
             )}
           </div>
@@ -213,7 +265,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
             
 
             <div className="flex flex-col space-y-2">
-              {selectedPlayers.size === MAX_PLAYERS && mode === 'update' && (
+              {selectedPlayers.size >= 2 && mode === 'update' && (
                 <Button
                   variant="default"
                   onClick={handleAssignTeams}

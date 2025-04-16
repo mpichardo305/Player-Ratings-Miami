@@ -256,7 +256,7 @@ export default function GamePage() {
                     className="bg-green-500 text-white hover:bg-green-600"
                     onClick={() => router.push(`/game/${gameId}/score?mode=edit`)}
                   >
-                    Publish Score
+                    Submit Score
                   </Button>
                 )}
                 {isGameEnded && !isAdmin && (

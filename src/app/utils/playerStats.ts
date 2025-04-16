@@ -71,6 +71,9 @@ export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
     return null;
   }
 
+  console.log('\n--- Player Win Ratio Calculations ---');
+  console.log('Total game records fetched:', data.length);
+
   const playerStats = data.reduce((acc, player) => {
     const { player_id, game_outcome, players } = player;
 
@@ -90,8 +93,18 @@ export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
     return acc;
   }, {} as Record<string, { totalGames: number; wins: number; name: string }>);
 
+  console.log('\nRaw player statistics:');
+  Object.entries(playerStats).forEach(([playerId, stats]) => {
+    console.log(`Player: ${stats.name}`);
+    console.log(`  Total Games: ${stats.totalGames}`);
+    console.log(`  Wins: ${stats.wins}`);
+  });
+
   const playerWinRatios = Object.entries(playerStats).map(([playerId, stats]) => {
     const winRatio = stats.totalGames > 0 ? (stats.wins / stats.totalGames) * 100 : 0;
+    console.log(`\nCalculating win ratio for ${stats.name}:`);
+    console.log(`  ${stats.wins} wins / ${stats.totalGames} total games = ${winRatio.toFixed(2)}%`);
+    
     return {
       player_id: playerId,
       name: stats.name,
@@ -99,8 +112,14 @@ export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
     };
   });
 
+  console.log('\nFinal win ratios:');
+  playerWinRatios.forEach(player => {
+    console.log(`${player.name}: ${player.win_ratio}%`);
+  });
+
   return playerWinRatios;
 }
+
 export async function getGameData() {
   const { data: games, error: gamesError } = await supabase
     .from('games')
