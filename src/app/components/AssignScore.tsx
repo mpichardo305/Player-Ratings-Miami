@@ -175,7 +175,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
   const TeamsList = () => (
     <div className="grid grid-cols-2 gap-4 mt-6 mb-4">
       <div>
-        <h3 className="font-semibold mb-2 text-center">Team A Players</h3>
+        <h3 className="font-semibold mb-2 text-center">Home Players</h3>
         <div className="space-y-1">
           {teamPlayers
             .filter(p => p.team === 'A')
@@ -187,7 +187,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
         </div>
       </div>
       <div>
-        <h3 className="font-semibold mb-2 text-center">Team B Players</h3>
+        <h3 className="font-semibold mb-2 text-center">Away Players</h3>
         <div className="space-y-1">
           {teamPlayers
             .filter(p => p.team === 'B')
@@ -212,7 +212,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
         <div className="flex flex-col space-y-8">
           <div className="grid grid-cols-3 gap-4 items-center justify-center">
             <div className="flex flex-col items-center">
-              <span className="text-2xl mb-4 font-bold">Team A</span>
+              <span className="text-2xl mb-4 font-bold">Home</span>
               <Button
                 variant={activeInput === 'A' ? "default" : "outline"}
                 onClick={() => setActiveInput('A')}
@@ -228,7 +228,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
             </div>
 
             <div className="flex flex-col items-center">
-              <span className="text-2xl mb-4 font-bold">Team B</span>
+              <span className="text-2xl mb-4 font-bold">Away</span>
               <Button
                 variant={activeInput === 'B' ? "default" : "outline"}
                 onClick={() => setActiveInput('B')}
