@@ -9,6 +9,12 @@ import { useGroupAdmin } from "../hooks/useGroupAdmin"
 import { useSession } from "../hooks/useSession"
 import { Loader2 } from "lucide-react"
 
+type TeamPlayer = {
+  id: string;
+  name: string;
+  team: 'A' | 'B';
+}
+
 interface AssignScoreProps {
   gameId: string
   mode?: boolean
@@ -23,6 +29,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
   const session = useSession()
   const [selectedGroup, setSelectedGroup] = useState<{ id: string } | null>(null)
   const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '')
+  const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([])
 
   useEffect(() => {
     const fetchScore = async () => {
@@ -43,6 +50,34 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
     }
 
     fetchScore()
+  }, [gameId])
+
+  useEffect(() => {
+    const fetchTeamPlayers = async () => {
+      try {
+        const response = await fetch(`/api/games/${gameId}/assign-teams`)
+        if (!response.ok) throw new Error('Failed to fetch teams')
+        
+        const data = await response.json()
+        
+        // Transform the data directly without additional API calls
+        const playerDetails = data.players.map((p: { 
+          player_id: string; 
+          player_name: string;
+          team: 'A' | 'B' 
+        }) => ({
+          id: p.player_id,
+          name: p.player_name,
+          team: p.team
+        }))
+        
+        setTeamPlayers(playerDetails)
+      } catch (error) {
+        console.error("Error fetching team players:", error)
+      }
+    }
+
+    fetchTeamPlayers()
   }, [gameId])
 
   if (loading) {
@@ -137,6 +172,35 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
     </div>
   )
 
+  const TeamsList = () => (
+    <div className="grid grid-cols-2 gap-4 mt-6 mb-4">
+      <div>
+        <h3 className="font-semibold mb-2 text-center">Team A Players</h3>
+        <div className="space-y-1">
+          {teamPlayers
+            .filter(p => p.team === 'A')
+            .map(player => (
+              <div key={player.id} className="text-sm text-muted-foreground text-center">
+                {player.name}
+              </div>
+            ))}
+        </div>
+      </div>
+      <div>
+        <h3 className="font-semibold mb-2 text-center">Team B Players</h3>
+        <div className="space-y-1">
+          {teamPlayers
+            .filter(p => p.team === 'B')
+            .map(player => (
+              <div key={player.id} className="text-sm text-muted-foreground text-center">
+                {player.name}
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
@@ -177,6 +241,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
           </div>
 
           {activeInput && <NumberPad />}
+          {!activeInput && <TeamsList />}
 
           <div className="flex flex-col space-y-4">
             {!mode && isGroupAdmin && (
