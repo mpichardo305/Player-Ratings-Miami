@@ -1,8 +1,7 @@
 'use client';
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { getMostGamesPlayed, getStreakLeader, getMostImproved, getBestPlayer } from "@/app/utils/playerStats";
-import { Trophy, MoveRight, Flame, TrendingUp } from "lucide-react";
+import { Trophy, MoveRight, Flame, TrendingUp, Repeat } from "lucide-react";
 
 type MetricCard = {
   title: string;
@@ -20,7 +19,8 @@ const LeaderboardStats = () => {
       setMetricsLoading(true);
       
       const getBestPlayerMetric = async () => {
-        const best = await getBestPlayer();
+        const response = await fetch('/api/stats/best-player');
+        const best = await response.json();
         return best ? {
           title: "Best Player",
           value: best.name,
@@ -30,7 +30,8 @@ const LeaderboardStats = () => {
       };
 
       const getMostGamesPlayedPlayer = async () => {
-        const mostGames = await getMostGamesPlayed();
+        const response = await fetch('/api/stats/most-games');
+        const mostGames = await response.json();
         return mostGames ? {
           title: "Most Games Played",
           value: mostGames.name,
@@ -40,17 +41,19 @@ const LeaderboardStats = () => {
       };
 
       const getStreakLeaderPlayer = async () => {
-        const streakLeader = await getStreakLeader();
+        const response = await fetch('/api/stats/streak-leader');
+        const streakLeader = await response.json();
         return streakLeader ? {
-          title: "Current Streak Leader",
+          title: "Consecutive Games Streak Leader",
           value: streakLeader.name,
           description: `${streakLeader.value} consecutive games`,
-          icon: <Flame className="w-5 h-5 text-orange-500" />
+          icon: <Repeat className="w-5 h-5 text-orange-500" />
         } : null;
       };
 
       const getMostImprovedPlayer = async () => {
-        const mostImproved = await getMostImproved();
+        const response = await fetch('/api/stats/most-improved');
+        const mostImproved = await response.json();
         return mostImproved ? {
           title: "Most Improved",
           value: mostImproved.name,
@@ -59,15 +62,34 @@ const LeaderboardStats = () => {
         } : null;
       };
 
-      const [bestPlayer, gamesPlayer, streakLeader, mostImproved] = await Promise.all([
+      const getLongestWinStreakPlayer = async () => {
+        try {
+          const response = await fetch('/api/stats/longest-win-streak');
+          const winStreakLeader = await response.json();
+          
+          return winStreakLeader ? {
+            title: "Longest Win Streak",
+            value: winStreakLeader.name,
+            description: `${winStreakLeader.value} consecutive wins`,
+            icon: <Flame className="w-5 h-5 text-orange-500" />
+          } : null;
+        } catch (error) {
+          console.error('Error fetching longest win streak:', error);
+          return null;
+        }
+      };
+
+      const [bestPlayer, longestWinStreak, gamesPlayer, mostImproved, streakLeader] = await Promise.all([
         getBestPlayerMetric(),
+        getLongestWinStreakPlayer(),
         getMostGamesPlayedPlayer(),
-        getStreakLeaderPlayer(),
-        getMostImprovedPlayer()
+        getMostImprovedPlayer(),
+        getStreakLeaderPlayer()
       ]);
 
-      return [bestPlayer, gamesPlayer, streakLeader, mostImproved]
+      return [bestPlayer, longestWinStreak, gamesPlayer, mostImproved, streakLeader]
         .filter((metric): metric is MetricCard => metric !== null);
+
     } catch (error) {
       console.error('Error calculating metrics:', error);
       return [];

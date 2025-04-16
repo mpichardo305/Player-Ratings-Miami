@@ -6,6 +6,7 @@ import ToastProvider from './components/ToastProvider';
 import { Toaster } from "@/components/ui/toaster";
 import { Metadata } from "next";
 import Head from "next/head";
+import { Preloader } from './components/Preloader';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="twitter:image" content={`${baseUrl}/social-preview.jpg`} />
       </Head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-app-background`}>
+        <Preloader />
         <GroupProvider>
           <div className="relative min-h-screen">
             <MobileMenu />

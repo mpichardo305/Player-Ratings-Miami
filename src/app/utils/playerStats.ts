@@ -433,8 +433,10 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
   try {
     // Get win ratio data for the player
     const winRatios = await getPlayerWinRatios();
-    const playerWinRatio = winRatios?.find(p => p.player_id === playerId)?.win_ratio || 0;
+    const winRatioData = winRatios?.find(p => p.player_id === playerId);
+    const playerWinRatio = winRatioData?.win_ratio || 0;
 
+    // Get game ratings data
     const { data: gameRatings, error: ratingsError } = await supabase
       .from('game_ratings')
       .select(`
@@ -448,10 +450,24 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
       .eq('player_id', playerId)
       .limit(1000) as { data: GameRatingResponse[] | null; error: any };
 
+    // Get total wins data
+    const { data: gameOutcomes, error: outcomesError } = await supabase
+      .from('game_players')
+      .select('game_outcome')
+      .eq('player_id', playerId);
+
     if (ratingsError || !gameRatings || gameRatings.length === 0) {
       console.error('Error fetching ratings:', ratingsError);
       return null;
     }
+
+    if (outcomesError) {
+      console.error('Error fetching game outcomes:', outcomesError);
+      return null;
+    }
+
+    // Calculate total wins
+    const totalWins = gameOutcomes?.filter(game => game.game_outcome === 'win').length || 0;
 
     // Group ratings by player
     const playerStats = gameRatings.reduce((acc, curr) => {
@@ -497,28 +513,112 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
       
       const improvement = Number((lastThreeAvg - firstThreeAvg).toFixed(1));
 
+      // Get recent games in chronological order
+      const { data: recentGames, error: gamesError } = await supabase
+        .from('game_players')
+        .select('game_outcome')
+        .eq('player_id', playerId)
+        .order('created_at', { ascending: false });
+
+      if (gamesError) {
+        console.error('Error fetching recent games:', gamesError);
+        return null;
+      }
+
+      // Calculate win streak
+      let winStreak = 0;
+      for (const game of recentGames || []) {
+        if (game.game_outcome === 'win') {
+          winStreak++;
+        } else {
+          break;
+        }
+      }
+
+      // Return stats array with win streak
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
+        { player_id: playerId, name: "Total Wins", value: totalWins },
         { player_id: playerId, name: "Current Streak", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: Number(firstThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Latest 3-Game Average", value: Number(lastThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Rating Improvement", value: improvement },
-        { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) }
+        { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) },
+        { player_id: playerId, name: "Win Streak", value: winStreak }
       ];
     } else {
       // Return stats for players with less than 3 games
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
+        { player_id: playerId, name: "Total Wins", value: totalWins },
         { player_id: playerId, name: "Current Streak", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: 0 },
         { player_id: playerId, name: "Latest 3-Game Average", value: 0 },
         { player_id: playerId, name: "Rating Improvement", value: 0 },
-        { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) }
+        { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) },
+        { player_id: playerId, name: "Win Streak", value: 0 }
       ];
     }
 
   } catch (error) {
     console.error('Error calculating player stats:', error);
+    return null;
+  }
+}
+
+export async function getLongestWinStreak(): Promise<PlayerStats | null> {
+  try {
+    // Get all players first
+    const { data: players, error: playersError } = await supabase
+      .from('players')
+      .select('id, name');
+
+    if (playersError || !players) {
+      console.error('Error fetching players:', playersError);
+      return null;
+    }
+
+    let maxStreak = { player_id: '', name: '', value: 0 };
+
+    // Check win streak for each player
+    for (const player of players) {
+      const { data: recentGames, error: gamesError } = await supabase
+        .from('game_players')
+        .select('game_outcome')
+        .eq('player_id', player.id)
+        .order('created_at', { ascending: false });
+
+      if (gamesError) {
+        console.error(`Error fetching games for player ${player.name}:`, gamesError);
+        continue;
+      }
+
+      // Calculate win streak
+      let currentStreak = 0;
+      for (const game of recentGames || []) {
+        if (game.game_outcome === 'win') {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+
+      // Update max streak if current player has a higher streak
+      if (currentStreak > maxStreak.value) {
+        maxStreak = {
+          player_id: player.id,
+          name: player.name,
+          value: currentStreak
+        };
+      }
+
+      console.log(`${player.name}'s win streak: ${currentStreak}`);
+    }
+
+    console.log('Longest win streak:', maxStreak);
+    return maxStreak.value > 0 ? maxStreak : null;
+  } catch (error) {
+    console.error('Error calculating longest win streak:', error);
     return null;
   }
 }

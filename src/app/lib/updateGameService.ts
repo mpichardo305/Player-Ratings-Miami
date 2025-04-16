@@ -207,7 +207,10 @@ export const updateGamePlayerWon = async (gameId: string, winner: 'A' | 'B' | 't
       // Update the player's game_outcome
       const { error: updateError } = await supabase
         .from('game_players')
-        .update({ game_outcome: gameOutcome })
+        .update({ 
+          game_outcome: gameOutcome,
+          created_at: new Date().toISOString()
+        })
         .eq('game_id', gameId)
         .eq('player_id', player.player_id);
 

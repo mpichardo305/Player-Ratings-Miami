@@ -28,10 +28,10 @@ interface AssignTeamsProps {
 export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) {
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [activeTab, setActiveTab] = useState<"teamA" | "teamB">("teamA");
-  const [teamAPlayers, setTeamAPlayers] = useState<string[]>([]);
-  const [teamBPlayers, setTeamBPlayers] = useState<string[]>([]);
-  const [isTeamAComplete, setIsTeamAComplete] = useState(false);
+  const [activeTab, setActiveTab] = useState<"home" | "away">("home");
+  const [homePlayers, setHomePlayers] = useState<string[]>([]);
+  const [awayPlayers, setAwayPlayers] = useState<string[]>([]);
+  const [isHomeComplete, setIsHomeComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const session = useSession();
@@ -60,19 +60,19 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
           return;
         }
 
-        const teamA: string[] = [];
-        const teamB: string[] = [];
+        const home: string[] = [];
+        const away: string[] = [];
         
         data.players.forEach((player: { player_id: string; team: string }) => {
-          if (player.team === 'A') teamA.push(player.player_id);
-          if (player.team === 'B') teamB.push(player.player_id);
+          if (player.team === 'A') home.push(player.player_id);
+          if (player.team === 'B') away.push(player.player_id);
         });
 
-        console.log('Team A:', teamA); // Debug log
-        console.log('Team B:', teamB); // Debug log
+        console.log('Home:', home); // Debug log
+        console.log('Away:', away); // Debug log
 
-        setTeamAPlayers(teamA);
-        setTeamBPlayers(teamB);
+        setHomePlayers(home);
+        setAwayPlayers(away);
         
       } catch (error) {
         console.error("Error fetching team assignments:", error);
@@ -85,28 +85,28 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
   }, [gameId, players.length]);
 
   const handleTeamNext = () => {
-    setIsTeamAComplete(true);
-    setActiveTab("teamB");
-    // Automatically select remaining players for Team B
+    setIsHomeComplete(true);
+    setActiveTab("away");
+    // Automatically select remaining players for Away team
     const remainingPlayers = players
-      .filter(player => !teamAPlayers.includes(player.id))
+      .filter(player => !homePlayers.includes(player.id))
       .map(player => player.id);
-    setTeamBPlayers(remainingPlayers);
+    setAwayPlayers(remainingPlayers);
   };
 
   const handleEdit = () => {
     setIsEditing(true);
-    setIsTeamAComplete(false);
-    setActiveTab("teamA");
-    setTeamBPlayers([]);
+    setIsHomeComplete(false);
+    setActiveTab("home");
+    setAwayPlayers([]);
   };
 
   const handleSubmit = async () => {
     try {
-      // Transform the teamA and teamB arrays into the expected format
+      // Transform the home and away arrays into the expected format
       const teamUpdates = [
-        ...teamAPlayers.map(playerId => ({ playerId, team: 'A' })),
-        ...teamBPlayers.map(playerId => ({ playerId, team: 'B' }))
+        ...homePlayers.map(playerId => ({ playerId, team: 'A' })),
+        ...awayPlayers.map(playerId => ({ playerId, team: 'B' }))
       ];
 
       const response = await fetch(`/api/games/${gameId}/assign-teams`, {
@@ -127,15 +127,15 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
     }
   };
 
-  const handlePlayerSelection = (playerId: string, team: "teamA" | "teamB") => {
-    if (team === "teamA") {
-      setTeamAPlayers(prev =>
+  const handlePlayerSelection = (playerId: string, team: "home" | "away") => {
+    if (team === "home") {
+      setHomePlayers(prev =>
         prev.includes(playerId)
           ? prev.filter(id => id !== playerId)
           : [...prev, playerId]
       );
     } else {
-      setTeamBPlayers(prev =>
+      setAwayPlayers(prev =>
         prev.includes(playerId)
           ? prev.filter(id => id !== playerId)
           : [...prev, playerId]
@@ -143,20 +143,20 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
     }
   };
 
-  const showAllPlayers = (team: "teamA" | "teamB") => {
-    if (team === "teamA") {
-      return !isTeamAComplete || isEditing || activeTab === "teamA";
+  const showAllPlayers = (team: "home" | "away") => {
+    if (team === "home") {
+      return !isHomeComplete || isEditing || activeTab === "home";
     }
-    return activeTab === "teamB" && (isEditing || !isTeamAComplete);
+    return activeTab === "away" && (isEditing || !isHomeComplete);
   };
 
   const handleViewMode = () => {
     setIsViewMode(true);
-    setActiveTab("teamA");
+    setActiveTab("home");
   };
 
   const TeamListView = () => {
-    if (teamAPlayers.length === 0 && teamBPlayers.length === 0) {
+    if (homePlayers.length === 0 && awayPlayers.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-8">
           <p className="text-lg text-muted-foreground">Teams have not been assigned</p>
@@ -193,10 +193,10 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
     return (
       <div className="space-y-6">
         <div>
-          <Label className="text-lg font-semibold">Team A</Label>
+          <Label className="text-lg font-semibold">Home Team</Label>
           <div className="mt-2 space-y-2">
             {players
-              .filter(player => teamAPlayers.includes(player.id))
+              .filter(player => homePlayers.includes(player.id))
               .map(player => (
                 <div key={player.id} className="py-2 px-4 bg-secondary rounded-md">
                   {player.name}
@@ -206,10 +206,10 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
         </div>
 
         <div>
-          <Label className="text-lg font-semibold">Team B</Label>
+          <Label className="text-lg font-semibold">Away Team</Label>
           <div className="mt-2 space-y-2">
             {players
-              .filter(player => teamBPlayers.includes(player.id))
+              .filter(player => awayPlayers.includes(player.id))
               .map(player => (
                 <div key={player.id} className="py-2 px-4 bg-secondary rounded-md">
                   {player.name}
@@ -233,7 +233,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                 <Button 
                   className="flex-1" 
                   onClick={handleSubmit}
-                  disabled={teamAPlayers.length > MAX_PLAYERS || teamBPlayers.length > MAX_PLAYERS}
+                  disabled={homePlayers.length > MAX_PLAYERS || awayPlayers.length > MAX_PLAYERS}
                 >
                   Submit
                 </Button>
@@ -305,70 +305,70 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
           <TeamListView />
         ) : (
           <>
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "teamA" | "teamB")}>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "home" | "away")}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger 
-                  value="teamA"
+                  value="home"
                   disabled={false} // Remove the disabled condition entirely to always allow access
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
-                  Team A
+                  Home Team
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="teamB"
-                  disabled={!isTeamAComplete}
+                  value="away"
+                  disabled={!isHomeComplete}
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
-                  Team B
+                  Away Team
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="teamA" className="space-y-4">
+              <TabsContent value="home" className="space-y-4">
                 <div>
                   <Label className="text-lg">Select players (max {MAX_PLAYERS})</Label>
-                  <p className={`mt-1 ${teamAPlayers.length > MAX_PLAYERS ? "text-destructive" : "text-muted-foreground"}`}>
-                    {teamAPlayers.length}/{MAX_PLAYERS} players selected
+                  <p className={`mt-1 ${homePlayers.length > MAX_PLAYERS ? "text-destructive" : "text-muted-foreground"}`}>
+                    {homePlayers.length}/{MAX_PLAYERS} players selected
                   </p>
                 </div>
                 
-                {/* Show selected Team A players */}
+                {/* Show selected Home players */}
                 <div className="mb-6 space-y-2">
-                  <Label className="text-sm text-muted-foreground">Team A Players</Label>
+                  <Label className="text-sm text-muted-foreground">Home Players</Label>
                   {players
-                    .filter(player => teamAPlayers.includes(player.id))
+                    .filter(player => homePlayers.includes(player.id))
                     .map(player => (
                       <div key={player.id} className="flex items-center justify-between py-1">
                         <div className="flex items-center space-x-2">
                           <Checkbox
-                            id={`teamA-${player.id}`}
+                            id={`home-${player.id}`}
                             checked={true}
-                            onCheckedChange={() => handlePlayerSelection(player.id, "teamA")}
-                            disabled={!isGroupAdmin || (isTeamAComplete && !isEditing)}
+                            onCheckedChange={() => handlePlayerSelection(player.id, "home")}
+                            disabled={!isGroupAdmin || (isHomeComplete && !isEditing)}
                           />
-                          <label htmlFor={`teamA-${player.id}`}>{player.name}</label>
+                          <label htmlFor={`home-${player.id}`}>{player.name}</label>
                         </div>
                       </div>
                     ))}
                 </div>
 
                 {/* Show available players */}
-                {showAllPlayers("teamA") && (
+                {showAllPlayers("home") && (
                   <>
-                    {players.filter(player => !teamAPlayers.includes(player.id) && !teamBPlayers.includes(player.id)).length > 0 && (
+                    {players.filter(player => !homePlayers.includes(player.id) && !awayPlayers.includes(player.id)).length > 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">Available Players</Label>
                         {players
-                          .filter(player => !teamAPlayers.includes(player.id) && !teamBPlayers.includes(player.id))
+                          .filter(player => !homePlayers.includes(player.id) && !awayPlayers.includes(player.id))
                           .map(player => (
                             <div key={player.id} className="flex items-center justify-between py-1">
                               <div className="flex items-center space-x-2">
                                 <Checkbox
-                                  id={`teamA-${player.id}`}
+                                  id={`home-${player.id}`}
                                   checked={false}
-                                  onCheckedChange={() => handlePlayerSelection(player.id, "teamA")}
-                                  disabled={teamAPlayers.length >= MAX_PLAYERS}
+                                  onCheckedChange={() => handlePlayerSelection(player.id, "home")}
+                                  disabled={homePlayers.length >= MAX_PLAYERS}
                                 />
-                                <label htmlFor={`teamA-${player.id}`}>{player.name}</label>
+                                <label htmlFor={`home-${player.id}`}>{player.name}</label>
                               </div>
                             </div>
                           ))}
@@ -377,12 +377,12 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                   </>
                 )}
 
-                {!isTeamAComplete && isGroupAdmin && (  // Only show Next button to admins
+                {!isHomeComplete && isGroupAdmin && (  // Only show Next button to admins
                   <>
                   <Button 
                     className="w-full mt-4" 
                     onClick={handleTeamNext}
-                    disabled={teamAPlayers.length === 0 || teamAPlayers.length > MAX_PLAYERS}
+                    disabled={homePlayers.length === 0 || homePlayers.length > MAX_PLAYERS}
                   >
                     Next
                   </Button>
@@ -399,28 +399,28 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                 )}
               </TabsContent>
 
-              <TabsContent value="teamB" className="space-y-4">
+              <TabsContent value="away" className="space-y-4">
                 <div>
                   <Label className="text-lg">Select players (max {MAX_PLAYERS})</Label>
-                  <p className={`mt-1 ${teamBPlayers.length > MAX_PLAYERS ? "text-destructive" : "text-muted-foreground"}`}>
-                    {teamBPlayers.length}/{MAX_PLAYERS} players selected
+                  <p className={`mt-1 ${awayPlayers.length > MAX_PLAYERS ? "text-destructive" : "text-muted-foreground"}`}>
+                    {awayPlayers.length}/{MAX_PLAYERS} players selected
                   </p>
                 </div>
                 
-                {/* Show selected Team B players */}
+                {/* Show selected Away players */}
                 <div className="mb-6 space-y-2">
-                    <Label className="text-sm text-muted-foreground block text-right">Team B Players</Label>
+                    <Label className="text-sm text-muted-foreground block text-right">Away Players</Label>
                   {players
-                    .filter(player => teamBPlayers.includes(player.id))
+                    .filter(player => awayPlayers.includes(player.id))
                     .map(player => (
                       <div key={player.id} className="flex items-center justify-between py-1">
                         <div className="flex items-center space-x-2 justify-end w-full">
-                          <label htmlFor={`teamB-${player.id}`}>{player.name}</label>
+                          <label htmlFor={`away-${player.id}`}>{player.name}</label>
                           <Checkbox
-                            id={`teamB-${player.id}`}
+                            id={`away-${player.id}`}
                             checked={true}
-                            onCheckedChange={() => handlePlayerSelection(player.id, "teamB")}
-                            disabled={!isGroupAdmin || (!isEditing && isTeamAComplete)}
+                            onCheckedChange={() => handlePlayerSelection(player.id, "away")}
+                            disabled={!isGroupAdmin || (!isEditing && isHomeComplete)}
                           />
                         </div>
                       </div>
@@ -428,20 +428,20 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                 </div>
 
                 {/* Show available players */}
-                {players.filter(player => !teamAPlayers.includes(player.id) && !teamBPlayers.includes(player.id)).length > 0 && (
+                {players.filter(player => !homePlayers.includes(player.id) && !awayPlayers.includes(player.id)).length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-sm text-muted-foreground">Available Players</Label>
                     {players
-                      .filter(player => !teamAPlayers.includes(player.id) && !teamBPlayers.includes(player.id))
+                      .filter(player => !homePlayers.includes(player.id) && !awayPlayers.includes(player.id))
                       .map(player => (
                         <div key={player.id} className="flex items-center justify-between py-1">
                           <div className="flex items-center space-x-2 justify-end w-full">
-                            <label htmlFor={`teamB-${player.id}`}>{player.name}</label>
+                            <label htmlFor={`away-${player.id}`}>{player.name}</label>
                             <Checkbox
-                              id={`teamB-${player.id}`}
+                              id={`away-${player.id}`}
                               checked={false}
-                              onCheckedChange={() => handlePlayerSelection(player.id, "teamB")}
-                              disabled={!isGroupAdmin || (!isEditing && isTeamAComplete)}
+                              onCheckedChange={() => handlePlayerSelection(player.id, "away")}
+                              disabled={!isGroupAdmin || (!isEditing && isHomeComplete)}
                             />
                           </div>
                         </div>
@@ -451,7 +451,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
               </TabsContent>
             </Tabs>
 
-            {isTeamAComplete && isGroupAdmin && (
+            {isHomeComplete && isGroupAdmin && (
               <div className="flex space-x-4 mt-6">
                 <Button 
                   variant="outline" 

@@ -15,6 +15,8 @@ interface PlayerGameStats {
   initialAverage: number;
   latestAverage: number;
   improvement: number;
+  totalWins: number;  
+  winStreak: number;  
 }
 
 export default function MyStats() {
@@ -41,12 +43,14 @@ export default function MyStats() {
         const playerStats = await getPlayerStats(playerId);
         if (playerStats) {
           setStats({
-            winRatios: playerStats[5].value,
-            gamesPlayed: playerStats[0].value,
-            currentStreak: playerStats[1].value,
-            initialAverage: playerStats[2].value,
-            latestAverage: playerStats[3].value,
-            improvement: playerStats[4].value
+            winRatios: playerStats[6].value,      // Win Ratio is now at index 6
+            gamesPlayed: playerStats[0].value,     // Games Played
+            totalWins: playerStats[1].value,       // Total Wins
+            currentStreak: playerStats[2].value,   // Current Streak
+            initialAverage: playerStats[3].value,  // Initial Average
+            latestAverage: playerStats[4].value,   // Latest Average
+            improvement: playerStats[5].value,     // Rating Improvement
+            winStreak: playerStats[7].value        // Win Streak (new)
           });
         }
       }
@@ -74,9 +78,9 @@ export default function MyStats() {
       description: "Games won out of total games played"
     },
     {
-      title: "Rating Delta",
-      value: `${(stats?.improvement ?? 0) > 0 ? '+' : ''}${stats?.improvement?.toFixed(1) ?? "0.0"}`,
-      description: "Change in rating average"
+      title: "Win Streak",
+      value: stats?.winStreak ?? 0,
+      description: "Current consecutive wins"
     },
     {
       title: "Latest 3-Game Average",
@@ -84,15 +88,10 @@ export default function MyStats() {
       description: "Most recent three games average"
     },
     {
-      title: "Current Streak",
+      title: "Play Streak",
       value: stats?.currentStreak ?? 0,
       description: "Consecutive games played"
     },
-    // {
-    //   title: "Games Played",
-    //   value: stats?.gamesPlayed ?? 0,
-    //   description: "Total games participated"
-    // },
   ];
 
   return (
