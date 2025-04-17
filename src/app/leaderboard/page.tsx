@@ -13,12 +13,14 @@ export default function LeaderboardPage() {
 
   if (!session?.user) {
       return (
-        <Card>
-          <CardContent className="pt-6 flex justify-center items-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading stats...</span>
-          </CardContent>
-        </Card>
+        <div className="min-h-screen flex items-center justify-center">
+          <Card className="w-[300px]">
+            <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin" />
+              <span className="mt-4">Loading stats...</span>
+            </CardContent>
+          </Card>
+        </div>
       );
   }
 
