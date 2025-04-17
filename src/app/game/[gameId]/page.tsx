@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import RatersList from '@/app/components/RatersList';
 import {checkTimeSinceGameStarted} from "@/app/utils/gameUtils";
+import { GameDetailsCard } from '@/app/components/GameDetailsCard';
+import { useGroupName } from '@/app/hooks/useGroupName';
 
 type Game = {
   id: string;
@@ -31,7 +33,6 @@ export default function GamePage() {
   
   const gameId = params.gameId as string;
   const [game, setGame] = useState<Game | null>(null);
-  const [groupName, setGroupName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const session = useSession();
@@ -45,6 +46,7 @@ export default function GamePage() {
   const [showRaters, setShowRaters] = useState(false);
   const [editingWindowClosed, setEditingWindowClosed] = useState(false);
   
+  const { groupName, loading: groupNameLoading } = useGroupName(game?.group_id ?? '');
   
   // Fetch game data
   useEffect(() => {
@@ -91,27 +93,6 @@ export default function GamePage() {
     }
   }, [gameId]);
 
-  const fetchGroupName = async (groupId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('groups')
-        .select('name')
-        .eq('id', groupId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching group name:', error);
-        return;
-      }
-      
-      if (data && data.name) {
-        setGroupName(data.name);
-      }
-    } catch (err) {
-      console.error('Error in fetchGroupName:', err);
-    }
-  };
-
   // Check if user is admin for this game's group
   const {loading: isAdminLoading, isAdmin} = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? '');
 
@@ -119,7 +100,6 @@ export default function GamePage() {
   useEffect(() => {
     if (!isAdminLoading && game?.group_id) {
       setAdminCheckComplete(true);
-      fetchGroupName(game.group_id);
     }
   }, [isAdminLoading, game?.group_id]);
 
@@ -154,7 +134,7 @@ export default function GamePage() {
     checkGameStatus();
   }, [gameId]);
 
-  if (loading || isAdminLoading) {
+  if (loading || isAdminLoading || groupNameLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -204,24 +184,12 @@ export default function GamePage() {
           <CardContent>
             <div className="space-y-6">
               {/* Game Info */}
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-2">{game.field_name}</h2>
-                <h3 className="text-lg text-foreground/90 mb-4">{groupName}</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="bg-tertiary">
-                    <CardContent className="p-4 bg-secondary">
-                      <p className="text-sm text-muted-foreground">Date</p>
-                      <p className="text-foreground">{formatDatePreserveDay(game.date)}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-tertiary">
-                    <CardContent className="p-4 bg-secondary">
-                      <p className="text-sm text-muted-foreground">Start Time</p>
-                      <p className="text-foreground">{formatTimeOnly(game.start_time)}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+              <GameDetailsCard
+                fieldName={game.field_name}
+                date={game.date}
+                startTime={game.start_time}
+                groupName={groupName}
+              />
 
               {/* Player Roster */}
               <Card className="bg-tertiary">
@@ -251,7 +219,15 @@ export default function GamePage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-                {isGameEnded && (
+              {isGameEnded && isAdmin && (
+                  <Button 
+                    className="bg-green-500 text-white hover:bg-green-600"
+                    onClick={() => router.push(`/game/${gameId}/score?mode=edit`)}
+                  >
+                    Submit Score
+                  </Button>
+                )}
+                {isGameEnded && !isAdmin && (
                   <Button 
                     className="bg-green-500 text-white hover:bg-green-600"
                     onClick={() => router.push(`/rate-players/${gameId}`)}
@@ -264,14 +240,14 @@ export default function GamePage() {
                     <Button
                       variant="secondary"
                       onClick={() => router.push(`/game/${gameId}?mode=edit`)}
-                      disabled={editingWindowClosed}
+                      // disabled={editingWindowClosed}
                     >
                       Edit Game Details
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={() => router.push(`/manage-players/${gameId}`)}
-                      disabled={editingWindowClosed}
+                      // disabled={editingWindowClosed}
                     >
                       Manage Players
                     </Button>

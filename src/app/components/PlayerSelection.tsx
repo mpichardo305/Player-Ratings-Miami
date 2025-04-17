@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { updateGamePlayers } from '../lib/updateGamePlayersService';
+import { updateGamePlayers } from '../lib/updateGameService';
 import { createGame, GameCreate } from '../lib/gameService';  
 import { formatDatePreserveDay, formatTimeOnly } from '../utils/dateUtils';
 import { Player, fetchGroupPlayers, fetchExistingPlayerIds } from '../utils/playerDb';
@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { GameDetailsCard } from './GameDetailsCard';
+import { useGroupName } from '@/app/hooks/useGroupName';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -19,11 +23,13 @@ interface PlayerSelectionProps {
 }
 
 const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', onSuccess }: PlayerSelectionProps) => {
+  const router = useRouter();
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
+  const { groupName, loading: groupNameLoading } = useGroupName(GROUP_ID);
   const MAX_PLAYERS = 12;
 
   // Generate Game ID
@@ -140,29 +146,38 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
     }
   };
 
+  const handleAssignTeams = () => {
+    router.push(`/game/${gameId}/teams`);
+  };
+
   const isValidTeamSize = selectedPlayers.size <= MAX_PLAYERS;
   const buttonText = mode === 'create' ? 'Create Game' : 'Update Players';
   const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
 
+  if (loading || groupNameLoading) {
+    return (
+      <div className="flex items-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="text-sm ml-2">Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <Card className="bg-card">
-      <CardHeader>
+      <CardHeader className="pb-2 pt-4"> {/* Reduced top and bottom padding */}
         <CardTitle className="text-foreground text-[1.3rem]">
           {mode === 'create' ? 'Game Details' : 'Update Game Players'}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-6">
-          <Card className="bg-secondary border-secondary">
-            <CardContent className="pt-6">
-              <div className="text-foreground space-y-2">
-                <p>Field: {gameDetails.field_name}</p>
-                <p>Date: {formatDatePreserveDay(gameDetails.date.toString())}</p>
-                <p>Start Time: {formatTimeOnly(gameDetails.start_time)}</p>
-              </div>
-            </CardContent>
-          </Card>
-
+      <CardContent className="space-y-4"> {/* Reduced spacing between elements */}
+        <div className="space-y-4">
+          <GameDetailsCard
+            fieldName={gameDetails.field_name}
+            date={gameDetails.date.toString()}
+            startTime={gameDetails.start_time}
+            groupName={groupName}
+          />
           <div className="text-foreground space-y-6">
             <div>
               <Label className="text-lg">Select players (max {MAX_PLAYERS})</Label>
@@ -176,50 +191,107 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
               Loading players...
             </span></>
             ) : (
-              <div className="space-y-4">
-                {players.map(player => (
-                    <div
-                    key={player.id}
-                    className="bg-secondary border-secondary rounded-lg p-3 hover:bg-secondary/80 transition-colors"
-                    >
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                      id={player.id}
-                      checked={selectedPlayers.has(player.id)}
-                      onCheckedChange={() => handlePlayerToggle(player.id)}
-                      disabled={selectedPlayers.size >= MAX_PLAYERS && !selectedPlayers.has(player.id)}
-                      className="bg-secondary border-primary"
-                      />
-                      <Label
-                      htmlFor={player.id}
-                      className="text-foreground cursor-pointer"
-                      >
-                      {player.name}
-                      </Label>
+              <div className="space-y-6">
+                {/* Selected Players Section */}
+                <div className="mb-6">
+                  <Label className="text-sm text-muted-foreground mb-2 block">Selected Players</Label>
+                  <ScrollArea className="h-[200px] rounded-md border border-secondary p-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {players
+                        .filter(player => selectedPlayers.has(player.id))
+                        .map(player => (
+                          <div
+                            key={player.id}
+                            className="bg-secondary border-secondary rounded-lg p-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`selected-${player.id}`}
+                                checked={true}
+                                onCheckedChange={() => handlePlayerToggle(player.id)}
+                                className="bg-secondary border-primary"
+                              />
+                              <Label
+                                htmlFor={`selected-${player.id}`}
+                                className="text-foreground cursor-pointer text-sm truncate"
+                              >
+                                {player.name}
+                              </Label>
+                            </div>
+                          </div>
+                        ))}
                     </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Available Players Section */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Available Players</Label>
+                  <ScrollArea className="h-[300px] rounded-md border border-secondary p-4">
+                    <div className="space-y-4">
+                      {players
+                        .filter(player => !selectedPlayers.has(player.id))
+                        .map(player => (
+                          <div
+                            key={player.id}
+                            className="bg-secondary border-secondary rounded-lg p-3 hover:bg-secondary/80 transition-colors"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Checkbox
+                                id={player.id}
+                                checked={false}
+                                onCheckedChange={() => handlePlayerToggle(player.id)}
+                                disabled={selectedPlayers.size >= MAX_PLAYERS}
+                                className="bg-secondary border-primary"
+                              />
+                              <Label
+                                htmlFor={player.id}
+                                className="text-foreground cursor-pointer"
+                              >
+                                {player.name}
+                              </Label>
+                            </div>
+                          </div>
+                        ))}
                     </div>
-                ))}
+                  </ScrollArea>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="flex justify-between pt-4">
-            <Button
-              variant="secondary"
-              onClick={onBack}
-              disabled={submitting}
-              className="min-w-[100px]"
-            >
-              Back
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleSubmit}
-              disabled={!isValidTeamSize || submitting}
-              className="bg-primary text-primaryForeground min-w-[100px]"
-            >
-              {submitting ? submittingText : buttonText}
-            </Button>
+          <div className="flex flex-col space-y-4 pt-4">
+            
+
+            <div className="flex flex-col space-y-2">
+              {selectedPlayers.size >= 2 && mode === 'update' && (
+                <Button
+                  variant="default"
+                  onClick={handleAssignTeams}
+                  className="w-full"
+                >
+                  Assign Teams
+                </Button>
+              )}
+              <Button
+                variant="secondary"
+                onClick={handleSubmit}
+                disabled={!isValidTeamSize || submitting}
+                className="bg-primary text-primaryForeground w-full"
+              >
+                {submitting ? submittingText : buttonText}
+              </Button>
+            </div>
+            <div className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={submitting}
+                className="min-w-[100px]"
+              >
+                Back
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>

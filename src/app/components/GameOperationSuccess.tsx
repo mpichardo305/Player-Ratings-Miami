@@ -27,12 +27,17 @@ const GameOperationSuccess = ({ gameId, readableId, mode, onCreateNewGame }: Gam
       </div>
       
       <div className={styles.actionButtons}>
-        <Link href={`/game/${gameId}`} passHref>
+       
+        <Link href={`/game/${gameId}/`} passHref>
           <button className={styles.primaryButton}>
+            Assign Teams
+          </button>
+        </Link>
+        <Link href={`/game/${gameId}`} passHref>
+          <button className={styles.secondaryButton}>
             View Game Details
           </button>
         </Link>
-        
         {isCreate && onCreateNewGame && (
           <button 
             onClick={onCreateNewGame}

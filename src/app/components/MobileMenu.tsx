@@ -9,8 +9,9 @@ import {
   Users,
   Trophy,
   Menu,
+  Clock
 } from "lucide-react";
-
+import { IconBallFootball } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -66,10 +67,18 @@ export default function MobileMenu() {
           <div className="mt-8 flex flex-col space-y-2">
           <Button
               variant="ghost"
+              className={getButtonClass('/leaderboard')}
+              onClick={() => handleNavigation('/leaderboard')}
+            >
+              <Trophy className="h-[1.05rem] w-[1.05rem]" />
+              <span>Leaderboard</span>
+            </Button>
+          <Button
+              variant="ghost"
               className={getButtonClass('/games')}
               onClick={() => handleNavigation('/games')}
             >
-              <Trophy className="h-[1.05rem] w-[1.05rem]" />
+              <IconBallFootball className="h-[1.05rem] w-[1.05rem]" />
               <span>Games</span>
             </Button>
             <Button

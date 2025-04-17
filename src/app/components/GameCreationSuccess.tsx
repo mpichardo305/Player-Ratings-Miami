@@ -25,6 +25,9 @@ const GameCreationSuccess = ({
   const handleEditPlayers = () => {
     router.push(`/manage-players/${gameId}`);
   };
+  const handleAssignTeams = () => {
+    router.push(`/game/${gameId}/teams?mode=edit`);
+  };
 
   return (
     <div className={styles.successContainer}>
@@ -44,6 +47,12 @@ const GameCreationSuccess = ({
       </div>
       
       <div className={styles.actionButtons}>
+        <button 
+          className={styles.primaryButton} 
+          onClick={handleAssignTeams}
+        >
+          Assign Teams
+        </button>
         <button 
           className={styles.primaryButton} 
           onClick={handleEditPlayers}
