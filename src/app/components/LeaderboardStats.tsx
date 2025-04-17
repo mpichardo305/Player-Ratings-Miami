@@ -159,7 +159,7 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
       const metricData: MetricData = {
         title: "Most Games Played",
         value: mostGames.name,
-        description: `${mostGames.value} games`,
+        description: `${mostGames.value} ${mostGames.value === 1 ? 'game' : 'games'}`,
         iconType: 'moveRight'
       };
 
@@ -224,17 +224,26 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
   const getLongestWinStreakPlayer = async () => {
     try {
       const cached = getCachedMetric('longestWinStreak', groupId);
-      if (cached) return convertToMetricCard(cached);
+      if (cached) {
+        console.log('Using cached win streak data:', cached);
+        return convertToMetricCard(cached);
+      }
 
+      console.log('Fetching new win streak data...');
       const response = await fetch(`/api/stats/longest-win-streak?groupId=${groupId}`);
       const winStreakLeader = await response.json();
       
-      if (!winStreakLeader) return null;
+      console.log('Win streak API response:', winStreakLeader);
+      
+      if (!winStreakLeader) {
+        console.log('No win streak leader found');
+        return null;
+      }
 
       const metricData: MetricData = {
         title: "Longest Win Streak",
         value: winStreakLeader.name,
-        description: `${winStreakLeader.value} consecutive wins`,
+        description: `${winStreakLeader.value} consecutive ${winStreakLeader.value === 1 ? 'win' : 'wins'}`,
         iconType: 'flame'
       };
 

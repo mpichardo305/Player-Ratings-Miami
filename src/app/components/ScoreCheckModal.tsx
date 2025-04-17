@@ -28,7 +28,7 @@ export function ScoreCheckModal({ isOpen, onClose, onNo, gameId }: ScoreCheckMod
 
   const handleNoClick = () => {
     onNo();
-    router.push("/submit-score"); // Replace with your actual score submission route
+    router.push(`/game/${gameId}/score?mode=edit`);
   };
 
   // Don't show modal if user has already confirmed for this specific game
