@@ -45,6 +45,8 @@ export default function GamePage() {
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
   const [showRaters, setShowRaters] = useState(false);
   const [editingWindowClosed, setEditingWindowClosed] = useState(false);
+  const [ratersLoading, setRatersLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { groupName, loading: groupNameLoading } = useGroupName(game?.group_id ?? '');
   
@@ -177,90 +179,90 @@ export default function GamePage() {
       <div className="min-h-screen bg-background p-4">
         <Card className="bg-card">
           <CardHeader>
-            <CardTitle className="text-foreground text-[1.3rem]">
-              Game Details
-            </CardTitle>
+        <CardTitle className="text-foreground text-[1.3rem]">
+          Game Details
+        </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* Game Info */}
-              <GameDetailsCard
-                fieldName={game.field_name}
-                date={game.date}
-                startTime={game.start_time}
-                groupName={groupName}
-              />
+        <div className="space-y-6">
+          {/* Game Info */}
+          <GameDetailsCard
+            fieldName={game.field_name}
+            date={game.date}
+            startTime={game.start_time}
+            groupName={groupName}
+          />
 
-              {/* Player Roster */}
-              <Card className="bg-tertiary">
-                <CardHeader>
-                  <CardTitle className="text-lg text-foreground">Roster</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {playersLoading ? (
-                    <p className="text-foreground">Loading players...</p>
-                  ) : players.length === 0 ? (
-                    <p className="text-muted-foreground">No players assigned to this game.</p>
-                  ) : (
-                    <ScrollArea className="h-[40vh]">
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                        {players.map((player) => (
-                          <Card key={player.id} className="bg-secondary">
-                            <CardContent className="p-3">
-                              <p className="text-foreground">{player.name}</p>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )}
+          {/* Player Roster */}
+          <Card className="bg-tertiary">
+            <CardHeader>
+          <CardTitle className="text-lg text-foreground">Roster</CardTitle>
+            </CardHeader>
+            <CardContent>
+          {playersLoading ? (
+            <p className="text-foreground">Loading players...</p>
+          ) : players.length === 0 ? (
+            <p className="text-muted-foreground">No players assigned to this game.</p>
+          ) : (
+            <ScrollArea className="h-[40vh]">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {players.map((player) => (
+              <Card key={player.id} className="bg-secondary">
+                <CardContent className="p-3">
+              <p className="text-foreground">{player.name}</p>
                 </CardContent>
               </Card>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-              {isGameEnded && isAdmin && (
-                  <Button 
-                    className="bg-green-500 text-white hover:bg-green-600"
-                    onClick={() => router.push(`/game/${gameId}/score?mode=edit`)}
-                  >
-                    Submit Score
-                  </Button>
-                )}
-                {isGameEnded && !isAdmin && (
-                  <Button 
-                    className="bg-green-500 text-white hover:bg-green-600"
-                    onClick={() => router.push(`/rate-players/${gameId}`)}
-                  >
-                    Rate Players
-                  </Button>
-                )}
-                {isAdmin && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      onClick={() => router.push(`/game/${gameId}?mode=edit`)}
-                      // disabled={editingWindowClosed}
-                    >
-                      Edit Game Details
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => router.push(`/manage-players/${gameId}`)}
-                      // disabled={editingWindowClosed}
-                    >
-                      Manage Players
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setShowRaters(true)}
-                    >
-                      See Who Rated
-                    </Button>
-                  </>
-                )}
+            ))}
               </div>
-            </div>
+            </ScrollArea>
+          )}
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          {isGameEnded && isAdmin && (
+          <Button 
+            className="bg-green-500 text-white hover:bg-green-600"
+            onClick={() => router.push(`/game/${gameId}/score?mode=edit`)}
+          >
+            Submit Score
+          </Button>
+            )}
+            {isGameEnded && !isAdmin && (
+          <Button 
+            className="bg-green-500 text-white hover:bg-green-600"
+            onClick={() => router.push(`/rate-players/${gameId}`)}
+          >
+            Rate Players
+          </Button>
+            )}
+            {isAdmin && (
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => router.push(`/game/${gameId}?mode=edit`)}
+              // disabled={editingWindowClosed}
+            >
+              Edit Game Details
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => router.push(`/manage-players/${gameId}`)}
+              // disabled={editingWindowClosed}
+            >
+              Manage Players
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowRaters(true)}
+            >
+              See Who Rated
+            </Button>
+          </>
+            )}
+          </div>
+        </div>
           </CardContent>
         </Card>
         <Button
@@ -272,15 +274,34 @@ export default function GamePage() {
       </Button>
       {showRaters && isAdmin && gameFinished && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-lg">
-            <Button
-              variant="ghost"
-              className="absolute right-2 top-2"
-              onClick={() => setShowRaters(false)}
-            >
-              ✕
-            </Button>
-            <RatersList gameId={gameId} />
+          <div className="relative w-full max-w-lg bg-card rounded-lg">
+        <div className="flex justify-end gap-2 absolute right-2 top-2">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setIsRefreshing(true);
+              setShowRaters(false);
+              // Add a small delay before showing the modal again
+              setTimeout(() => {
+                setShowRaters(true);
+                setIsRefreshing(false);
+              }, 100);
+            }}
+            disabled={isRefreshing}
+            title="Refresh"
+          >
+            ↻
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setShowRaters(false)}
+          >
+            ✕
+          </Button>
+        </div>
+        <div className="p-6 mt-8">
+          <RatersList gameId={gameId} key={Date.now()} />
+        </div>
           </div>
         </div>
       )}
