@@ -55,6 +55,15 @@ interface PlayerWinRatio
   win_ratio: number; 
 }
 
+interface GameWithPlayer {
+  player_id: string;
+  created_at: string;
+  game_outcome: string;
+  players: {
+    name: string;
+  }[];  // Note the array type here
+}
+
 export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
   const { data, error } = await supabase
     .from('game_players')
@@ -597,20 +606,21 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
     // Group games by player
     const playerGames = games.reduce((acc, game) => {
       const playerId = game.player_id;
-      // const playerName = game.players.name; // Access the name directly
+      const playerName = game.players[0]?.name;
 
+      // Initialize the player entry if it doesn't exist
       if (!acc[playerId]) {
-        // Enhanced logging
+        acc[playerId] = {
+          name: playerName || 'Unknown Player',
+          games: []
+        };
+        // Debug logging only when creating new player entry
         console.log('\n--- Debug: New Player Game Data ---');
         console.log('Player ID:', playerId);
         console.log('Players object:', JSON.stringify(game.players, null, 2));
-        console.log('Full game object:', JSON.stringify(game, null, 2));
-        
-        acc[playerId] = {
-          name: 'playerName',
-          games: []
-        };
       }
+      
+      // Always push the game to the player's games array
       acc[playerId].games.push(game);
       return acc;
     }, {} as Record<string, { name: string; games: typeof games }>);
