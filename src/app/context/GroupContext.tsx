@@ -2,19 +2,27 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Group } from '../components/GroupSelector';
 
-type GroupContextType = {
-  currentGroup: Group | null;
+interface GroupContextType {
   selectedGroupId: string | null;
   setSelectedGroupId: (id: string) => void;
+  currentGroup: Group | null;
   setCurrentGroup: (group: Group | null) => void;
-};
+  isCurrentGroupAdmin: boolean;
+}
 
 export const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
 export function GroupProvider({ children }: { children: React.ReactNode }) {
-  const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
+    return localStorage.getItem('selectedGroupId') || null;
+  });
+  const [currentGroup, setCurrentGroup] = useState<Group | null>(() => {
+    const saved = localStorage.getItem('currentGroup');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isClient, setIsClient] = useState(false);
+
+  const isCurrentGroupAdmin = currentGroup?.isAdmin || false;
 
   // Safe initialization after mount
   useEffect(() => {
@@ -42,7 +50,8 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       currentGroup,
       selectedGroupId: selectedGroupId,
       setSelectedGroupId,
-      setCurrentGroup
+      setCurrentGroup,
+      isCurrentGroupAdmin
     }}>
       {children}
     </GroupContext.Provider>

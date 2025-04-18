@@ -4,9 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { useGroupAdmin } from "../hooks/useGroupAdmin"
-import { useSession } from "../hooks/useSession"
+import { useGroup } from "../context/GroupContext"
 import { Loader2 } from "lucide-react"
 
 type TeamPlayer = {
@@ -26,9 +24,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
   const [loading, setLoading] = useState(true)
   const [activeInput, setActiveInput] = useState<'A' | 'B' | null>(null)
   const router = useRouter()
-  const session = useSession()
-  const [selectedGroup, setSelectedGroup] = useState<{ id: string } | null>(null)
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '')
+  const { isCurrentGroupAdmin } = useGroup()
   const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([])
 
   useEffect(() => {
@@ -140,7 +136,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
           onClick={() => handleNumberInput(num)}
           className="h-16 text-2xl"
           variant="outline"
-          disabled={!activeInput || !isGroupAdmin || mode}
+          disabled={!activeInput || !isCurrentGroupAdmin || mode}
         >
           {num}
         </Button>
@@ -149,7 +145,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
         onClick={handleDelete}
         className="h-16 text-2xl"
         variant="outline"
-        disabled={!activeInput || !isGroupAdmin || mode}
+        disabled={!activeInput || !isCurrentGroupAdmin || mode}
       >
         ←
       </Button>
@@ -157,7 +153,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
         onClick={() => handleNumberInput(0)}
         className="h-16 text-2xl"
         variant="outline"
-        disabled={!activeInput || !isGroupAdmin || mode}
+        disabled={!activeInput || !isCurrentGroupAdmin || mode}
       >
         0
       </Button>
@@ -165,7 +161,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
         onClick={() => setActiveInput(null)}
         className="h-16 text-2xl"
         variant="outline"
-        disabled={!activeInput || !isGroupAdmin || mode}
+        disabled={!activeInput || !isCurrentGroupAdmin || mode}
       >
         Done
       </Button>
@@ -217,7 +213,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
                 variant={activeInput === 'A' ? "default" : "outline"}
                 onClick={() => setActiveInput('A')}
                 className="w-full h-24 text-4xl"
-                disabled={!isGroupAdmin || mode}
+                disabled={!isCurrentGroupAdmin || mode}
               >
                 {scoreA || '0'}
               </Button>
@@ -233,7 +229,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
                 variant={activeInput === 'B' ? "default" : "outline"}
                 onClick={() => setActiveInput('B')}
                 className="w-full h-24 text-4xl"
-                disabled={!isGroupAdmin || mode}
+                disabled={!isCurrentGroupAdmin || mode}
               >
                 {scoreB || '0'}
               </Button>
@@ -244,7 +240,7 @@ export default function AssignScore({ gameId, mode = false }: AssignScoreProps) 
           {!activeInput && <TeamsList />}
 
           <div className="flex flex-col space-y-4">
-            {!mode && isGroupAdmin && (
+            {!mode && isCurrentGroupAdmin && (
               <Button 
                 onClick={handleSubmit}
                 className="w-full h-12 text-lg"

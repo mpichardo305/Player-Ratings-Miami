@@ -4,13 +4,9 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
-import ApprovedPlayersList from "@/app/components/ApprovedPlayersList";
 import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
-import InviteDialog from "@/app/components/InviteDialog";
-import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
+import { useGroup } from "@/app/context/GroupContext";
 import { Button } from "@/components/ui/button";
-import GroupStats from "../components/PlayerList";
-import { RefreshCw } from "lucide-react";
 import PlayerListAndStats from "../components/PlayerList";
 import { usePlayerId } from "../hooks/usePlayerId";
 
@@ -21,8 +17,7 @@ export default function Players() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '');
-  const [viewOnly, setViewOnly] = useState(false);
+  const { isCurrentGroupAdmin } = useGroup();
   const groupStatsRef = useRef<any>(null);
 
   const handleRefresh = async () => {
@@ -50,10 +45,9 @@ export default function Players() {
 
       {selectedGroup ? (
         <div className="space-y-4">
-          {session && isGroupAdmin && (
+          {session && isCurrentGroupAdmin && (
             <>
               <div className="flex gap-6">
-                {/* ... existing code ... */}
               </div>
               <div>
                 <Button
@@ -72,7 +66,7 @@ export default function Players() {
               onClose={() => setShowApproveDialog(false)} 
               onApprove={() => {}}
               groupId={selectedGroup.id}
-              isGroupAdmin={true}
+              isGroupAdmin={isCurrentGroupAdmin}
             />
           )}
           <PlayerListAndStats

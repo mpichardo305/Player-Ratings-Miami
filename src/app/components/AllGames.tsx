@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { formatTimeOnly, formatDatePreserveDay } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
-import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
+import { useGroup } from "../context/GroupContext"
 import { useRouter } from "next/navigation";
 import {
   PencilIcon,
@@ -41,10 +41,8 @@ export default function AllGames() {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const router = useRouter();
   const session = useSession();
-  const firstGroupId =
-    upcomingGames[0]?.group_id || previousGames[0]?.group_id;
-  const { isAdmin, loading: isAdminLoading } = useGroupAdmin(session?.user?.id ?? "", firstGroupId ?? "");
-  
+  const { currentGroup, isCurrentGroupAdmin } = useGroup();
+
   useEffect(() => {
     const fetchGames = async () => {
       try {
@@ -64,7 +62,7 @@ export default function AllGames() {
     fetchGames();
   }, []);
 
-  if (loading || isAdminLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -175,7 +173,7 @@ export default function AllGames() {
               <StarIcon className="h-5 w-5" />
             </Button>
           )}
-          {isAdmin && activeTab === "upcoming" && (
+          {isCurrentGroupAdmin && activeTab === "upcoming" && (
             <>
               <Button 
                 variant={selectedAction === `edit-${game.id}` ? "default" : "ghost"} 
@@ -203,7 +201,7 @@ export default function AllGames() {
   return (
     <Card className="bg-card">
       <CardHeader>
-        <CardTitle className="text-foreground text-3xl">Games</CardTitle>
+        <CardTitle className="text-foreground text-3xl">{currentGroup?.name}'s Games</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="past" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>

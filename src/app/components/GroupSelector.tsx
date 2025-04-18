@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 import { useGroupAdmin } from '../hooks/useGroupAdmin';
@@ -19,77 +19,176 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Keep your branch's Group interface with isAdmin
 export interface Group {
   id: string;
   name: string;
-};
+  isAdmin: boolean; // From your branch
+}
 
 interface UserGroup {
   group_id: string;
   groups: Group;
 }
 
+// Keep your branch's SupabaseGroup and parseSupabaseGroup
+interface SupabaseGroup {
+  group_id: string;
+  groups: { id: string; name: string } | { id: string; name: string }[];
+}
+
+function parseSupabaseGroup(g: SupabaseGroup): { id: string; name: string } | null {
+  if (!g.groups) return null;
+  if (Array.isArray(g.groups)) {
+    return g.groups.length > 0 ? g.groups[0] : null;
+  } else {
+    return g.groups;
+  }
+}
+
+// Use playerId as per main branch
 type GroupSelectorProps = {
-  playerId: string;
+  playerId: string; // Revert to main's naming
   onGroupSelect: (group: Group) => void;
-  hideEditIcon?: boolean; // New optional prop
+  hideEditIcon?: boolean;
+};
+
+// Keep your branch's mergeGroups function
+const mergeGroups = (adminGroups: Group[], memberGroups: Group[]): Group[] => {
+  console.log('Starting merge with:', {
+    adminGroupsCount: adminGroups.length,
+    memberGroupsCount: memberGroups.length,
+    adminGroups,
+    memberGroups
+  });
+
+  const groupMap = new Map<string, Group>();
+  
+  memberGroups.forEach(group => {
+    console.log('Adding member group:', group);
+    groupMap.set(group.id, group);
+  });
+  
+  adminGroups.forEach(group => {
+    console.log('Adding/updating admin group:', group);
+    groupMap.set(group.id, {
+      ...group,
+      isAdmin: true
+    });
+  });
+
+  const result = Array.from(groupMap.values());
+  console.log('Merge result:', result);
+  
+  return result;
 };
 
 export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
-
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-
-  // now pull admin‐flag by true playerId + groupId
+  
+  // Update useGroupAdmin to use playerId
   const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(
-    playerId,
-    selectedGroupId ?? ""
+    playerId ?? '', // Use playerId as in main
+    selectedGroupId ?? ''
   );
 
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
-  useEffect(() => {
-    const fetchGroups = async () => {
-      // Guard against empty playerId
-      if (!playerId || playerId === "") {
+
+  // Keep your branch's fetchGroups with useCallback, updated for playerId
+  const fetchGroups = useCallback(async () => {
+    // Guard against empty playerId (from main)
+    if (!playerId || playerId === "") {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('🔍 Fetching groups for playerId:', playerId); // Updated log
+
+      const adminQuery = await supabase
+        .from("group_admins")
+        .select(`
+          group_id,
+          groups (
+            id,
+            name
+          )
+        `)
+        .eq("player_id", playerId); // Use playerId
+      
+      console.log('📊 Admin groups raw response:', {
+        data: adminQuery.data,
+        error: adminQuery.error,
+        status: adminQuery.status
+      });
+
+      console.log('Raw adminQuery.data:', adminQuery.data);
+
+      const memberQuery = await supabase
+        .from("group_memberships")
+        .select(`
+          group_id,
+          groups (
+            id,
+            name
+          )
+        `)
+        .eq("player_id", playerId); // Use playerId
+      
+      console.log('📊 Member groups raw response:', {
+        data: memberQuery.data,
+        error: memberQuery.error,
+        status: memberQuery.status
+      });
+
+      console.log('Raw memberQuery.data:', memberQuery.data);
+
+      if (adminQuery.error || memberQuery.error) {
+        console.error("Error fetching groups:", adminQuery.error || memberQuery.error);
         return;
       }
 
-      setIsLoading(true);
-      try {
-        console.log("Fetching groups for playerId:", playerId);
-        const { data: userGroups, error } = await supabase
-          .from("group_admins")
-          .select(`
-            group_id,
-            groups (
-              id,
-              name
-            )
-          `)
-          .eq("player_id", playerId);
-        
-        if (error) {
-          console.error("Error fetching groups:", error.message);
-          return;
+      const adminData = adminQuery.data as SupabaseGroup[];
+      const memberData = memberQuery.data as SupabaseGroup[];
+
+      const adminGroupsList: Group[] = (adminData || [])
+        .map(g => {
+          const groupObj = parseSupabaseGroup(g);
+          return groupObj ? { id: groupObj.id, name: groupObj.name, isAdmin: true } : null;
+        })
+        .filter((g): g is Group => g !== null);
+
+      const memberGroupsList: Group[] = (memberData || [])
+        .map(g => {
+          const groupObj = parseSupabaseGroup(g);
+          return groupObj ? { id: groupObj.id, name: groupObj.name, isAdmin: false } : null;
+        })
+        .filter((g): g is Group => g !== null);
+
+      console.log('📊 Processed groups:', {
+        adminGroups: adminGroupsList,
+        memberGroups: memberGroupsList
+      });
+
+      const uniqueGroups = mergeGroups(adminGroupsList, memberGroupsList);
+      console.log('🎯 Final merged groups:', uniqueGroups);
+
+      setGroups(uniqueGroups);
+      
+      if (uniqueGroups.length > 0) {
+        const currentSelectedExists = uniqueGroups.some(g => g.id === selectedGroupId);
+        if (selectedGroupId && currentSelectedExists) {
+          const currentGroupData = uniqueGroups.find(g => g.id === selectedGroupId);
+          if (currentGroupData) onGroupSelect(currentGroupData);
+        } else {
+          setSelectedGroupId(uniqueGroups[0].id);
+          onGroupSelect(uniqueGroups[0]);
         }
-
-        const validGroups = userGroups
-        ?.filter(ug => ug.groups)
-        .map(ug => ug.groups)
-        .flat() || [];
-
-      setGroups(validGroups);
-      if (validGroups.length > 0) {
-        setSelectedGroupId(validGroups[0].id);
-        onGroupSelect(validGroups[0]);
       } else {
-        const emptyGroup: Group = {
-          id: '',
-          name: ''
-        };
+        const emptyGroup: Group = { id: '', name: '', isAdmin: false };
         setSelectedGroupId('');
         onGroupSelect(emptyGroup);
       }
@@ -99,21 +198,36 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [playerId, selectedGroupId, onGroupSelect, setSelectedGroupId]); // Update dependency
 
-    fetchGroups();
-  }, [playerId, onGroupSelect, setSelectedGroupId]);
+  // Keep your branch's useEffect with cleanup
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadGroups = async () => {
+      await fetchGroups();
+      if (!isMounted) return;
+    };
+    
+    loadGroups();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchGroups]);
 
-  const handleGroupChange = (value: string) => {
+  const handleGroupChange = useCallback((value: string) => {
+    console.log('🟣 GroupSelector value selected:', value);
     setSelectedGroupId(value);
     const group = groups.find(g => g.id === value);
+    console.log('🟤 GroupSelector found group:', group);
     if (group) {
       onGroupSelect(group);
       setCurrentGroup(group);
     }
-  };
+  }, [groups, onGroupSelect, setCurrentGroup, setSelectedGroupId]);
 
-  const handleNameEdit = async () => {
+  const handleNameEdit = useCallback(async () => {
     if (!selectedGroupId || !newName) return;
     const { error } = await supabase
       .from("groups")
@@ -125,7 +239,7 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
       setGroups(groups.map(g => g.id === selectedGroupId ? { ...g, name: newName } : g));
       setEditing(false);
     }
-  };
+  }, [selectedGroupId, newName, groups]);
     
   const handleCancel = async () => {
     setEditing(false);

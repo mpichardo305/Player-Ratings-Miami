@@ -6,13 +6,11 @@ import UnratedPlayersList from '@/app/components/UnratedPlayersList';
 import SessionGuard from '@/app/components/SessionGuard';
 import { supabase } from '@/app/utils/supabaseClient';
 import { hasGameEnded } from '@/app/utils/gameUtils';
-import { formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScoreCheckModal } from '@/app/components/ScoreCheckModal';
-import { useGroupAdmin } from '@/app/hooks/useGroupAdmin';
+import { useGroup } from '@/app/context/GroupContext';
 import { useSession } from "@/app/hooks/useSession";
-import { useGroupName } from "@/app/hooks/useGroupName";
 import { GameDetailsCard } from "@/app/components/GameDetailsCard";
 
 
@@ -35,16 +33,14 @@ function RatePlayersContent() {
   const [error, setError] = useState<string | null>(null);
   const [showScoreCheck, setShowScoreCheck] = useState(false);
   const session = useSession();
-  const [groupId, setGroupId] = useState<string>('');
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', groupId);
-  const { groupName, loading: groupNameLoading } = useGroupName(groupId);
+  const { currentGroup, isCurrentGroupAdmin } = useGroup();
 
-  // Add effect to show score check modal when admin is determined
+  // Update effect to use isCurrentGroupAdmin
   useEffect(() => {
-    if (isGroupAdmin) {
+    if (isCurrentGroupAdmin) {
       setShowScoreCheck(true);
     }
-  }, [isGroupAdmin]);
+  }, [isCurrentGroupAdmin]);
 
   // Get the current user ID and corresponding player ID from Supabase
   useEffect(() => {
@@ -94,7 +90,6 @@ function RatePlayersContent() {
         
         // Set the game data from the API response
         setGame(data);
-        setGroupId(data.group_id);
         
         // Check if game has ended
         if (!hasGameEnded(data.date, data.start_time)) {
@@ -166,7 +161,7 @@ function RatePlayersContent() {
           fieldName={game.field_name ?? ''}
           date={game.date.toString()}
           startTime={game.start_time}
-          groupName={groupName}
+          groupName={currentGroup?.name ?? ''}
         />
       )}
       

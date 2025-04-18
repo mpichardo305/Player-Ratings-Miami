@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameDetailsCard } from './GameDetailsCard';
-import { useGroupName } from '@/app/hooks/useGroupName';
+import { useGroup } from '@/app/context/GroupContext';
 
 interface PlayerSelectionProps {
   gameDetails: GameCreate;
@@ -28,8 +28,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
-  const { groupName, loading: groupNameLoading } = useGroupName(GROUP_ID);
+  const { currentGroup } = useGroup();
   const MAX_PLAYERS = 12;
 
   // Generate Game ID
@@ -54,7 +53,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const fetchPlayers = async () => {
     setLoading(true);
     try {
-      const approvedPlayers = await fetchGroupPlayers(GROUP_ID);
+      const approvedPlayers = await fetchGroupPlayers(currentGroup?.id ?? '');
       setPlayers(approvedPlayers);
     } finally {
       setLoading(false);
@@ -154,7 +153,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
   const buttonText = mode === 'create' ? 'Create Game' : 'Update Players';
   const submittingText = mode === 'create' ? 'Creating...' : 'Updating...';
 
-  if (loading || groupNameLoading) {
+  if (loading) {
     return (
       <div className="flex items-center">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -176,7 +175,7 @@ const PlayerSelection = ({ gameDetails, onBack, mode = 'create', gameId = '', on
             fieldName={gameDetails.field_name}
             date={gameDetails.date.toString()}
             startTime={gameDetails.start_time}
-            groupName={groupName}
+            groupName={currentGroup?.name ?? ''}
           />
           <div className="text-foreground space-y-6">
             <div>

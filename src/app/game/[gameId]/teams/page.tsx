@@ -4,7 +4,7 @@ import AssignTeams from '../../../components/AssignTeams'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useGroupAdmin } from '@/app/hooks/useGroupAdmin'
+import { useGroup } from '@/app/context/GroupContext'
 import { useSession } from '@/app/hooks/useSession'
 
 export default function AssignTeamsPage() {
@@ -17,16 +17,16 @@ export default function AssignTeamsPage() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [adminCheckComplete, setAdminCheckComplete] = useState(false)
   const session = useSession()
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', process.env.NEXT_PUBLIC_GROUP_ID ?? '')
+  const { isCurrentGroupAdmin } = useGroup()
 
   useEffect(() => {
-    if (!initialLoad && adminCheckComplete && !mode && !isGroupAdmin) {
+    if (!initialLoad && adminCheckComplete && !mode && !isCurrentGroupAdmin) {
       console.log("Redirecting to view mode - not an admin")
       router.push(`/game/${gameId}?mode=view`)
     }
     setInitialLoad(false)
     setAdminCheckComplete(true)
-  }, [initialLoad, adminCheckComplete, isGroupAdmin, mode, gameId, router])
+  }, [initialLoad, adminCheckComplete, isCurrentGroupAdmin, mode, gameId, router])
 
   return <AssignTeams gameId={gameId} mode={mode} />
 }

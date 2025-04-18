@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useGroup } from '@/app/context/GroupContext';
 import DatePickerComponent from './DatePickerComponent';
 import PlayerSelection from './PlayerSelection';
 import GameCreationSuccess from './GameCreationSuccess';
@@ -16,10 +17,10 @@ import { Label } from "@/components/ui/label";
 
 const FIELD_OPTIONS = ['KSP', 'Tropical','Killian', 'Revo'];
 const TIME_OPTIONS = ['9:00 AM', '10:00 AM', '11:00 AM', '7:00 PM', '8:00 PM', '9:00 PM'];
-const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e'
 
 export const CreateGame = () => {
   const router = useRouter();
+  const { currentGroup } = useGroup();
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedField, setSelectedField] = useState<string>('');
@@ -139,7 +140,7 @@ export const CreateGame = () => {
               start_time: selectedTime,
               created_at: new Date(),
               updated_at: new Date(),
-              group_id: GROUP_ID,
+              group_id: currentGroup?.id || '', // Use currentGroup from context
             }}
             onBack={() => setStep(1)}
             mode="create"
