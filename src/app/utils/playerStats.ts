@@ -131,6 +131,8 @@ export async function getGameData() {
     return null;
   }
 
+  console.log('Sample game data:', games[0]);
+
   return games;
 }
 
@@ -588,22 +590,35 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
       return null;
     }
 
+    // Add debug logging for the raw data
+    console.log('\n--- Debug: First few games ---');
+    console.log(JSON.stringify(games.slice(0, 2), null, 2));
+
     // Group games by player
     const playerGames = games.reduce((acc, game) => {
-      if (!acc[game.player_id]) {
-        acc[game.player_id] = {
-          name: game.players[0].name,
+      const playerId = game.player_id;
+      // const playerName = game.players.name; // Access the name directly
+
+      if (!acc[playerId]) {
+        // Enhanced logging
+        console.log('\n--- Debug: New Player Game Data ---');
+        console.log('Player ID:', playerId);
+        console.log('Players object:', JSON.stringify(game.players, null, 2));
+        console.log('Full game object:', JSON.stringify(game, null, 2));
+        
+        acc[playerId] = {
+          name: 'playerName',
           games: []
         };
       }
-      acc[game.player_id].games.push(game);
+      acc[playerId].games.push(game);
       return acc;
-    }, {} as Record<string, { name: string; games: typeof games }>) ;
+    }, {} as Record<string, { name: string; games: typeof games }>);
 
     let maxStreak = { player_id: '', name: '', value: 0 };
 
     // Calculate streaks for each player
-    Object.entries(playerGames).forEach(([playerId, data]) => {
+    for (const [playerId, data] of Object.entries(playerGames)) {
       let currentStreak = 0;
       let maxPlayerStreak = 0;
       
@@ -624,13 +639,18 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
 
       // Update max streak if this player has a higher streak
       if (maxPlayerStreak > maxStreak.value) {
-        maxStreak = {
-          player_id: playerId,
-          name: data.name,
-          value: maxPlayerStreak
-        };
+        const playerName = await fetchPlayerName(playerId);
+        if (playerName) { // Only update if we successfully got the name
+          maxStreak = {
+            player_id: playerId,
+            name: playerName,
+            value: maxPlayerStreak
+          };
+        } else {
+          console.warn(`Could not fetch name for player ${playerId}, skipping streak update`);
+        }
       }
-    });
+    }
 
     console.log('Longest win streak found:', maxStreak);
     return maxStreak.value > 0 ? maxStreak : null;
@@ -641,3 +661,18 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
   }
 }
 
+// Function to fetch player name from the players table
+async function fetchPlayerName(playerId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('name')
+    .eq('id', playerId)
+    .single(); // Fetch a single record
+
+  if (error || !data) {
+    console.error('Error fetching player name:', error);
+    return null;
+  }
+
+  return data.name;
+}
