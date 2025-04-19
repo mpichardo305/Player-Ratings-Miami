@@ -7,16 +7,28 @@ import AllGames from './components/AllGames'
 import { supabase } from '@/app/utils/supabaseClient'
 import { usePhoneNumber } from './hooks/usePhoneNumber'
 import { checkPlayerMembership } from './db/checkUserQueries'
-import { getMembershipFromCache, setMembershipCache, clearMembershipCache, GROUP_ID, saveRedirectUrl } from './utils/authUtils'
+import { getMembershipFromCache, setMembershipCache, clearMembershipCache, GROUP_ID, saveRedirectUrl, resolveGroupContext } from './utils/authUtils'
+import { useGroup } from './context/GroupContext' // Add this at the top with other imports
+import { useGroupName } from './hooks/useGroupName'
 
 export default function Home() {
   const { phoneNumber } = usePhoneNumber()
+  const { updateGroupMembership, setCurrentGroup, isCurrentGroupAdmin } = useGroup()
   const [isLoading, setIsLoading] = useState(true)
   const [isMember, setIsMember] = useState(false)
+  const [checkedMembership, setCheckedMembership] = useState(false)
   const router = useRouter()
+
+  // Move the useGroupName hook to the component level
+  const { groupName } = useGroupName(GROUP_ID || '')
 
   useEffect(() => {
     async function checkAuth() {
+      // Skip if we've already checked membership
+      if (checkedMembership) {
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
@@ -58,27 +70,69 @@ export default function Home() {
       // For non-members or no cache data, always verify with DB
       // This ensures recently approved members get updated status
       try {
-        const result = await checkPlayerMembership(phoneNumber, GROUP_ID)
-        console.log('Server membership check result:', result);
+        let activeGroupId = GROUP_ID || '';
         
-        setIsMember(result.isMember)
+        if (!activeGroupId) {
+          console.log('No group ID found, resolving group context...');
+          const resolvedGroupId = await resolveGroupContext(phoneNumber, setCurrentGroup);
+          if (!resolvedGroupId) {
+            console.log('Could not resolve group context');
+            setIsLoading(false);
+            setCheckedMembership(true); // Mark as checked even if failed
+            return;
+          }
+          console.log('Group context resolved, new group ID:', resolvedGroupId);
+          activeGroupId = resolvedGroupId;
+        }
+
+        // Verify group ID is set before proceeding
+        console.log('Using group ID for membership check:', activeGroupId);
         
-        // Update the cache with latest status from DB
+        // Now check membership with the confirmed group ID
+        const result = await checkPlayerMembership(phoneNumber, activeGroupId);
+        console.log('checkPlayerMembership result:', JSON.stringify(result, null, 2));
+        
+        setIsMember(result.isMember);
+        
+        if (result.playerId && result.status) {
+          // Update both membership and group context with the latest data
+          updateGroupMembership(activeGroupId, {
+            isMember: result.isMember,
+            playerId: result.playerId,
+            status: result.status
+          });
+
+          // Update group context with final data
+          const finalGroupData = {
+            id: activeGroupId,
+            name: groupName,
+            isAdmin: isCurrentGroupAdmin,
+            isMember: result.isMember,
+            memberStatus: result.status
+          };
+          setCurrentGroup(finalGroupData);
+        }
+
+        // Mark membership as checked after successful check
+        setCheckedMembership(true);
+
+        // Update cache
         if (session?.user?.id) {
           setMembershipCache(session.user.id, {
             isMember: result.isMember,
             timestamp: new Date().getTime()
-          })
+          });
         }
       } catch (error) {
-        console.error('Error checking membership:', error)
+        console.error('Error checking membership:', error);
+        setCheckedMembership(true); // Mark as checked even if error
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
     
-    checkAuth()
-  }, [phoneNumber, router])
+    checkAuth();
+  }, [phoneNumber, router, updateGroupMembership, setCurrentGroup, isCurrentGroupAdmin, checkedMembership, groupName]); // Add checkedMembership and groupName to deps
 
   // Show loading state
   if (isLoading) {

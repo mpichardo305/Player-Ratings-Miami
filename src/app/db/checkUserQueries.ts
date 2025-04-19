@@ -2,7 +2,13 @@
 
 import { createClient } from '@/app/utils/supabase/server'
 
-export async function checkPlayerMembership(phoneNumber: string, groupId: string) {
+interface PlayerMembershipResult {
+  isMember: boolean;
+  playerId: string | null;
+  status?: string;
+}
+
+export async function checkPlayerMembership(phoneNumber: string, groupId: string): Promise<PlayerMembershipResult> {
   const supabase = createClient()
   
   // Normalize the phone number by removing '+' if present

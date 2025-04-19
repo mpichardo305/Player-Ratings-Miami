@@ -12,6 +12,7 @@ import { ScoreCheckModal } from '@/app/components/ScoreCheckModal';
 import { useGroup } from '@/app/context/GroupContext';
 import { useSession } from "@/app/hooks/useSession";
 import { GameDetailsCard } from "@/app/components/GameDetailsCard";
+import { saveAuthContext } from "@/app/utils/authUtils";
 
 
 type Game = {
@@ -41,6 +42,14 @@ function RatePlayersContent() {
       setShowScoreCheck(true);
     }
   }, [isCurrentGroupAdmin]);
+
+  // Redirect to login if session is not available
+  useEffect(() => {
+    if (!session) {
+      saveAuthContext(params.gameId as string);
+      router.push('/login');
+    }
+  }, [session]);
 
   // Get the current user ID and corresponding player ID from Supabase
   useEffect(() => {

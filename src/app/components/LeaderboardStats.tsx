@@ -41,29 +41,83 @@ const convertToMetricCard = (data: MetricData): MetricCard => ({
   icon: getIconForType(data.iconType)
 });
 
+const getCachedMetric = (key: string, groupId: string) => {
+  if (!groupId) return null; // Don't use cache if no groupId
+
+  const cacheKey = `metric_${groupId}_${key}`;
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached) {
+    const { data, timestamp, cachedGroupId } = JSON.parse(cached);
+    // Only use cache if:
+    // 1. Less than 5 minutes old
+    // 2. Matches current groupId exactly
+    if (Date.now() - timestamp < 5 * 60 * 1000 && cachedGroupId === groupId) {
+      return data;
+    } else {
+      // Clear expired or mismatched cache
+      localStorage.removeItem(cacheKey);
+    }
+  }
+  return null;
+};
+
+const cacheMetric = (key: string, groupId: string, data: any) => {
+  if (!groupId) return; // Don't cache if no groupId
+
+  const cacheKey = `metric_${groupId}_${key}`;
+  localStorage.setItem(cacheKey, JSON.stringify({
+    data,
+    timestamp: Date.now(),
+    cachedGroupId: groupId // Store groupId with cache
+  }));
+};
+
+// Add a function to clear cache for a specific group
+const clearGroupCache = (groupId: string) => {
+  if (!groupId) return; // Don't clear if no groupId
+
+  console.log(`Clearing cache for group ${groupId}`);
+  const keys = Object.keys(localStorage);
+  keys.forEach(key => {
+    if (key.includes(`metric_${groupId}_`)) {
+      console.log(`Removing cache key: ${key}`);
+      localStorage.removeItem(key);
+    }
+  });
+};
+
 const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
-  const calculationRef = useRef(false);
+  const previousGroupId = useRef<string>(groupId);
 
-  const getCachedMetric = (key: string, groupId: string) => {
-    const cached = localStorage.getItem(`${key}_${groupId}`);
-    if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
-      // Use cache if less than 5 minutes old
-      if (Date.now() - timestamp < 5 * 60 * 1000) {
-        return data;
+  useEffect(() => {
+    const updateMetrics = async () => {
+      if (previousGroupId.current !== groupId) {
+        // Clear old group's cache first
+        clearGroupCache(previousGroupId.current);
+        setMetrics([]); // Clear current metrics
+        setMetricsLoading(true);
+        previousGroupId.current = groupId;
       }
-    }
-    return null;
-  };
+      
+      // Calculate new metrics for current group
+      const newMetrics = await calculateMetrics();
+      setMetrics(newMetrics);
+    };
 
-  const cacheMetric = (key: string, groupId: string, data: any) => {
-    localStorage.setItem(`${key}_${groupId}`, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-  };
+    updateMetrics();
+  }, [groupId]); // Only depend on groupId changes
+
+  useEffect(() => {
+    // Cleanup function
+    return () => {
+      if (previousGroupId.current) {
+        clearGroupCache(previousGroupId.current);
+      }
+    };
+  }, []); // Empty dependency array for cleanup
 
   const calculateMetrics = async (): Promise<MetricCard[]> => {
     try {
@@ -123,8 +177,12 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
 
   const getBestPlayerMetric = async () => {
     try {
+      // Include groupId in the cache key
       const cached = getCachedMetric('bestPlayer', groupId);
-      if (cached) return convertToMetricCard(cached);
+      if (cached) {
+        console.log(`Using cached best player for group ${groupId}:`, cached);
+        return convertToMetricCard(cached);
+      }
 
       const response = await fetch(`/api/stats/best-player?groupId=${groupId}`);
       const best = await response.json();
@@ -138,6 +196,7 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
         iconType: 'trophy'
       };
 
+      // Cache with groupId
       cacheMetric('bestPlayer', groupId, metricData);
       return convertToMetricCard(metricData);
     } catch (error) {
@@ -173,13 +232,21 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
 
   const getStreakLeaderPlayer = async () => {
     try {
+      // Include groupId in cache check
       const cached = getCachedMetric('streakLeader', groupId);
-      if (cached) return convertToMetricCard(cached);
+      if (cached) {
+        console.log(`Using cached streak leader for group ${groupId}:`, cached);
+        return convertToMetricCard(cached);
+      }
 
+      console.log(`Fetching new streak leader data for group ${groupId}...`);
       const response = await fetch(`/api/stats/streak-leader?groupId=${groupId}`);
       const streakLeader = await response.json();
       
-      if (!streakLeader) return null;
+      if (!streakLeader) {
+        console.log(`No streak leader found for group ${groupId}`);
+        return null;
+      }
 
       const metricData: MetricData = {
         title: "Consecutive Games Streak Leader",
@@ -188,23 +255,32 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
         iconType: 'repeat'
       };
 
+      // Cache with groupId
       cacheMetric('streakLeader', groupId, metricData);
       return convertToMetricCard(metricData);
     } catch (error) {
-      console.error('Error fetching streak leader:', error);
+      console.error(`Error fetching streak leader for group ${groupId}:`, error);
       return null;
     }
   };
 
   const getMostImprovedPlayer = async () => {
     try {
+      // Include groupId in cache check
       const cached = getCachedMetric('mostImproved', groupId);
-      if (cached) return convertToMetricCard(cached);
+      if (cached) {
+        console.log(`Using cached most improved player for group ${groupId}:`, cached);
+        return convertToMetricCard(cached);
+      }
 
+      console.log(`Fetching new most improved data for group ${groupId}...`);
       const response = await fetch(`/api/stats/most-improved?groupId=${groupId}`);
       const mostImproved = await response.json();
       
-      if (!mostImproved) return null;
+      if (!mostImproved) {
+        console.log(`No most improved player found for group ${groupId}`);
+        return null;
+      }
 
       const metricData: MetricData = {
         title: "Most Improved",
@@ -213,10 +289,11 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
         iconType: 'trendingUp'
       };
 
+      // Cache with groupId
       cacheMetric('mostImproved', groupId, metricData);
       return convertToMetricCard(metricData);
     } catch (error) {
-      console.error('Error fetching most improved player:', error);
+      console.error(`Error fetching most improved player for group ${groupId}:`, error);
       return null;
     }
   };
@@ -254,13 +331,6 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
       return null;
     }
   };
-
-  useEffect(() => {
-    if (!calculationRef.current) {
-      calculationRef.current = true;
-      calculateMetrics().then(setMetrics);
-    }
-  }, []);
 
   const renderMetricCard = (metric: MetricCard, index: number) => (
     <Card key={index} className="bg-secondary border-secondary">

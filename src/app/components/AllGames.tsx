@@ -23,6 +23,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { get } from "lodash";
+import { getUserPlayerId } from "../utils/playerDb";
 
 type Game = {
   id: string;
@@ -40,13 +42,28 @@ export default function AllGames() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("past");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const router = useRouter();
-  const session = useSession();
   const { currentGroup, isCurrentGroupAdmin } = useGroup();
+  const groupId = currentGroup?.id;
+  const groupName = currentGroup?.name;
 
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const response = await fetch("/api/get-games");
+        const cached = localStorage.getItem('playerRatingsMembershipCache');
+        if (!cached) {
+          throw new Error('No player ID found');
+        }
+        
+        const { userId } = JSON.parse(cached);
+        // Wait for the playerId to resolve
+        const playerId = await getUserPlayerId(userId);
+        
+        if (!playerId) {
+          throw new Error('Could not resolve player ID');
+        }
+
+        const response = await fetch(`/api/get-games?playerId=${playerId}`);
+        
         if (!response.ok) {
           throw new Error("Failed to fetch games");
         }
@@ -61,6 +78,10 @@ export default function AllGames() {
     };
     fetchGames();
   }, []);
+
+  useEffect(() => {
+    console.log('Current group:', { id: groupId, name: groupName });
+  }, [groupId, groupName]);
 
   if (loading) {
     return (
@@ -201,7 +222,12 @@ export default function AllGames() {
   return (
     <Card className="bg-card">
       <CardHeader>
-        <CardTitle className="text-foreground text-3xl">{currentGroup?.name}'s Games</CardTitle>
+        <CardTitle className="text-muted-foreground text-1xl">
+          {groupName}
+        </CardTitle>
+        <CardTitle className="text-foreground text-3xl">
+          Games
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="past" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>

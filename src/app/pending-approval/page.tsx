@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Loader2 } from "lucide-react"
 import { Toaster, useToast } from "@/components/ui/toaster"
 import { handleAuthRedirect } from '../utils/authUtils';
+import { useGroup } from '../context/GroupContext';
 
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
@@ -24,6 +25,8 @@ export default function PendingApproval() {
   const router = useRouter()
   const [showLogin, setShowLogin] = useState(false)
   const { toast } = useToast()
+  const { currentGroup } = useGroup();
+  const groupId = currentGroup?.id;
 
   // Get session data when component mounts
   useEffect(() => {
@@ -62,8 +65,8 @@ export default function PendingApproval() {
     console.log("Phone number:", phoneNumber)
 
 
-    if (!phoneNumber) {
-      console.error("Phone number missing, cannot proceed with check")
+    if (!phoneNumber || !groupId) {
+      console.error("Phone number or group ID missing, cannot proceed with check")
       setShowLogin(true);
       return;
     }
@@ -73,8 +76,8 @@ export default function PendingApproval() {
       handleAuthRedirect(router);
     };
     try {
-      console.log(`Checking membership for phone: ${phoneNumber} and group: ${GROUP_ID}`)
-      const result = await checkPlayerMembership(phoneNumber, GROUP_ID)
+      console.log(`Checking membership for phone: ${phoneNumber} and group: ${groupId}`)
+      const result = await checkPlayerMembership(phoneNumber, groupId)
       console.log('Membership check result:', result)
       
       // Increment and save refresh count

@@ -8,8 +8,8 @@ import PhoneAuth from '../components/PhoneAuth'
 import { usePhoneNumber } from '../hooks/usePhoneNumber'
 import { checkPlayerMembership } from '../db/checkUserQueries'
 import InviteRegistration from '../invite/[token]/page'
-import { getMembershipFromCache, cacheMembershipStatus, GROUP_ID, handleAuthRedirect } from '../utils/authUtils'
-
+import { getMembershipFromCache, cacheMembershipStatus, GROUP_ID, handleAuthRedirect, resolveGroupContext, setLastActiveGroup } from '../utils/authUtils'
+import { useGroup } from '../context/GroupContext'
 
 export default function LoginPage() {
   const { phoneNumber } = usePhoneNumber()
@@ -23,6 +23,8 @@ export default function LoginPage() {
   const router = useRouter()
   const params = useParams()
   const token = params?.token as string
+  const { setCurrentGroup } = useGroup();
+  
 
   // Handle authentication state
   useEffect(() => {
@@ -111,7 +113,11 @@ export default function LoginPage() {
       // If session and phone, check membership
       if (session && phoneNumber) {
         try {
-          const result = await checkPlayerMembership(phoneNumber, GROUP_ID)
+          const groupId = await resolveGroupContext(phoneNumber, setCurrentGroup);
+          if (!groupId) {
+            throw new Error('No group ID found');
+          }
+          const result = await checkPlayerMembership(phoneNumber, groupId)
           
           setIsMember(result.isMember)
           setMembershipChecked(true)
@@ -138,6 +144,21 @@ export default function LoginPage() {
 
     checkMembership()
   }, [phoneNumber, session, token, isRefreshing, router])
+
+  useEffect(() => {
+    const handleLogin = async () => {
+      if (!phoneNumber) return;
+      const groupId = await resolveGroupContext(phoneNumber, setCurrentGroup);
+      if (groupId) {
+        setLastActiveGroup(groupId);
+        handleAuthRedirect(router);
+      } else {
+        router.push('/pending-approval');
+      }
+    };
+
+    if (phoneNumber) handleLogin();
+  }, [phoneNumber]);
 
   // Show content when verification is complete or we have cached data
   const showContent = (token && !session) || 

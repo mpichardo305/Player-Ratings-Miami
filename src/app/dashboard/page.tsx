@@ -6,7 +6,7 @@ import { useSession } from "@/app/hooks/useSession";
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
 import ApprovePlayersDialog from "@/app/components/ApprovePlayersDialog";
 import InviteDialog from "@/app/components/InviteDialog";
-import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
+import { useGroup } from "../context/GroupContext"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserPlayerId } from "../utils/playerDb";
@@ -20,15 +20,13 @@ export default function Dashboard() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const { playerId, loading: loadingPlayer } = usePlayerId();
+  const { isCurrentGroupAdmin, setCurrentGroup } = useGroup();
+  const isAdmin = isCurrentGroupAdmin;
 
-  const {
-    isAdmin: isGroupAdmin,
-    loading: isAdminLoading,
-  } = useGroupAdmin(playerId, selectedGroup?.id ?? "");
-
-  // Simplified group selection handler
+  // Add this function to handle group selection
   const handleGroupSelect = (group: Group | null) => {
     setSelectedGroup(group);
+    setCurrentGroup(group); 
   };
 
   // Simplify loading check to only essential states
@@ -65,8 +63,8 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <GroupSelector 
-            playerId={playerId} 
-            onGroupSelect={setSelectedGroup} 
+            playerId={playerId}
+            onGroupSelect={handleGroupSelect}
           />
         </CardContent>
       </Card>
@@ -74,7 +72,7 @@ export default function Dashboard() {
       {/* Add MyStats for all users */}
       <MyStats />
 
-      {session && !isGroupAdmin && (
+      {session && !isAdmin && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground">
@@ -84,7 +82,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {selectedGroup && session && isGroupAdmin && (
+      {selectedGroup && session && isAdmin && (
         <div className="grid gap-4 md:grid-cols-2">
           <Button
             onClick={() => handleCreateGame(selectedGroup.id)}
@@ -105,7 +103,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {selectedGroup && isGroupAdmin && (
+      {selectedGroup && isAdmin && (
         <InviteDialog 
           groupId={selectedGroup.id} 
           onClose={() => setShowApproveDialog(false)}
