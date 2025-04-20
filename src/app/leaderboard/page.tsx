@@ -11,10 +11,18 @@ import { usePlayerId } from "../hooks/usePlayerId";
 export default function LeaderboardPage() {
   const session = useSession();
   const { playerId, loading: loadingPlayer } = usePlayerId();
-  
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  
-  if (!session?.user || loadingPlayer) {
+  const [isClient, setIsClient] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState(null);
+
+  useEffect(() => {
+    // Safe to access localStorage here
+    const storedData = localStorage.getItem('some_key');
+    // ... handle your localStorage logic
+    setIsClient(true);
+  }, []);
+
+  if (!session?.user || !isClient || loadingPlayer) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <Card className="w-[300px]">

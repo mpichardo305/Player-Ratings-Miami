@@ -1,122 +1,102 @@
-'use client'
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useGroupName } from '../hooks/useGroupName';
+'use client';
 
-interface MembershipData {
-  isMember: boolean;
-  playerId: string;
-  status: string;
+import { createContext, useContext, useMemo, useState, useCallback, ReactNode } from 'react';
+
+const LOCAL_STORAGE_KEY = 'currentGroup';
+
+// Helper function to safely access localStorage
+const getFromStorage = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const item = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return item ? JSON.parse(item) : null;
+  } catch (error) {
+    console.warn('Error reading from localStorage:', error);
+    return null;
+  }
+};
+
+// Helper function to safely write to localStorage
+const setToStorage = (value: any) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value) {
+      console.log('Saving to localStorage:', value); // Add this log
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(value));
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn('Error writing to localStorage:', error);
+  }
+};
+
+export interface Group {
+  id: string;
+  name: string;
+  isAdmin: boolean;
+}
+
+export interface GroupContextData extends Group {
+  isMember?: boolean;
+  memberStatus?: string;
 }
 
 interface GroupContextType {
   selectedGroupId: string | null;
   setSelectedGroupId: (id: string) => void;
   currentGroup: GroupContextData | null;
-  setCurrentGroup: (group: GroupContextData | null) => void;
+  setCurrentGroup: (g: GroupContextData | null) => void;
   isCurrentGroupAdmin: boolean;
-  updateGroupMembership: (groupId: string, membershipData: MembershipData) => void;
+  updateGroupMembership: (groupId: string, membershipData: any) => void;
 }
 
-interface GroupContextData {
-  id: string;
-  name: string;
-  isAdmin: boolean;
-  isMember?: boolean;
-  memberStatus?: string;
-}
-
-export const GroupContext = createContext<GroupContextType | undefined>(undefined);
+export const GroupContext = createContext<GroupContextType|undefined>(undefined);
 
 export function GroupProvider({ children }: { children: React.ReactNode }) {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
-    return localStorage.getItem('selectedGroupId') || null;
+    const stored = getFromStorage();
+    return stored ? stored.id : null;
   });
-  const [currentGroup, setCurrentGroup] = useState<GroupContextData | null>(() => {
-    const saved = localStorage.getItem('currentGroup');
-    return saved ? JSON.parse(saved) : null;
+
+  const [currentGroup, internalSetCurrentGroup] = useState<Group | null>(() => {
+    return getFromStorage();
   });
-  const [isClient, setIsClient] = useState(false);
 
-  // Add useGroupName hook for current group
-  const { groupName } = useGroupName(currentGroup?.id ?? '');
-
-  const isCurrentGroupAdmin = currentGroup?.isAdmin ?? false;
-
-  const updateGroupMembership = async (groupId: string, membershipData: MembershipData) => {
+  const updateGroupMembership = useCallback((groupId: string, membershipData: any) => {
     if (currentGroup && currentGroup.id === groupId) {
-      setCurrentGroup({
+      const updatedGroup = {
         ...currentGroup,
-        name: groupName,
-        isMember: membershipData.isMember,
-        memberStatus: membershipData.status
-      });
+        ...membershipData
+      };
+      internalSetCurrentGroup(updatedGroup);
+      setToStorage(updatedGroup);
     }
-  };
+  }, [currentGroup]);
 
-  const updateGroupStorage = (group: GroupContextData | null) => {
-    if (isClient) {
-      if (group) {
-        localStorage.setItem('currentGroup', JSON.stringify(group));
-        localStorage.setItem('selectedGroupId', group.id);
-        localStorage.setItem('lastActiveGroup', JSON.stringify({
-          groupId: group.id,
-          timestamp: Date.now()
-        }));
-      } else {
-        localStorage.removeItem('currentGroup');
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('lastActiveGroup');
-      }
-    }
-  };
-
-  // Safe initialization after mount
-  useEffect(() => {
-    setIsClient(true);
-    const savedGroup = localStorage.getItem('currentGroup');
-    if (savedGroup) {
-      setCurrentGroup(JSON.parse(savedGroup));
-    }
-  }, []);
-
-  // Replace the existing useEffect for storage updates
-  useEffect(() => {
-    if (currentGroup) {
-      updateGroupStorage(currentGroup);
-    }
-  }, [currentGroup, isClient]);
-
-  const setCurrentGroupWithStorage = (group: GroupContextData | null) => {
-    setCurrentGroup(group);
-    setSelectedGroupId(group?.id ?? null);
-    updateGroupStorage(group);
-  };
-
-  // Only render content after client-side hydration
-  if (!isClient) {
-    return null; // or a loading placeholder
-  }
+  const value = useMemo(() => ({
+    selectedGroupId,
+    setSelectedGroupId,
+    currentGroup,
+    setCurrentGroup: (group: Group | null) => {
+      console.log('🟡 setCurrentGroup called with:', group);
+      internalSetCurrentGroup(group);
+      setToStorage(group);
+    },
+    isCurrentGroupAdmin: currentGroup?.isAdmin ?? false,
+    updateGroupMembership
+  }), [selectedGroupId, currentGroup, updateGroupMembership]);
 
   return (
-    <GroupContext.Provider value={{ 
-      currentGroup: currentGroup ? {
-        ...currentGroup,
-        name: groupName || currentGroup.id // Use the groupName from hook
-      } : null,
-      selectedGroupId,
-      setSelectedGroupId,
-      setCurrentGroup: setCurrentGroupWithStorage, // Use the new function
-      isCurrentGroupAdmin,
-      updateGroupMembership
-    }}>
+    <GroupContext.Provider value={value}>
       {children}
     </GroupContext.Provider>
   );
 }
 
 export function useGroup() {
-  const context = useContext(GroupContext);
-  if (context === undefined) {
+  const context = useContext (GroupContext) ;
+  if (context == undefined) {
     throw new Error('useGroup must be used within a GroupProvider');
   }
   return context;

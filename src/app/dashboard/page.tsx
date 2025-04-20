@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
@@ -23,11 +23,10 @@ export default function Dashboard() {
   const { isCurrentGroupAdmin, setCurrentGroup } = useGroup();
   const isAdmin = isCurrentGroupAdmin;
 
-  // Add this function to handle group selection
-  const handleGroupSelect = (group: Group | null) => {
+  const handleGroupSelect = useCallback((group: Group | null) => {
     setSelectedGroup(group);
     setCurrentGroup(group); 
-  };
+  }, [setCurrentGroup]); // Only depends on setCurrentGroup
 
   // Simplify loading check to only essential states
   const isLoading = !session?.user || loadingPlayer;

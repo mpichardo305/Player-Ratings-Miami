@@ -28,9 +28,11 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error || !session) {
-          console.log("No session found, saving path:", window.location.pathname);
-          saveRedirectUrl(window.location.pathname);
-          saveAuthContext(gameId || undefined);
+          // Only access localStorage on the client side
+          if (typeof window !== 'undefined') {
+            saveRedirectUrl(window.location.pathname);
+            saveAuthContext(gameId || undefined);
+          }
           setIsAuthenticated(false);
           router.push('/login');
           return;
@@ -38,7 +40,7 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
 
         // Handle group context resolution if user has phone number
         if (session.user.phone) {
-          await resolveGroupContext(session.user.phone);
+          await resolveGroupContext(session.user.phone, setCurrentGroup);
         }
         
         setIsAuthenticated(true);
@@ -61,7 +63,7 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
           router.push('/login');
         } else if (event === 'SIGNED_IN' && session) {
           if (session.user.phone) {
-            await resolveGroupContext(session.user.phone);
+            await resolveGroupContext(session.user.phone, setCurrentGroup);
           }
           setIsAuthenticated(true);
         }

@@ -1,15 +1,22 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { Session } from '@supabase/supabase-js'
-import { supabase } from '@/app/utils/supabaseClient'
-import PhoneAuth from '../components/PhoneAuth'
-import { usePhoneNumber } from '../hooks/usePhoneNumber'
-import { checkPlayerMembership } from '../db/checkUserQueries'
-import InviteRegistration from '../invite/[token]/page'
-import { getMembershipFromCache, cacheMembershipStatus, GROUP_ID, handleAuthRedirect, resolveGroupContext, setLastActiveGroup } from '../utils/authUtils'
-import { useGroup } from '../context/GroupContext'
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/app/utils/supabaseClient';
+import PhoneAuth from '../components/PhoneAuth';
+import { usePhoneNumber } from '../hooks/usePhoneNumber';
+import { checkPlayerMembership } from '../db/checkUserQueries';
+import InviteRegistration from '../invite/[token]/page';
+import { 
+  getMembershipFromCache, 
+  cacheMembershipStatus, 
+  GROUP_ID, 
+  handleAuthRedirect, 
+  resolveGroupContext,
+  setLastActiveGroup 
+} from '../utils/authUtils';
+import { useGroup } from '../context/GroupContext';
 
 export default function LoginPage() {
   const { phoneNumber } = usePhoneNumber()
