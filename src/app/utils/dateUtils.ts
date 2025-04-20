@@ -1,21 +1,4 @@
-// export function formatDate(dateString: string): string {
-//   try {
-//     const date = new Date(dateString);
-    
-//     return date.toLocaleDateString('en-US', {
-//       weekday: 'short',
-//       month: 'short', 
-//       day: 'numeric',
-//       year: 'numeric',
-//       hour: 'numeric',
-//       minute: '2-digit',
-//       hour12: true
-//     });
-//   } catch (error) {
-//     console.error('Error formatting date:', error);
-//     return dateString;
-//   }
-// }
+import { parseISO, addHours } from 'date-fns';
 
 export const formatTimeOnly = (time: string): string => {
   // Check for various time formats
@@ -156,4 +139,17 @@ export function formatDateTimeRelative(dateString: string): string {
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   return `${Math.floor(diffInSeconds / 86400)}d ago`;
+}
+
+/**
+ * Interpret a YYYY-MM-DD date and HH:mm:ss time as
+ * America/New_York (EST), and return a UTC Date.
+ * Assumes EST (UTC-5) without daylight saving time.
+ */
+export function estDateTimeToUtc(date: string, time: string): Date {
+  // Parse the combined date+time string
+  const localDate = parseISO(`${date}T${time}`);
+  
+  // Add 5 hours to convert from EST to UTC
+  return addHours(localDate, 5);
 }

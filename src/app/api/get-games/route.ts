@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { estDateTimeToUtc } from '@/app/utils/dateUtils';  // ← new import
 
-// Initialize Supabase client with environment variables
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -32,40 +32,37 @@ export async function GET() {
       accessibleGroupIds.push(groupId);
     }
 
-    // Get today's date in YYYY-MM-DD format for comparison
-    const today = new Date().toISOString().split('T')[0];
-
-    // Fetch upcoming games (today and future)
-    const { data: upcomingGames, error: upcomingError } = await supabase
+    // Fetch ALL games for those groups
+    const { data: games, error } = await supabase
       .from('games')
       .select('id, start_time, date, field_name, group_id')
-      .in('group_id', accessibleGroupIds)
-      .gte('date', today)
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true });
+      .in('group_id', accessibleGroupIds);
 
-    if (upcomingError) {
-      console.error('Error fetching upcoming games:', upcomingError);
-      return NextResponse.json({ error: 'Failed to fetch upcoming games' }, { status: 500 });
+    if (error) {
+      console.error('Error fetching games:', error);
+      return NextResponse.json({ error: 'Failed to fetch games' }, { status: 500 });
     }
 
-    // Fetch previous games (past dates)
-    const { data: previousGames, error: previousError } = await supabase
-      .from('games')
-      .select('id, start_time, date, field_name, group_id')
-      .in('group_id', accessibleGroupIds)
-      .lt('date', today)
-      .order('date', { ascending: false })
-      .order('start_time', { ascending: true });
+    const nowUtc = new Date();
+    const upcomingGames: typeof games = [];
+    const previousGames: typeof games = [];
 
-    if (previousError) {
-      console.error('Error fetching previous games:', previousError);
-      return NextResponse.json({ error: 'Failed to fetch previous games' }, { status: 500 });
-    }
+    games.forEach((g) => {
+      const gameUtc = estDateTimeToUtc(g.date, g.start_time);
+      if (gameUtc > nowUtc) upcomingGames.push(g);
+      else previousGames.push(g);
+    });
+
+    // Optional: sort your lists
+    const sortAsc = (a: any, b: any) =>
+      estDateTimeToUtc(a.date, a.start_time).getTime() -
+      estDateTimeToUtc(b.date, b.start_time).getTime();
+    upcomingGames.sort(sortAsc);
+    previousGames.sort((a, b) => sortAsc(b, a));
 
     return NextResponse.json({ upcomingGames, previousGames });
-  } catch (error) {
-    console.error('Unexpected error:', error);
+  } catch (e) {
+    console.error('Unexpected error:', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
