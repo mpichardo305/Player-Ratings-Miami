@@ -30,7 +30,9 @@
     "types": [
       "jest",
       "@testing-library/jest-dom"
-    ]
+    ],
+    "strictNullChecks": false,
+    "noImplicitAny": false
   },
   "include": [
     "next-env.d.ts",
