@@ -50,54 +50,56 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-
-  // Fetch groups where the user is an admin
-  // hardcoding the admin player id for now but should be sessionUserId
   useEffect(() => {
     const fetchGroups = async () => {
-      console.log("playerId",playerId)
-      setIsLoading(true);
-      try {
-      const { data: userGroups, error } = await supabase
-        .from("group_admins")
-        .select(`
-          group_id,
-          groups (
-            id,
-            name
-          )
-        `)
-        .eq("player_id", playerId);
-      
-      if (error) {
-        console.error("Error fetching groups:", error.message);
+      // Guard against empty playerId
+      if (!playerId || playerId === "") {
         return;
       }
 
-      const validGroups = userGroups
-      ?.filter(ug => ug.groups)
-      .map(ug => ug.groups)
-      .flat() || [];
+      setIsLoading(true);
+      try {
+        console.log("Fetching groups for playerId:", playerId);
+        const { data: userGroups, error } = await supabase
+          .from("group_admins")
+          .select(`
+            group_id,
+            groups (
+              id,
+              name
+            )
+          `)
+          .eq("player_id", playerId);
+        
+        if (error) {
+          console.error("Error fetching groups:", error.message);
+          return;
+        }
 
-    setGroups(validGroups);
-    if (validGroups.length > 0) {
-      setSelectedGroupId(validGroups[0].id);
-      onGroupSelect(validGroups[0]);
-    } else {
-      const emptyGroup: Group = {
-        id: '',
-        name: ''
-      };
-      setSelectedGroupId('');
-      onGroupSelect(emptyGroup);
+        const validGroups = userGroups
+        ?.filter(ug => ug.groups)
+        .map(ug => ug.groups)
+        .flat() || [];
+
+      setGroups(validGroups);
+      if (validGroups.length > 0) {
+        setSelectedGroupId(validGroups[0].id);
+        onGroupSelect(validGroups[0]);
+      } else {
+        const emptyGroup: Group = {
+          id: '',
+          name: ''
+        };
+        setSelectedGroupId('');
+        onGroupSelect(emptyGroup);
+      }
+
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    } finally {
+      setIsLoading(false);
     }
-
-  } catch (error) {
-    console.error("Error fetching groups:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
     fetchGroups();
   }, [playerId, onGroupSelect, setSelectedGroupId]);
