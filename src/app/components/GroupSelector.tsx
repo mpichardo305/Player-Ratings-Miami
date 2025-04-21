@@ -209,10 +209,6 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
     }
   }, [playerId]);
 
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]); 
-
   const handleGroupChange = useCallback((value: string) => {
     console.log('🟣 GroupSelector value selected:', value);
     setSelectedGroupId(value);
@@ -243,22 +239,18 @@ const handleNameEdit = useCallback(async () => {
   };
   useEffect(() => {
     let isMounted = true;
-    
     if (!playerId) {
       return; // Don't fetch if we don't have a playerId yet
     }
-    
     const loadGroups = async () => {
       await fetchGroups();
       if (!isMounted) return;
     };
-    
     loadGroups();
-    
     return () => {
       isMounted = false;
     };
-  }, [fetchGroups, playerId]); // Add playerId to dependencies
+  }, [fetchGroups, playerId]);
   
   return (
     <div className="space-y-4">
