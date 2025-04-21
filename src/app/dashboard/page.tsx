@@ -12,14 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserPlayerId } from "../utils/playerDb";
 import { Loader2 } from "lucide-react";
 import MyStats from "../components/MyStats";
+import { usePlayerId } from "../hooks/usePlayerId";
 
 export default function Dashboard() {
   const router = useRouter();
   const session = useSession();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const [playerId, setPlayerId] = useState<string>('');
-  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  const { playerId, loading: loadingPlayer } = usePlayerId();
 
   const {
     isAdmin: isGroupAdmin,
@@ -31,20 +31,8 @@ export default function Dashboard() {
     setSelectedGroup(group);
   };
 
-  useEffect(() => {
-    async function fetchPlayerId() {
-      if (session?.user?.id) {
-        setIsLoadingPlayer(true);
-        const id = await getUserPlayerId(session.user.id);
-        setPlayerId(id ?? "");
-        setIsLoadingPlayer(false);
-      }
-    }
-    fetchPlayerId();
-  }, [session?.user?.id]);
-
   // Simplify loading check to only essential states
-  const isLoading = !session?.user || isLoadingPlayer;
+  const isLoading = !session?.user || loadingPlayer;
 
   if (isLoading) {
     return (
@@ -77,7 +65,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <GroupSelector 
-            sessionUserId={session.user.id} 
+            playerId={playerId} 
             onGroupSelect={setSelectedGroup} 
           />
         </CardContent>

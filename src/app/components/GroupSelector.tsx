@@ -30,71 +30,79 @@ interface UserGroup {
 }
 
 type GroupSelectorProps = {
-  sessionUserId: string;
+  playerId: string;
   onGroupSelect: (group: Group) => void;
   hideEditIcon?: boolean; // New optional prop
 };
 
-export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
+export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
 
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(sessionUserId ?? '', selectedGroupId ?? '');
+
+  // now pull admin‐flag by true playerId + groupId
+  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(
+    playerId,
+    selectedGroupId ?? ""
+  );
+
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-
-  // Fetch groups where the user is an admin
-  // hardcoding the admin player id for now but should be sessionUserId
   useEffect(() => {
     const fetchGroups = async () => {
-      console.log("sessionUserId",sessionUserId)
-      setIsLoading(true);
-      try {
-      const { data: userGroups, error } = await supabase
-        .from("group_admins")
-        .select(`
-          group_id,
-          groups (
-            id,
-            name
-          )
-        `)
-        .eq("player_id", "3e0a04fb-6e4b-41ee-899f-a7f1190b57f5");
-      
-      if (error) {
-        console.error("Error fetching groups:", error.message);
+      // Guard against empty playerId
+      if (!playerId || playerId === "") {
         return;
       }
 
-      const validGroups = userGroups
-      ?.filter(ug => ug.groups)
-      .map(ug => ug.groups)
-      .flat() || [];
+      setIsLoading(true);
+      try {
+        console.log("Fetching groups for playerId:", playerId);
+        const { data: userGroups, error } = await supabase
+          .from("group_admins")
+          .select(`
+            group_id,
+            groups (
+              id,
+              name
+            )
+          `)
+          .eq("player_id", playerId);
+        
+        if (error) {
+          console.error("Error fetching groups:", error.message);
+          return;
+        }
 
-    setGroups(validGroups);
-    if (validGroups.length > 0) {
-      setSelectedGroupId(validGroups[0].id);
-      onGroupSelect(validGroups[0]);
-    } else {
-      const emptyGroup: Group = {
-        id: '',
-        name: ''
-      };
-      setSelectedGroupId('');
-      onGroupSelect(emptyGroup);
+        const validGroups = userGroups
+        ?.filter(ug => ug.groups)
+        .map(ug => ug.groups)
+        .flat() || [];
+
+      setGroups(validGroups);
+      if (validGroups.length > 0) {
+        setSelectedGroupId(validGroups[0].id);
+        onGroupSelect(validGroups[0]);
+      } else {
+        const emptyGroup: Group = {
+          id: '',
+          name: ''
+        };
+        setSelectedGroupId('');
+        onGroupSelect(emptyGroup);
+      }
+
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    } finally {
+      setIsLoading(false);
     }
-
-  } catch (error) {
-    console.error("Error fetching groups:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
     fetchGroups();
-  }, [sessionUserId, onGroupSelect, setSelectedGroupId]);
+  }, [playerId, onGroupSelect, setSelectedGroupId]);
 
   const handleGroupChange = (value: string) => {
     setSelectedGroupId(value);

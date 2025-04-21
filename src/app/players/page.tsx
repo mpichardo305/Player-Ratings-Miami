@@ -12,10 +12,12 @@ import { Button } from "@/components/ui/button";
 import GroupStats from "../components/PlayerList";
 import { RefreshCw } from "lucide-react";
 import PlayerListAndStats from "../components/PlayerList";
+import { usePlayerId } from "../hooks/usePlayerId";
 
 export default function Players() {
   const router = useRouter();
   const session = useSession();
+  const { playerId, loading: loadingPlayer } = usePlayerId();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -34,7 +36,7 @@ export default function Players() {
     }
   };
 
-  if (!session?.user) {
+  if (!session?.user || loadingPlayer) {
     return <div>Loading session...</div>;
   }
 
@@ -43,7 +45,7 @@ export default function Players() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold pt-2 pb-2 text-white">Players</h1>
         
-        <GroupSelector sessionUserId={session.user.id} onGroupSelect={setSelectedGroup} hideEditIcon={true}/>
+        <GroupSelector   playerId={playerId} onGroupSelect={setSelectedGroup} hideEditIcon={true}/>
       </div>
 
       {selectedGroup ? (

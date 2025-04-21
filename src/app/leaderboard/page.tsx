@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "@/app/hooks/useSession";
+import { getUserPlayerId } from "@/app/utils/playerDb";
 import LeaderboardStats from '@/app/components/LeaderboardStats';
 import GroupSelector, { Group } from "@/app/components/GroupSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-
+import { usePlayerId } from "../hooks/usePlayerId";
 export default function LeaderboardPage() {
   const session = useSession();
+  const { playerId, loading: loadingPlayer } = usePlayerId();
+  
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-
-  if (!session?.user) {
+  
+  if (!session?.user || loadingPlayer) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <Card className="w-[300px]">
@@ -30,7 +33,7 @@ export default function LeaderboardPage() {
         <h1 className="text-3xl font-bold pt-2 pb-2 text-white">Leaderboard</h1>
         
         <GroupSelector 
-          sessionUserId={session.user.id} 
+          playerId={playerId} 
           onGroupSelect={setSelectedGroup} 
           hideEditIcon={true}
         />
