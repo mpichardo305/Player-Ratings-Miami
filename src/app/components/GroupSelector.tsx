@@ -97,6 +97,11 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const fetchGroups = useCallback(async () => {
+    if (!playerId) {
+      console.log('No playerId available, skipping fetch');
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Debug logging for inputs
@@ -239,6 +244,10 @@ const handleNameEdit = useCallback(async () => {
   useEffect(() => {
     let isMounted = true;
     
+    if (!playerId) {
+      return; // Don't fetch if we don't have a playerId yet
+    }
+    
     const loadGroups = async () => {
       await fetchGroups();
       if (!isMounted) return;
@@ -249,7 +258,7 @@ const handleNameEdit = useCallback(async () => {
     return () => {
       isMounted = false;
     };
-  }, [fetchGroups]);
+  }, [fetchGroups, playerId]); // Add playerId to dependencies
   
   return (
     <div className="space-y-4">

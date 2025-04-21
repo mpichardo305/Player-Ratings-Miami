@@ -16,13 +16,10 @@ export default function LeaderboardPage() {
   const [leaderboardData, setLeaderboardData] = useState(null);
 
   useEffect(() => {
-    // Safe to access localStorage here
-    const storedData = localStorage.getItem('some_key');
-    // ... handle your localStorage logic
     setIsClient(true);
   }, []);
 
-  if (!session?.user || !isClient || loadingPlayer) {
+  if (!session?.user || !isClient || loadingPlayer || !playerId) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <Card className="w-[300px]">
