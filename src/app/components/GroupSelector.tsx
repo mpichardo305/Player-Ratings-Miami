@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 import { useGroupAdmin } from '../hooks/useGroupAdmin';
+import { getUserPlayerId } from "@/app/utils/playerDb";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,27 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
 
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(sessionUserId ?? '', selectedGroupId ?? '');
+
+  // NEW: fetch the playerId from your DB
+  const [playerId, setPlayerId] = useState<string>("");
+  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  useEffect(() => {
+    async function fetchPlayerId() {
+      if (!sessionUserId) return;
+      setIsLoadingPlayer(true);
+      const id = await getUserPlayerId(sessionUserId);
+      setPlayerId(id ?? "");
+      setIsLoadingPlayer(false);
+    }
+    fetchPlayerId();
+  }, [sessionUserId]);
+
+  // now pull admin‐flag by true playerId + groupId
+  const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(
+    playerId,
+    selectedGroupId ?? ""
+  );
+
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
