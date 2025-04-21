@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/app/utils/supabaseClient";
 import { useGroup } from '../context/GroupContext';
 import { useGroupAdmin } from '../hooks/useGroupAdmin';
-import { getUserPlayerId } from "@/app/utils/playerDb";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,29 +30,15 @@ interface UserGroup {
 }
 
 type GroupSelectorProps = {
-  sessionUserId: string;
+  playerId: string;
   onGroupSelect: (group: Group) => void;
   hideEditIcon?: boolean; // New optional prop
 };
 
-export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
+export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
 
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-
-  // NEW: fetch the playerId from your DB
-  const [playerId, setPlayerId] = useState<string>("");
-  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
-  useEffect(() => {
-    async function fetchPlayerId() {
-      if (!sessionUserId) return;
-      setIsLoadingPlayer(true);
-      const id = await getUserPlayerId(sessionUserId);
-      setPlayerId(id ?? "");
-      setIsLoadingPlayer(false);
-    }
-    fetchPlayerId();
-  }, [sessionUserId]);
 
   // now pull admin‐flag by true playerId + groupId
   const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(
@@ -70,7 +55,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
   // hardcoding the admin player id for now but should be sessionUserId
   useEffect(() => {
     const fetchGroups = async () => {
-      console.log("sessionUserId",sessionUserId)
+      console.log("playerId",playerId)
       setIsLoading(true);
       try {
       const { data: userGroups, error } = await supabase
@@ -82,7 +67,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
             name
           )
         `)
-        .eq("player_id", "3e0a04fb-6e4b-41ee-899f-a7f1190b57f5");
+        .eq("player_id", playerId);
       
       if (error) {
         console.error("Error fetching groups:", error.message);
@@ -115,7 +100,7 @@ export default function GroupSelector({ sessionUserId, onGroupSelect, hideEditIc
 };
 
     fetchGroups();
-  }, [sessionUserId, onGroupSelect, setSelectedGroupId]);
+  }, [playerId, onGroupSelect, setSelectedGroupId]);
 
   const handleGroupChange = (value: string) => {
     setSelectedGroupId(value);
