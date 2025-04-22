@@ -40,6 +40,7 @@ const MyStats: React.FC<MyStatsProps> = ({ groupId }) => {
   const session = useSession();
   const [playerId, setPlayerId] = useState<string>("");
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [stats, setStats] = useState<PlayerGameStats | null>(null);
   const previousGroupId = useRef<string>(groupId);
 
@@ -65,28 +66,29 @@ const MyStats: React.FC<MyStatsProps> = ({ groupId }) => {
 
   useEffect(() => {
     async function fetchPlayerStats() {
-      if (playerId) {
-        const playerStats = await getPlayerStats(playerId, groupId);
-        if (playerStats) {
-          setStats({
-            winRatios: playerStats[6].value,      // Win Ratio is now at index 6
-            gamesPlayed: playerStats[0].value,     // Games Played
-            totalWins: playerStats[1].value,       // Total Wins
-            currentStreak: playerStats[2].value,   // Current Streak
-            initialAverage: playerStats[3].value,  // Initial Average
-            latestAverage: playerStats[4].value,   // Latest Average
-            improvement: playerStats[5].value,     // Rating Improvement
-            winStreak: playerStats[7].value        // Win Streak (new)
-          });
-        }
+      if (!playerId) return;
+      setIsLoadingStats(true);
+      const playerStats = await getPlayerStats(playerId, groupId);
+      if (playerStats) {
+        setStats({
+          winRatios: playerStats[6].value,      // Win Ratio is now at index 6
+          gamesPlayed: playerStats[0].value,     // Games Played
+          totalWins: playerStats[1].value,       // Total Wins
+          currentStreak: playerStats[2].value,   // Current Streak
+          initialAverage: playerStats[3].value,  // Initial Average
+          latestAverage: playerStats[4].value,   // Latest Average
+          improvement: playerStats[5].value,     // Rating Improvement
+          winStreak: playerStats[7].value        // Win Streak (new)
+        });
       }
+      setIsLoadingStats(false);
     }
     
     fetchPlayerStats();
   }, [playerId, groupId]);
 
   // Add loading state UI
-  if (isLoadingPlayer || !playerId) {
+  if (isLoadingPlayer || !playerId || isLoadingStats) {
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center">
