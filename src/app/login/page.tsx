@@ -168,9 +168,14 @@ export default function LoginPage() {
   }, [phoneNumber]);
 
   // Show content when verification is complete or we have cached data
-  const showContent = (token && !session) || 
-                     (!session && document.cookie.indexOf('supabase-auth-token') === -1) || 
-                     (session && (membershipChecked || prevVerified))
+  const hasAuthCookie =
+    typeof window !== 'undefined' &&
+    document.cookie.includes('supabase-auth-token')
+
+  const showContent =
+    (token && !session) ||
+    (!session && !hasAuthCookie) ||
+    (session && (membershipChecked || prevVerified))
 
   if (!showContent) {
     return (
