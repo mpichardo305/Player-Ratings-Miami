@@ -69,7 +69,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Add MyStats for all users */}
-      <MyStats />
+      <MyStats groupId={selectedGroup.id}/>
 
       {session && !isAdmin && (
         <Card>
