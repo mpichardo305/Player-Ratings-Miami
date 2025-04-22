@@ -68,8 +68,18 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Add MyStats for all users */}
-      <MyStats groupId={selectedGroup.id}/>
+      {/* Render MyStats only when a group is selected */}
+      {selectedGroup ? (
+        <MyStats groupId={selectedGroup.id}/>
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">
+              Please select a group to view stats
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {session && !isAdmin && (
         <Card>
