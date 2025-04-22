@@ -6,11 +6,12 @@ import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '@/app/components/PhoneAuth'
 import { validateInvite } from '@/app/actions/invite'
 import PlayerNameForm from '@/app/components/PlayerNameForm'
-import { createInitialPlayer, updatePlayerName } from '@/app/db/playerQueries'
+import { createInitialPlayer, getPlayerByPhone, updatePlayerName } from '@/app/db/playerQueries'
 import { createGroupMembership, markInviteAsUsed, updateInviteWithPlayer } from '@/app/db/inviteQueries'
 import { usePhoneNumber } from '@/app/hooks/usePhoneNumber'
 import { Loader2 } from 'lucide-react'
 import { useToast } from "@/components/ui/toaster"
+import ReturningPlayerNewGroup from '@/app/components/ReturningPlayerNewGroup';
 
 interface Invite {
   id: string
@@ -29,7 +30,8 @@ export default function InviteRegistration() {
   const token = params?.token as string;
   const router = useRouter();
   const [invite, setInvite] = useState<Invite | null>(null);
-  const [nextPage, setnextPage] = useState<boolean>(false);
+  const [nextPage, setNextPage] = useState<boolean>(false);
+  const [isReturning, setIsReturning] = useState(false);
   const [error, setError] = useState<string>('');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -152,16 +154,28 @@ export default function InviteRegistration() {
       // Check if invite already has a player_id before creating a new one
       if (inviteData.player_id) {
         console.log('Invite already has a player assigned, skipping player creation');
-        setnextPage(true);
+        setNextPage(true);
         return;
       }
 
-      // Create player record with proper user association
-      const { data: playerData, error: playerError } = await createInitialPlayer(newUserId, sanitizedPhone);
-      if (playerError) throw playerError;
+    // 1) see if this phone is already in players
+    const { data: existing, error: lookupErr } = await getPlayerByPhone(sanitizedPhone)
+    if (lookupErr) throw lookupErr
 
-      await updateInviteWithPlayer(inviteData.id, playerData.id);
-      setnextPage(true);
+    let actualPlayerId = existing?.id
+    // 2) if no existing, create new
+    if (!actualPlayerId) {
+      const { data: newPlayer, error: newErr } = await createInitialPlayer(newUserId, sanitizedPhone)
+      if (newErr) throw newErr
+      actualPlayerId = newPlayer.id
+      setNextPage(true);
+    }
+    // 3) link invite → player
+    if (actualPlayerId) {
+    await updateInviteWithPlayer(inviteData.id, actualPlayerId)
+    setIsReturning(true);
+    setNextPage(true);
+    }
     } catch (error) {
       console.error('Error in handleSignupSuccess:', error);
       setError('Failed to complete signup');
@@ -183,6 +197,17 @@ export default function InviteRegistration() {
     } catch (error) {
       console.error('Error completing signup:', error);
       setError('Failed to complete signup');
+    }
+  }
+    const handleReturningConfirm = async () => {
+    if (!invite) return
+    try {
+      await markInviteAsUsed(invite.id)
+      await createGroupMembership(invite.player_id, invite.group_id)
+      await router.replace('/pending-approval')
+    } catch (err) {
+      console.error(err)
+      setError('Failed to add you to the new group')
     }
   }
 
@@ -212,9 +237,11 @@ export default function InviteRegistration() {
           <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
             <PhoneAuth onVerificationSuccess={handleSignupSuccess}/>
           </div>
-        ) : (
-          <PlayerNameForm onSubmit={handleNameSubmit} />
-        )}
+       ) : isReturning ? (
+        <ReturningPlayerNewGroup onConfirm={handleReturningConfirm} />
+      ) : (
+        <PlayerNameForm onSubmit={handleNameSubmit} />
+      )}
     </div>
   )
 }

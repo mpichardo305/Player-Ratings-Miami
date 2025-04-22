@@ -30,3 +30,12 @@ export async function updatePlayerName(playerId: string, playerName: string, use
     .single()
 }
 
+export async function getPlayerByPhone(phone: string) {
+  const supabase = createClient()
+  return await supabase
+    .from('players')
+    .select('id, phone')
+    .eq('phone', phone)
+    .single()
+}
+
