@@ -25,6 +25,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { get } from "lodash";
 import { getUserPlayerId } from "../utils/playerDb";
+import GroupSelector, { Group } from "./GroupSelector";
 
 type Game = {
   id: string;
@@ -43,9 +44,16 @@ export default function AllGames() {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const router = useRouter();
   const { currentGroup, isCurrentGroupAdmin } = useGroup();
-  const groupId = currentGroup?.id;
-  const groupName = currentGroup?.name;
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const groupId   = selectedGroup?.id   ?? currentGroup?.id;
+  const groupName = selectedGroup?.name ?? currentGroup?.name;
 
+  const handleGroupChange = (group: Group) => {
+    console.log('Group changed:', group);
+    setSelectedGroup(group);
+    // Add any additional logic needed when group changes
+  };
   useEffect(() => {
     const fetchGames = async () => {
       try {
@@ -57,12 +65,15 @@ export default function AllGames() {
         const { userId } = JSON.parse(cached);
         // Wait for the playerId to resolve
         const playerId = await getUserPlayerId(userId);
+        setCurrentPlayerId(playerId);
         
         if (!playerId) {
           throw new Error('Could not resolve player ID');
         }
 
-        const response = await fetch(`/api/get-games?playerId=${playerId}`);
+        const url = `/api/get-games?playerId=${playerId}` +
+                    (groupId ? `&groupId=${groupId}` : "");
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error("Failed to fetch games");
@@ -77,7 +88,7 @@ export default function AllGames() {
       }
     };
     fetchGames();
-  }, []);
+  }, [selectedGroup]);
 
   useEffect(() => {
     console.log('Current group:', { id: groupId, name: groupName });
@@ -222,11 +233,16 @@ export default function AllGames() {
   return (
     <Card className="bg-card">
       <CardHeader>
-        <CardTitle className="text-muted-foreground text-1xl">
-          {groupName}
-        </CardTitle>
+       
         <CardTitle className="text-foreground text-3xl">
           Games
+        </CardTitle>
+        <CardTitle className="text-muted-foreground text-1xl">
+          <GroupSelector 
+            hideEditIcon 
+            playerId={currentPlayerId}
+            onGroupSelect={handleGroupChange}
+          />
         </CardTitle>
       </CardHeader>
       <CardContent>

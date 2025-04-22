@@ -70,8 +70,14 @@ interface GameWithPlayer {
   }[];  // Note the array type here
 }
 
-export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
-  const { data, error } = await supabase
+export async function getPlayerWinRatios(groupId: string): Promise<PlayerWinRatio[] | null> {
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
+    return null;
+  }
+  const groupPlayerNames = groupPlayers.map(player => player.name);
+   const { data, error } = await supabase
     .from('game_players')
     .select(`
       player_id,
@@ -91,7 +97,10 @@ export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
 
   const playerStats = data.reduce((acc, player) => {
     const { player_id, game_outcome, players } = player;
-
+    if (!groupPlayerNames.includes(acc.players?.name)) {
+      // Skip players not in the group
+      return acc;
+    }
     if (!acc[player_id]) {
       acc[player_id] = {
         totalGames: 0,
@@ -497,13 +506,19 @@ export async function getBestPlayer(groupId: string): Promise<PlayerStats | null
   
 }
 
-export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | null> {
+export async function getPlayerStats(playerId: string, groupId: string): Promise<PlayerStats[] | null> {
   try {
     // Get win ratio data for the player
-    const winRatios = await getPlayerWinRatios();
+    const winRatios = await getPlayerWinRatios(groupId);
     const winRatioData = winRatios?.find(p => p.player_id === playerId);
     const playerWinRatio = winRatioData?.win_ratio || 0;
-
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (groupPlayers.length === 0) {
+      console.log('No players found in group:', groupId);
+      return null;
+    }
+    // const playerIds = groupPlayers.map(player => player.id);
+    const groupPlayerNames = groupPlayers.map(player => player.name);
     // Get game ratings data
     const { data: gameRatings, error: ratingsError } = await supabase
       .from('game_ratings')
@@ -539,8 +554,7 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
 
     // Group ratings by player
     const playerStats = gameRatings.reduce((acc, curr) => {
-      if (!curr.players?.name) {
-        console.log('Skipping rating with missing player data:', curr);
+      if (!curr.players?.name || !groupPlayerNames.includes(curr.players.name)) {
         return acc;
       }
 

@@ -44,16 +44,22 @@ export async function GET(request: Request) {
             // Remove duplicates using Set
       const uniqueGroupIds = [...new Set(accessibleGroupIds)];
     
-    // Add the specific group ID if not already included
-    if (groupId && !uniqueGroupIds.includes(groupId)) {
-      uniqueGroupIds.push(groupId);
-    }
+      // Build the games fetch query conditionally
+      let gamesQuery = supabase
+        .from('games')
+        .select('id, start_time, date, field_name, group_id');
+
+      if (groupId) {
+        // only this one group
+        gamesQuery = gamesQuery.eq('group_id', groupId);
+      } else {
+        // all groups the player can access
+        gamesQuery = gamesQuery.in('group_id', uniqueGroupIds);
+      }
+
 
     // Fetch ALL games for those groups
-    const { data: games, error } = await supabase
-      .from('games')
-      .select('id, start_time, date, field_name, group_id')
-      .in('group_id', uniqueGroupIds);
+    const { data: games, error } = await gamesQuery
 
     if (error) {
       console.error('Error fetching games:', error);

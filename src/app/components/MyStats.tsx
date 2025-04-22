@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/app/hooks/useSession";
 import { getUserPlayerId } from "../utils/playerDb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +18,31 @@ interface PlayerGameStats {
   totalWins: number;  
   winStreak: number;  
 }
+type MyStatsProps = {
+  groupId: string;
+  onGroupChange?: (groupId: string) => void;
+};
 
-export default function MyStats() {
+// Add a function to clear cache for a specific group
+const clearGroupCache = (groupId: string) => {
+  if (!groupId) return; // Don't clear if no groupId
+
+  console.log(`Clearing cache for group ${groupId}`);
+  const keys = Object.keys(localStorage);
+  keys.forEach(key => {
+    if (key.includes(`metric_${groupId}_`)) {
+      console.log(`Removing cache key: ${key}`);
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+const MyStats: React.FC<MyStatsProps> = ({ groupId, onGroupChange }) => {
   const session = useSession();
   const [playerId, setPlayerId] = useState<string>("");
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [stats, setStats] = useState<PlayerGameStats | null>(null);
+  const previousGroupId = useRef<string>(groupId);
 
   useEffect(() => {
     async function fetchPlayerId() {
@@ -36,11 +55,19 @@ export default function MyStats() {
     }
     fetchPlayerId();
   }, [session?.user?.id]);
+  
+  useEffect(() => {
+    return () => {
+      if (previousGroupId.current) {
+        clearGroupCache(previousGroupId.current);
+      }
+    };
+  }, []); // Empty dependency array for cleanup
 
   useEffect(() => {
     async function fetchPlayerStats() {
       if (playerId) {
-        const playerStats = await getPlayerStats(playerId);
+        const playerStats = await getPlayerStats(playerId, groupId);
         if (playerStats) {
           setStats({
             winRatios: playerStats[6].value,      // Win Ratio is now at index 6
@@ -57,7 +84,7 @@ export default function MyStats() {
     }
     
     fetchPlayerStats();
-  }, [playerId]);
+  }, [playerId, onGroupChange]);
 
   // Add loading state UI
   if (isLoadingPlayer || !playerId) {
@@ -123,3 +150,4 @@ export default function MyStats() {
     </div>
   );
 }
+export default MyStats;
