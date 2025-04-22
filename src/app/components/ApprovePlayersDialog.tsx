@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, X } from "lucide-react";
+import { useGroup } from "../context/GroupContext";
 
 interface Player {
   id: string; // players.id is a UUID
@@ -83,11 +84,11 @@ export default function ApprovePlayers({
     fetchPendingPlayers();
   }, [groupId]);
 
-  const handleApprove = async (player: Player) => {
+  const handleApprove = async (player: Player, groupId: string) => {
       const response = await fetch("/api/approve-player", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...player, groupId: '299af152-1d95-4ca2-84ba-43328284c38e'}),
+        body: JSON.stringify({ ...player, groupId}),
         
       });
       console.log("Approve Player Response:", response);
@@ -131,7 +132,7 @@ const handleDecline = async (playerId: string, groupId: string) => {
                   <span className="flex-grow">{player.name}</span>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handleApprove(player)}
+                      onClick={() => handleApprove(player, groupId)}
                       size="sm"
                       className="w-24 bg-green-600"
                     >
