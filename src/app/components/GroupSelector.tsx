@@ -182,23 +182,22 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
 
       setGroups(uniqueGroups);
       
-      // ... rest of the group selection logic ...
       if (uniqueGroups.length > 0) {
-        // Check if the previously selected group still exists
         const currentSelectedExists = uniqueGroups.some(g => g.id === selectedGroupId);
         if (selectedGroupId && currentSelectedExists) {
-          // Keep the current selection if it's still valid
-          const currentGroupData = uniqueGroups.find(g => g.id === selectedGroupId);
-          if (currentGroupData) onGroupSelect(currentGroupData);
+          const currentGroupData = uniqueGroups.find(g => g.id === selectedGroupId)!;
+          setSelectedGroupId(currentGroupData.id);
+          setCurrentGroup(currentGroupData);     
+          onGroupSelect(currentGroupData);
         } else {
-          // Otherwise, select the first group in the merged list
           setSelectedGroupId(uniqueGroups[0].id);
+          setCurrentGroup(uniqueGroups[0]);      
           onGroupSelect(uniqueGroups[0]);
         }
       } else {
-        // Handle case where no groups are found
         const emptyGroup: Group = { id: '', name: '', isAdmin: false };
         setSelectedGroupId('');
+        setCurrentGroup(emptyGroup);             
         onGroupSelect(emptyGroup);
       }
 
