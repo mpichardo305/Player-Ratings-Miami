@@ -20,7 +20,6 @@ interface PlayerGameStats {
 }
 type MyStatsProps = {
   groupId: string;
-  onGroupChange?: (groupId: string) => void;
 };
 
 // Add a function to clear cache for a specific group
@@ -37,7 +36,7 @@ const clearGroupCache = (groupId: string) => {
   });
 };
 
-const MyStats: React.FC<MyStatsProps> = ({ groupId, onGroupChange }) => {
+const MyStats: React.FC<MyStatsProps> = ({ groupId }) => {
   const session = useSession();
   const [playerId, setPlayerId] = useState<string>("");
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
@@ -84,7 +83,7 @@ const MyStats: React.FC<MyStatsProps> = ({ groupId, onGroupChange }) => {
     }
     
     fetchPlayerStats();
-  }, [playerId, onGroupChange]);
+  }, [playerId, groupId]);
 
   // Add loading state UI
   if (isLoadingPlayer || !playerId) {

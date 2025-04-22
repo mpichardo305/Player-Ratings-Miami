@@ -68,9 +68,11 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Render MyStats only when a group is selected */}
       {selectedGroup ? (
-        <MyStats groupId={selectedGroup.id}/>
+        <MyStats
+          key={selectedGroup.id}              
+          groupId={selectedGroup.id}
+        />
       ) : (
         <Card>
           <CardContent className="pt-6">
