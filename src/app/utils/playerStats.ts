@@ -1,3 +1,4 @@
+import { fetchGroupPlayers } from "./playerDb";
 import { supabase } from "./supabaseClient";
 
 interface PlayerStats {
@@ -30,6 +31,11 @@ interface GameRating {
   } | null;
 }
 
+interface GameResult {
+  player_id: string;
+  created_at: string;
+  game_outcome: string;
+}
 // Add this interface to properly type the Supabase response
 interface GamePlayerResponse {
   game_id: string;
@@ -145,16 +151,29 @@ export async function getGameData() {
   return games;
 }
 
-export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
+export async function getMostGamesPlayed(groupId: string): Promise<PlayerStats | null> {
+try{
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
+    return null;
+  }
+  const playerIds = groupPlayers.map(player => player.id);
   const { data: gamePlayers, error: playersError } = await supabase
-    .from('game_players')
-    .select(`
-      game_id,
-      player_id,
-      players (
-        name
-      )
-    `)
+  .from('game_players')
+  .select(`
+    game_id,
+    player_id,
+    games!inner (
+      id,
+      group_id
+    ),
+    players!inner (
+      name
+    )
+  `)
+  .in('player_id', playerIds)
+  .eq('games.group_id', groupId)
     .limit(1000) as { data: GamePlayerResponse[] | null; error: any };
 
   if (playersError || !gamePlayers || gamePlayers.length === 0) {
@@ -185,16 +204,30 @@ export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
 
   const [playerId, playerData] = entries.sort((a, b) => b[1].count - a[1].count)[0];
 
-  return {
+  const result = {
     player_id: playerId,
     name: playerData.name,
     value: playerData.count
   };
+
+  console.log(`Most games played in group ${groupId}:`, result);
+  return result;
+
+} catch (error) {
+  console.error(`Error calculating most games played for group ${groupId}:`, error);
+  return null;
+}
 }
 
+export async function getStreakLeader(groupId: string): Promise<PlayerStats | null> {
+  const groupPlayers = await fetchGroupPlayers(groupId);
+    if (groupPlayers.length === 0) {
+      console.log('No players found in group:', groupId);
+      return null;
+    }
 
-export async function getStreakLeader(): Promise<PlayerStats | null> {
-  const { data: gamePlayers, error: playersError } = await supabase
+    const playerIds = groupPlayers.map(player => player.id);
+    const { data: gamePlayers, error: playersError } = await supabase
     .from('game_players')
     .select(`
       game_id,
@@ -207,6 +240,9 @@ export async function getStreakLeader(): Promise<PlayerStats | null> {
         name
       )
     `)
+    .in('player_id', playerIds)
+    .eq('games.group_id', groupId)
+    .order('created_at')
     .limit(1000) as { data: any[] | null; error: any };
 
   if (playersError || !gamePlayers || gamePlayers.length === 0) {
@@ -248,7 +284,7 @@ export async function getStreakLeader(): Promise<PlayerStats | null> {
       }
     }
 
-    console.log(`Player ${player.name}: ${currentStreak} game streak`); // Debug log
+    console.log(`Player ${player.name}: ${currentStreak} consecutive games streak`); // Debug log
 
     if (currentStreak > maxStreak.value) {
       maxStreak = {
@@ -263,18 +299,25 @@ export async function getStreakLeader(): Promise<PlayerStats | null> {
   return maxStreak.player_id ? maxStreak : null;
 }
 
-export async function getMostImproved(): Promise<PlayerStats | null> {
+export async function getMostImproved(groupId: string): Promise<PlayerStats | null> {
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
+    return null;
+  }
+
+  const groupPlayerNames = groupPlayers.map(player => player.name);
   const { data: gameRatings, error: ratingsError } = await supabase
-    .from('game_ratings')
-    .select(`
-      player_id,
-      rating,
-      game_id,
-      players (
-        name
-      )
-    `)
-    .limit(1000) as { data: GameRatingResponse[] | null; error: any };
+  .from('game_ratings')
+  .select(`
+    player_id,
+    rating,
+    game_id,
+    players (
+      name
+    )
+  `)
+  .limit(1000) as { data: GameRatingResponse[] | null; error: any };
 
   if (ratingsError || !gameRatings || gameRatings.length === 0) {
     console.error('Error fetching ratings:', ratingsError);
@@ -283,8 +326,8 @@ export async function getMostImproved(): Promise<PlayerStats | null> {
 
   // Group ratings by player
   const playerStats = gameRatings.reduce((acc, curr) => {
-    if (!curr.players?.name) {
-      console.log('Skipping rating with missing player data:', curr);
+    if (!curr.players?.name || !groupPlayerNames.includes(curr.players.name)) {
+      // Skip ratings for players not in the group or with missing player data
       return acc;
     }
 
@@ -365,7 +408,14 @@ export async function getMostImproved(): Promise<PlayerStats | null> {
   return maxImprovement.player_id ? maxImprovement : null;
 }
 
-export async function getBestPlayer(): Promise<PlayerStats | null> {
+export async function getBestPlayer(groupId: string): Promise<PlayerStats | null> {
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
+    return null;
+  }
+
+  const groupPlayerNames = groupPlayers.map(player => player.name);
   const { data: gameRatings, error: ratingsError } = await supabase
     .from('game_ratings')
     .select(`
@@ -383,10 +433,15 @@ export async function getBestPlayer(): Promise<PlayerStats | null> {
     return null;
   }
 
+  if (ratingsError || !gameRatings || gameRatings.length === 0) {
+    console.error('Error fetching ratings:', ratingsError);
+    return null;
+  }
+
   // Group ratings by player and calculate averages
   const playerStats = gameRatings.reduce((acc, curr) => {
-    if (!curr.players?.name) {
-      console.log('Skipping player with missing data:', curr);
+    if (!curr.players?.name || !groupPlayerNames.includes(curr.players.name)) {
+      // Skip ratings for players not in the group or with missing player data
       return acc;
     }
 
@@ -411,7 +466,8 @@ export async function getBestPlayer(): Promise<PlayerStats | null> {
   let bestPlayer: PlayerStats | null = null;
   let highestAverage = 0;
 
-  console.log('\n--- Player Rating Averages ---');
+  console.log(`Found ${gameRatings.length} ratings for group ${groupId}`);
+
   playerStats.forEach((stats, playerId) => {
     // Check if player has played at least 3 unique games
     if (stats.uniqueGames.size >= 3) {
@@ -436,8 +492,9 @@ export async function getBestPlayer(): Promise<PlayerStats | null> {
     }
   });
 
-  console.log('\nBest Player:', bestPlayer);
+  console.log('\nBest Player for group', groupId, ':', bestPlayer);
   return bestPlayer;
+  
 }
 
 export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | null> {
@@ -577,17 +634,22 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
   }
 }
 
-export async function getLongestWinStreak(): Promise<PlayerStats | null> {
+export async function getLongestWinStreak(groupId: string): Promise<PlayerStats | null> {
   try {
+    console.log('Calculating longest win streak for group:', groupId);
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (groupPlayers.length === 0) {
+      console.log('No players found in group:', groupId);
+      return null;
+    }
+
+    const playerIds = groupPlayers.map(player => player.id);
     const { data: games, error } = await supabase
-      .from('game_players')
+    .from('game_players')
       .select(`
         player_id,
         created_at,
-        game_outcome,
-        players!inner (
-          name
-        )
+        game_outcome
       `)
       .order('player_id')
       .order('created_at')
@@ -599,45 +661,38 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
       return null;
     }
 
-    // Add debug logging for the raw data
-    console.log('\n--- Debug: First few games ---');
-    console.log(JSON.stringify(games.slice(0, 2), null, 2));
+    // Debug logging for verification
+    console.log(`Found ${games.length} games for group ${groupId}`);
 
-    // Group games by player
     const playerGames = games.reduce((acc, game) => {
       const playerId = game.player_id;
-      const playerName = game.players[0]?.name;
-
-      // Initialize the player entry if it doesn't exist
-      if (!acc[playerId]) {
-        acc[playerId] = {
-          name: playerName || 'Unknown Player',
-          games: []
-        };
-        // Debug logging only when creating new player entry
-        console.log('\n--- Debug: New Player Game Data ---');
-        console.log('Player ID:', playerId);
-        console.log('Players object:', JSON.stringify(game.players, null, 2));
-      }
       
-      // Always push the game to the player's games array
+      // Skip if player is not in the group
+      if (!playerIds.includes(playerId)) {
+      return acc;
+      }
+    
+      if (!acc[playerId]) {
+      acc[playerId] = {
+        games: [] as GameResult[]
+      };
+      }
+    
       acc[playerId].games.push(game);
       return acc;
-    }, {} as Record<string, { name: string; games: typeof games }>);
+    }, {} as Record<string, { games: GameResult[] }>);
 
-    let maxStreak = { player_id: '', name: '', value: 0 };
+    let maxStreak = { player_id: '', value: 0 };
 
     // Calculate streaks for each player
     for (const [playerId, data] of Object.entries(playerGames)) {
       let currentStreak = 0;
       let maxPlayerStreak = 0;
       
-      // Sort games by created_at
       const sortedGames = data.games.sort((a, b) => 
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
-      // Calculate streaks
       sortedGames.forEach(game => {
         if (game.game_outcome === 'win') {
           currentStreak++;
@@ -647,26 +702,23 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
         }
       });
 
-      // Update max streak if this player has a higher streak
       if (maxPlayerStreak > maxStreak.value) {
-        const playerName = await fetchPlayerName(playerId);
-        if (playerName) { // Only update if we successfully got the name
-          maxStreak = {
-            player_id: playerId,
-            name: playerName,
-            value: maxPlayerStreak
-          };
-        } else {
-          console.warn(`Could not fetch name for player ${playerId}, skipping streak update`);
-        }
+        maxStreak = {
+          player_id: playerId,
+          value: maxPlayerStreak
+        };
       }
     }
 
-    console.log('Longest win streak found:', maxStreak);
-    return maxStreak.value > 0 ? maxStreak : null;
+    const name = await fetchPlayerName(maxStreak.player_id);
+    console.log(`Longest win streak for group ${groupId}:`, maxStreak);
+    return maxStreak.value > 0 && name ? {
+      ...maxStreak,
+      name
+    } : null;
 
   } catch (error) {
-    console.error('Error calculating longest win streak:', error);
+    console.error(`Error calculating longest win streak for group ${groupId}:`, error);
     return null;
   }
 }
@@ -686,3 +738,4 @@ async function fetchPlayerName(playerId: string): Promise<string | null> {
 
   return data.name;
 }
+

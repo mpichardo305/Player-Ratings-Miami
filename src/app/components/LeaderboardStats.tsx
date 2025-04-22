@@ -19,6 +19,7 @@ type MetricCard = {
 
 type LeaderboardStatsProps = {
   groupId: string;
+  onGroupChange?: (groupId: string) => void;
 };
 
 const getIconForType = (iconType: MetricData['iconType']): React.JSX.Element => {
@@ -87,7 +88,10 @@ const clearGroupCache = (groupId: string) => {
   });
 };
 
-const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
+const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ 
+  groupId, 
+  onGroupChange 
+}) => {
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
   const previousGroupId = useRef<string>(groupId);
@@ -95,20 +99,26 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
   useEffect(() => {
     const updateMetrics = async () => {
       if (previousGroupId.current !== groupId) {
+        console.log('Group changed in LeaderboardStats:', groupId);
         // Clear old group's cache first
         clearGroupCache(previousGroupId.current);
         setMetrics([]); // Clear current metrics
         setMetricsLoading(true);
+        
+        // Update the ref AFTER clearing cache
         previousGroupId.current = groupId;
+        
+        // Notify parent component of group change
+        onGroupChange?.(groupId);
       }
       
-      // Calculate new metrics for current group
+      // Force new metrics calculation
       const newMetrics = await calculateMetrics();
       setMetrics(newMetrics);
     };
 
     updateMetrics();
-  }, [groupId]); // Only depend on groupId changes
+  }, [groupId, onGroupChange]);
 
   useEffect(() => {
     // Cleanup function
@@ -157,8 +167,15 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
 
       console.log('All metrics calculated');
 
-      return results.filter((metric): metric is MetricCard => metric !== null);
-
+      const filteredResults = results.filter((metric): metric is MetricCard => metric !== null);
+    
+      // If no metrics have data, return empty array
+      if (filteredResults.length === 0) {
+        console.log('No metrics data found');
+        return [];
+      }
+  
+      return filteredResults;
     } catch (error) {
       console.error('Error calculating metrics:', error);
       return [];
@@ -300,13 +317,16 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
 
   const getLongestWinStreakPlayer = async () => {
     try {
+      // Add debug log to verify groupId
+      console.log('Getting win streak for group:', groupId);
+      
       const cached = getCachedMetric('longestWinStreak', groupId);
       if (cached) {
-        console.log('Using cached win streak data:', cached);
+        console.log(`Using cached win streak data for group ${groupId}:`, cached);
         return convertToMetricCard(cached);
       }
 
-      console.log('Fetching new win streak data...');
+      console.log(`Fetching new win streak data for group ${groupId}...`);
       const response = await fetch(`/api/stats/longest-win-streak?groupId=${groupId}`);
       const winStreakLeader = await response.json();
       
@@ -359,10 +379,18 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({ groupId }) => {
                 </div>
               </CardContent>
             </Card>
-          ))
-        ) : (
-          metrics.map((metric, index) => renderMetricCard(metric, index))
-        )}
+        ))
+      ) : metrics.length > 0 ? (
+        metrics.map((metric, index) => renderMetricCard(metric, index))
+      ) : (
+        <div className="col-span-full flex justify-center items-center p-8">
+          <Card className="bg-secondary border-secondary w-full max-w-md">
+            <CardContent className="pt-6 text-center">
+              <p className="text-lg text-muted-foreground">No data found at this time</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       </div>
     </div>
   );

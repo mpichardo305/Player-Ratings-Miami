@@ -3,15 +3,15 @@ import { getLongestWinStreak } from '@/app/utils/playerStats';
 
 export const revalidate = 300; // 5 minutes
 
-export async function GET() {
-  try {
-    const data = await getLongestWinStreak();
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-      },
-    });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+// Update your API route (e.g., /api/stats/longest-win-streak)
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const groupId = searchParams.get('groupId');
+
+  if (!groupId) {
+    return new Response('Group ID is required', { status: 400 });
   }
+
+  const stats = await getLongestWinStreak(groupId);
+  return new Response(JSON.stringify(stats));
 }

@@ -3,16 +3,17 @@ import { NextResponse } from "next/server";
 
 export const revalidate = 300;
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const groupId = searchParams.get('groupId');
+  if (!groupId) {
+    return new Response('Group ID is required', { status: 400 });
+  }
   try {
-    const mostImproved = await getMostImproved();
-    return NextResponse.json(mostImproved, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-      },
-    });
+    const mostImproved = await getMostImproved(groupId);
+    return new Response(JSON.stringify(mostImproved));
   } catch (error) {
     console.error('Error fetching most improved:', error);
-    return NextResponse.json({ error: 'Failed to fetch most improved' }, { status: 500 });
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
