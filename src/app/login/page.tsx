@@ -1,13 +1,18 @@
-'use client';
+'use client'
+export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Session } from '@supabase/supabase-js';
-import { supabase } from '@/app/utils/supabaseClient';
-import PhoneAuth from '../components/PhoneAuth';
-import { usePhoneNumber } from '../hooks/usePhoneNumber';
-import { checkPlayerMembership } from '../db/checkUserQueries';
-import InviteRegistration from '../invite/[token]/page';
+import { useEffect, useState } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import dynamicImport from 'next/dynamic'
+import { Session } from '@supabase/supabase-js'
+import { supabase } from '@/app/utils/supabaseClient'
+import PhoneAuth from '../components/PhoneAuth'
+import { usePhoneNumber } from '../hooks/usePhoneNumber'
+import { checkPlayerMembership } from '../db/checkUserQueries'
+const InviteRegistration = dynamicImport(
+  () => import('../invite/[token]/page'),
+  { ssr: false }
+)
 import { 
   getMembershipFromCache, 
   cacheMembershipStatus, 
@@ -15,8 +20,8 @@ import {
   handleAuthRedirect, 
   resolveGroupContext,
   setLastActiveGroup 
-} from '../utils/authUtils';
-import { useGroup } from '../context/GroupContext';
+} from '../utils/authUtils'
+import { useGroup } from '../context/GroupContext'
 
 export default function LoginPage() {
   const { phoneNumber } = usePhoneNumber()
@@ -32,13 +37,11 @@ export default function LoginPage() {
   const token = params?.token as string
   const { setCurrentGroup } = useGroup();
   
+  const hasAuthCookie = typeof window !== 'undefined' &&
+  document.cookie.includes('supabase-auth-token');
 
   // Handle authentication state
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session)
@@ -168,10 +171,6 @@ export default function LoginPage() {
   }, [phoneNumber]);
 
   // Show content when verification is complete or we have cached data
-  const hasAuthCookie =
-    typeof window !== 'undefined' &&
-    document.cookie.includes('supabase-auth-token')
-
   const showContent =
     (token && !session) ||
     (!session && !hasAuthCookie) ||
