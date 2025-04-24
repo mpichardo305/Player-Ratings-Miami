@@ -12,6 +12,8 @@ import { usePhoneNumber } from '@/app/hooks/usePhoneNumber'
 import { Loader2 } from 'lucide-react'
 import { useToast } from "@/components/ui/toaster"
 import ReturningPlayerNewGroup from '@/app/components/ReturningPlayerNewGroup';
+import { GroupProvider } from '@/app/context/GroupContext'
+import { usePlayerName } from '@/app/hooks/usePlayerName'
 
 interface Invite {
   id: string
@@ -89,20 +91,6 @@ export default function InviteRegistration() {
   }, [token, router])
 
   useEffect(() => {
-    console.log('Debug - State Changes:', {
-      token,
-      userId,
-      invite: invite ? {
-        id: invite.id,
-        player_id: invite.player_id,
-        used: invite.used,
-        group_id: invite.group_id
-      } : null,
-      isLoading
-    });
-  }, [token, userId, invite, isLoading]);
-
-  useEffect(() => {
     if (inviteStatus === 'invalid' || inviteStatus === 'already_used') {
       const timer = setTimeout(() => {
         router.push('/');
@@ -122,6 +110,7 @@ export default function InviteRegistration() {
 
   const { phoneNumber } = usePhoneNumber();
   const sanitizedPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : '';
+  const { playerName, isLoading: nameLoading, error: nameError } = usePlayerName(invite?.player_id)
 
   const handleSignupSuccess = async () => {
     try {
@@ -130,12 +119,9 @@ export default function InviteRegistration() {
       if (!newUserId) {
         throw new Error('No user ID found in session');
       }
-
       setUserId(newUserId);
 
-      // Use validateInvite from server action with new status field
       const result = await validateInvite(token);
-      
       if (result.status !== 'valid') {
         // Handle different error conditions based on status
         if (result.status === 'already_used') {
@@ -148,40 +134,33 @@ export default function InviteRegistration() {
         return;
       }
       
-      const inviteData = result.data as Invite;
-      setInvite(inviteData);
+      const inviteData = result.data as Invite
+      setInvite(inviteData)
 
-      // Check if invite already has a player_id before creating a new one
-      if (inviteData.player_id) {
-        console.log('Invite already has a player assigned, skipping player creation');
-        setNextPage(true);
-        return;
-      }
 
-    // 1) see if this phone is already in players
-    const { data: existing, error: lookupErr } = await getPlayerByPhone(sanitizedPhone)
-    if (lookupErr) throw lookupErr
+      // 2. Look up existing player by phone
+      const { data: existingPlayer, error: lookupErr } = await getPlayerByPhone(sanitizedPhone)
 
-    let actualPlayerId = existing?.id
-    // 2) if no existing, create new
-    if (!actualPlayerId) {
-      const { data: newPlayer, error: newErr } = await createInitialPlayer(newUserId, sanitizedPhone)
+      // 3. Create a new player record for this group
+      const { data: newPlayer, error: newErr } = await createInitialPlayer(
+        newUserId,
+        sanitizedPhone,
+        existingPlayer?.name
+      )
       if (newErr) throw newErr
-      actualPlayerId = newPlayer.id
-      setNextPage(true);
+      console.log('🆕 Created newPlayer:', newPlayer)
+
+      // 4. Link that new player to the invite
+      await updateInviteWithPlayer(inviteData.id, newPlayer.id)
+      console.log(`🔗 Linked invite ${inviteData.id} → player ${newPlayer.id}`)
+
+      setIsReturning(!!existingPlayer)
+      setNextPage(true)
+    } catch (err) {
+      console.error('🔥 handleSignupSuccess error:', err)
+      setError('Failed to complete signup')
     }
-    // 3) link invite → player
-    if (actualPlayerId) {
-    await updateInviteWithPlayer(inviteData.id, actualPlayerId)
-    setIsReturning(true);
-    setNextPage(true);
-    }
-    } catch (error) {
-      console.error('Error in handleSignupSuccess:', error);
-      setError('Failed to complete signup');
-      setTimeout(() => router.push('/logout'), 2000);
-    }
-  };
+  }
 
   const handleNameSubmit = async (name: string) => {
     if (!invite || !userId) return;
@@ -199,14 +178,33 @@ export default function InviteRegistration() {
       setError('Failed to complete signup');
     }
   }
-    const handleReturningConfirm = async () => {
-    if (!invite) return
+  const handleReturningConfirm = async () => {
+    if (!invite || !phoneNumber) return
+    
     try {
+      // 1. First get the existing player info by phone
+      const { data: existingPlayer } = await getPlayerByPhone(sanitizedPhone)
+      
+      if (existingPlayer?.name) {
+        // 2. Update the current player record with the name from existing player
+        await supabase
+          .from('players')
+          .update({ 
+            name: existingPlayer.name,
+            phone: sanitizedPhone  // ensure phone is set
+          })
+          .eq('id', invite.player_id)
+
+        console.log('📝 Existing player, Updated player name:', existingPlayer.name)
+      }
+
+      // 3. Mark invite as used and create group membership
       await markInviteAsUsed(invite.id)
       await createGroupMembership(invite.player_id, invite.group_id)
+      
       await router.replace('/pending-approval')
     } catch (err) {
-      console.error(err)
+      console.error('❌ Error in handleReturningConfirm:', err)
       setError('Failed to add you to the new group')
     }
   }
@@ -225,23 +223,33 @@ export default function InviteRegistration() {
   }
 
   if (isLoading) {
-    return <><Loader2 className="h-6 w-6 animate-spin" /><span className="text-sm">
-    Validating invite....
-  </span></>
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="text-lg mt-2">
+          Validating invite....
+        </span>
+      </div>
+    );
   }
 
-  console.log('Invite:', invite);
   return (
+    <GroupProvider>
     <div className="max-w-md mx-auto p-6">
         {!nextPage ? (
           <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-green-300 px-6 pt-20">
             <PhoneAuth onVerificationSuccess={handleSignupSuccess}/>
           </div>
        ) : isReturning ? (
-        <ReturningPlayerNewGroup onConfirm={handleReturningConfirm} />
+        <ReturningPlayerNewGroup 
+          groupId={invite?.group_id} 
+          playerName={playerName}
+          onConfirm={handleReturningConfirm} 
+        />
       ) : (
         <PlayerNameForm onSubmit={handleNameSubmit} />
       )}
     </div>
+    </GroupProvider>
   )
 }

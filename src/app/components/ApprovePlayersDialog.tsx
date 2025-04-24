@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, X } from "lucide-react";
 import { useGroup } from "../context/GroupContext";
+import { usePlayerName } from "../hooks/usePlayerName";
 
 interface Player {
   id: string; // players.id is a UUID
@@ -43,46 +44,42 @@ export default function ApprovePlayers({
       return;
     }
 
-    const fetchPendingPlayers = async () => {
-      console.log("🔍 Fetching pending players for group ID:", groupId);
-    
-      const { data, error } = await supabase
-        .from("group_memberships")
-        .select(`
-          player_id,
-          status,
-          players!inner(id, name, status)
-        `) // ✅ Ensure 'players' is properly referenced
-        .eq("status", "pending")
-        .eq("group_id", groupId);
-    
-      if (error) {
-        console.error("❌ Error fetching pending players:", error);
-        return;
-      }
-    
-      if (!data || data.length === 0) {
-        console.warn("⚠️ No pending players found.");
-        setPendingPlayers([]);
-        return;
-      }
-    
-      console.log("✅ Fetched pending players:", data);
-    
-      const pending = data.map(row => {
-        const player = Array.isArray(row.players) ? row.players[0] : row.players; // ✅ Handle array case
-        return {
-          id: player?.id || "unknown",  // ✅ Prevents undefined errors
-          name: player?.name || "Unnamed Player", // ✅ Fallback name
-          status: row.status,
-        };
-      });
-    
-      setPendingPlayers(pending);
-    };
-
     fetchPendingPlayers();
   }, [groupId]);
+
+  const fetchPendingPlayers = async () => {
+    console.log("🔍 Fetching pending players for group ID:", groupId);
+
+    const { data, error } = await supabase
+      .from("group_memberships")
+      .select(`
+        player_id,
+        status,
+        players!inner (
+          id,
+          name,
+          phone
+        )
+      `)
+      .eq("status", "pending")
+      .eq("group_id", groupId);
+
+    if (error) {
+      console.error("❌ Error fetching pending players:", error);
+      return;
+    }
+
+    const pending = data?.map(row => {
+      const player = Array.isArray(row.players) ? row.players[0] : row.players;
+      return {
+        id: player?.id || "unknown",
+        name: player?.name || "Unnamed Player", // We'll get the name directly from the players table
+        status: row.status,
+      };
+    }) || [];
+
+    setPendingPlayers(pending);
+  };
 
   const handleApprove = async (player: Player, groupId: string) => {
       const response = await fetch("/api/approve-player", {

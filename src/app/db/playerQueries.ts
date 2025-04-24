@@ -2,7 +2,7 @@
 
 import { createClient } from '@/app/utils/supabase/server'
 
-export async function createInitialPlayer(playerId: string, phoneNumber: string | null) {
+export async function createInitialPlayer(playerId: string, phoneNumber: string | null, name?:string) {
   const supabase = createClient()
   return await supabase
     .from('players')
@@ -10,7 +10,8 @@ export async function createInitialPlayer(playerId: string, phoneNumber: string 
       status: 'pending',
       phone: phoneNumber,
       user_id: null,
-      id: playerId
+      id: playerId,
+      name: name
     })
     .select()
     .single()
@@ -34,7 +35,7 @@ export async function getPlayerByPhone(phone: string) {
   const supabase = createClient()
   return await supabase
     .from('players')
-    .select('id, phone')
+    .select('id, phone, name')
     .eq('phone', phone)
     .single()
 }
