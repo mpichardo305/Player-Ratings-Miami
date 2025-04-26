@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { useSession } from '../hooks/useSession'
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -32,10 +33,15 @@ export default function PlayerNameForm({ onSubmit }: PlayerNameFormProps) {
       name: "",
     },
   })
-
+const session = useSession();
   function handleSubmit(values: z.infer<typeof formSchema>) {
-    onSubmit(values.name.trim())
+  if (session) {
+    localStorage.setItem('playerRatingsSession', JSON.stringify(session));
+  } else {
+    console.warn('No session available when submitting form');
   }
+  onSubmit(values.name.trim())
+}
 
   return (
       <div className="container mx-auto p-6 space-y-6">

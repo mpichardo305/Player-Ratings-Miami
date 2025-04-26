@@ -7,7 +7,7 @@ import AllGames from './components/AllGames'
 import { supabase } from '@/app/utils/supabaseClient'
 import { usePhoneNumber } from './hooks/usePhoneNumber'
 import { checkPlayerMembership } from './db/checkUserQueries'
-import { getMembershipFromCache, setMembershipCache, clearMembershipCache, GROUP_ID, saveRedirectUrl, resolveGroupContext } from './utils/authUtils'
+import { getMembershipFromCache, setMembershipCache, clearMembershipCache, getGroupId, saveRedirectUrl, resolveGroupContext } from './utils/authUtils'
 import { useGroup } from './context/GroupContext' // Add this at the top with other imports
 import { useGroupName } from './hooks/useGroupName'
 
@@ -18,9 +18,9 @@ export default function Home() {
   const [isMember, setIsMember] = useState(false)
   const [checkedMembership, setCheckedMembership] = useState(false)
   const router = useRouter()
-
+  const groupId = getGroupId();
   // Move the useGroupName hook to the component level
-  const { groupName } = useGroupName(GROUP_ID || '')
+  const { groupName } = useGroupName(groupId || '')
 
   useEffect(() => {
     async function checkAuth() {
@@ -70,7 +70,7 @@ export default function Home() {
       // For non-members or no cache data, always verify with DB
       // This ensures recently approved members get updated status
       try {
-        let activeGroupId = GROUP_ID || '';
+        let activeGroupId = groupId || '';
         
         if (!activeGroupId) {
           console.log('No group ID found, resolving group context...');
@@ -102,13 +102,20 @@ export default function Home() {
             status: result.status
           });
 
+          const { data: groupData } = await supabase
+          .from('groups')
+          .select('name')
+          .eq('id', activeGroupId)
+          .single();
+        const fetchedGroupName = groupData?.name ?? ''
           // Update group context with final data
           const finalGroupData = {
             id: activeGroupId,
-            name: groupName,
+            name: groupName || fetchedGroupName || '',
             isAdmin: isCurrentGroupAdmin,
             isMember: result.isMember,
-            memberStatus: result.status
+            memberStatus: result.status,
+            playerId: result.playerId
           };
           setCurrentGroup(finalGroupData);
         }
@@ -120,7 +127,8 @@ export default function Home() {
         if (session?.user?.id) {
           setMembershipCache(session.user.id, {
             isMember: result.isMember,
-            timestamp: new Date().getTime()
+            timestamp: new Date().getTime(),
+            playerId: result.playerId
           });
         }
       } catch (error) {

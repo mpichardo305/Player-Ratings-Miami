@@ -16,7 +16,6 @@ const InviteRegistration = dynamicImport(
 import { 
   getMembershipFromCache, 
   cacheMembershipStatus, 
-  GROUP_ID, 
   handleAuthRedirect, 
   resolveGroupContext,
   setLastActiveGroup 

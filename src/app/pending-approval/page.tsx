@@ -6,13 +6,12 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Session } from '@supabase/supabase-js'
 import { usePhoneNumber } from '../hooks/usePhoneNumber'
 import { checkPlayerMembership } from '../db/checkUserQueries'
-import { GROUP_ID } from '../utils/authUtils'
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { Toaster, useToast } from "@/components/ui/toaster"
 import { handleAuthRedirect } from '../utils/authUtils';
-import { useGroup } from '../context/GroupContext';
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
@@ -25,9 +24,7 @@ export default function PendingApproval() {
   const router = useRouter()
   const [showLogin, setShowLogin] = useState(false)
   const { toast } = useToast()
-  const { currentGroup } = useGroup();
-  const groupId = currentGroup?.id;
-
+  const [groupId] = useLocalStorage<string>('pendingGroupId', '')
   // Get session data when component mounts
   useEffect(() => {
     async function getSession() {
@@ -56,7 +53,6 @@ export default function PendingApproval() {
   // Debug phone number from hook
   useEffect(() => {
     console.log('Phone number from hook:', phoneNumber)
-    console.log('Group ID:', GROUP_ID)
   }, [phoneNumber])
 
   const checkApprovalStatus = async () => {
@@ -65,7 +61,7 @@ export default function PendingApproval() {
     console.log("Phone number:", phoneNumber)
 
 
-    if (!phoneNumber || !groupId) {
+    if (!phoneNumber) {
       console.error("Phone number or group ID missing, cannot proceed with check")
       setShowLogin(true);
       return;

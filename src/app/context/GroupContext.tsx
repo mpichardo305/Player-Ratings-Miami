@@ -40,13 +40,14 @@ export interface Group {
 export interface GroupContextData extends Group {
   isMember?: boolean;
   memberStatus?: string;
+  playerId?: string;
 }
 
 interface GroupContextType {
   selectedGroupId: string | null;
   setSelectedGroupId: (id: string) => void;
-  currentGroup: GroupContextData | null;
-  setCurrentGroup: (g: GroupContextData | null) => void;
+  currentGroup: GroupContextData | null;  // Changed from Group to GroupContextData
+  setCurrentGroup: (g: GroupContextData | null) => void;  // Changed parameter type
   isCurrentGroupAdmin: boolean;
   updateGroupMembership: (groupId: string, membershipData: any) => void;
 }
@@ -59,7 +60,7 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
     return stored ? stored.id : null;
   });
 
-  const [currentGroup, internalSetCurrentGroup] = useState<Group | null>(() => {
+  const [currentGroup, internalSetCurrentGroup] = useState<GroupContextData | null>(() => {
     return getFromStorage();
   });
 
@@ -78,7 +79,7 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
     selectedGroupId,
     setSelectedGroupId,
     currentGroup,
-    setCurrentGroup: (group: Group | null) => {
+    setCurrentGroup: (group: GroupContextData | null) => {
       console.log('🟡 setCurrentGroup called with:', group);
       internalSetCurrentGroup(group);
       setToStorage(group);

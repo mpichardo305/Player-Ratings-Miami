@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/toaster"
 import ReturningPlayerNewGroup from '@/app/components/ReturningPlayerNewGroup';
 import { GroupProvider } from '@/app/context/GroupContext'
 import { usePlayerName } from '@/app/hooks/usePlayerName'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 interface Invite {
   id: string
@@ -38,6 +39,8 @@ export default function InviteRegistration() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [inviteStatus, setInviteStatus] = useState<string>('');
+  const [pendingGroupId, setPendingGroupId] = useLocalStorage<string>('pendingGroupId', '');
+
   const { toast } = useToast()
 
   useEffect(() => {
@@ -170,6 +173,7 @@ export default function InviteRegistration() {
       await updatePlayerName(invite.player_id, name, userId, sanitizedPhone);
       await markInviteAsUsed(invite.id);
       await createGroupMembership(invite.player_id, invite.group_id);
+      setPendingGroupId(invite.group_id);
 
       console.log('Registration complete, redirecting to pending approval...');
       await router.replace('/pending-approval');
@@ -201,7 +205,8 @@ export default function InviteRegistration() {
       // 3. Mark invite as used and create group membership
       await markInviteAsUsed(invite.id)
       await createGroupMembership(invite.player_id, invite.group_id)
-      
+      setPendingGroupId(invite.group_id);
+
       await router.replace('/pending-approval')
     } catch (err) {
       console.error('❌ Error in handleReturningConfirm:', err)
