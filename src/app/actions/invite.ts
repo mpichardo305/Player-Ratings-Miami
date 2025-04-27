@@ -11,7 +11,7 @@ interface PlayerIdPair {
   readableId: string;
 }
 
-function genPlayerId(): PlayerIdPair {
+export function genPlayerId(): PlayerIdPair {
   const uuid = uuidv4();
   const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const idLength = 4;

@@ -1,13 +1,14 @@
 'use client'
-
+import { genPlayerId } from '@/app/actions/invite'
+import { createInitialPlayer, getPlayerByPhone } from '@/app/db/playerQueries'
+import { updateInviteWithPlayer } from '@/app/db/inviteQueries'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '@/app/components/PhoneAuth'
 import { validateInvite } from '@/app/actions/invite'
 import PlayerNameForm from '@/app/components/PlayerNameForm'
-import { createInitialPlayer, getPlayerByPhone, updatePlayerName } from '@/app/db/playerQueries'
-import { createGroupMembership, markInviteAsUsed, updateInviteWithPlayer } from '@/app/db/inviteQueries'
+import { createGroupMembership, markInviteAsUsed } from '@/app/db/inviteQueries'
 import { usePhoneNumber } from '@/app/hooks/usePhoneNumber'
 import { Loader2 } from 'lucide-react'
 import { useToast } from "@/components/ui/toaster"
@@ -137,23 +138,33 @@ export default function InviteRegistration() {
         return;
       }
       
-      const inviteData = result.data as Invite
+      const inviteData = (await validateInvite(token)).data as Invite
       setInvite(inviteData)
-
 
       // 2. Look up existing player by phone
       const { data: existingPlayer, error: lookupErr } = await getPlayerByPhone(sanitizedPhone)
+      if (lookupErr) throw lookupErr
 
-      // 3. Create a new player record for this group
+      // 3. Decide which ID to use
+      let playerIdToUse: string
+      if (existingPlayer) {
+        // returning user → brand‑new UUID
+        playerIdToUse = genPlayerId().uuid
+      } else {
+        // first‑time invite → use the seeded invite player_id
+        playerIdToUse = inviteData.player_id
+      }
+
+      // 4. Insert the new "player" row
       const { data: newPlayer, error: newErr } = await createInitialPlayer(
-        newUserId,
+        playerIdToUse,
         sanitizedPhone,
         existingPlayer?.name
       )
       if (newErr) throw newErr
       console.log('🆕 Created newPlayer:', newPlayer)
 
-      // 4. Link that new player to the invite
+      // 5. Link it to the invite
       await updateInviteWithPlayer(inviteData.id, newPlayer.id)
       console.log(`🔗 Linked invite ${inviteData.id} → player ${newPlayer.id}`)
 
@@ -170,7 +181,6 @@ export default function InviteRegistration() {
     try {
       // Use server actions instead of direct queries
       if (!phoneNumber) throw new Error('Phone number is required');
-      await updatePlayerName(invite.player_id, name, userId, sanitizedPhone);
       await markInviteAsUsed(invite.id);
       await createGroupMembership(invite.player_id, invite.group_id);
       setPendingGroupId(invite.group_id);
