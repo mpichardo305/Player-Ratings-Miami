@@ -164,7 +164,8 @@ export default function InviteRegistration() {
       let playerIdToUse: string
       if (existingPlayer) {
         // returning user → brand‑new UUID
-        playerIdToUse = genPlayerId().uuid
+        const playerIdPair = await genPlayerId()
+        playerIdToUse = playerIdPair.uuid
       } else {
         // first‑time invite → use the seeded invite player_id
         playerIdToUse = inviteData.player_id
