@@ -17,6 +17,7 @@ import { GroupProvider } from '@/app/context/GroupContext'
 import { usePlayerName } from '@/app/hooks/usePlayerName'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { checkPlayerMembership } from '@/app/db/checkUserQueries'
+import { set } from 'lodash'
 
 interface Invite {
   id: string
@@ -42,6 +43,7 @@ export default function InviteRegistration() {
   const [isLoading, setIsLoading] = useState(true);
   const [inviteStatus, setInviteStatus] = useState<string>('');
   const [pendingGroupId, setPendingGroupId] = useLocalStorage<string>('pendingGroupId', '');
+  const [storedPlayerId, setStoredPlayerId] = useLocalStorage<string>('storedPlayerId', '');
 
   const { toast } = useToast()
 
@@ -166,6 +168,7 @@ export default function InviteRegistration() {
         // returning user → brand‑new UUID
         const playerIdPair = await genPlayerId()
         playerIdToUse = playerIdPair.uuid
+         // Store the new player ID
       } else {
         // first‑time invite → use the seeded invite player_id
         playerIdToUse = inviteData.player_id
@@ -184,6 +187,7 @@ export default function InviteRegistration() {
       await updateInviteWithPlayer(inviteData.id, newPlayer.id)
       console.log(`🔗 Linked invite ${inviteData.id} → player ${newPlayer.id}`)
 
+      setStoredPlayerId(playerIdToUse)
       setIsReturning(!!existingPlayer)
       setNextPage(true)
     } catch (err) {

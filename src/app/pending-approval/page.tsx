@@ -5,18 +5,20 @@ import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Session } from '@supabase/supabase-js'
 import { usePhoneNumber } from '../hooks/usePhoneNumber'
-import { checkPlayerMembership } from '../db/checkUserQueries'
+import { checkPlayerMembershipById } from '../db/checkUserQueries'
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { Toaster, useToast } from "@/components/ui/toaster"
 import { handleAuthRedirect } from '../utils/authUtils';
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { set } from 'lodash'
 
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
   const [session, setSession] = useState<Session | null>(null)
   const { phoneNumber, isLoading: phoneLoading } = usePhoneNumber()
+  const [playerId, setPlayerId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [checkingApproval, setCheckingApproval] = useState(false)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -50,6 +52,12 @@ export default function PendingApproval() {
     }
   }, [])
 
+    // Get refresh count from local storage on initial load
+    useEffect(() => {
+      const playerId = localStorage.getItem('storedPlayerId')
+      setPlayerId(playerId)
+    }, [])
+
   // Debug phone number from hook
   useEffect(() => {
     console.log('Phone number from hook:', phoneNumber)
@@ -58,6 +66,7 @@ export default function PendingApproval() {
   const checkApprovalStatus = async () => {
     console.log("Starting approval check...")
     console.log("Session:", session)
+    console.log("Player Id:", playerId)
     console.log("Phone number:", phoneNumber)
 
 
@@ -73,7 +82,7 @@ export default function PendingApproval() {
     };
     try {
       console.log(`Checking membership for phone: ${phoneNumber} and group: ${groupId}`)
-      const result = await checkPlayerMembership(phoneNumber, groupId)
+      const result = await checkPlayerMembershipById(playerId, groupId)
       console.log('Membership check result:', result)
       
       // Increment and save refresh count

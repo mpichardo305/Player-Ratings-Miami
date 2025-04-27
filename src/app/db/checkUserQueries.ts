@@ -56,3 +56,35 @@ export async function checkPlayerMembership(phoneNumber: string, groupId: string
 
   return result;
 }
+
+export async function checkPlayerMembershipById(playerId: string, groupId: string): Promise<PlayerMembershipResult> {
+  const supabase = createClient()
+  
+  console.log('Checking membership by ID - Player:', playerId, 'Group:', groupId)
+
+  // Check if player is member of the specified group with approved status
+  const { data: membership, error: membershipError } = await supabase
+    .from('group_memberships')
+    .select('*')
+    .eq('player_id', playerId)
+    .eq('group_id', groupId)
+    .eq('status', 'approved')
+    .single()
+
+  console.log('Membership query details:', {
+    membership,
+    membershipError,
+    playerId,
+    sql: `SELECT * FROM group_memberships WHERE player_id = '${playerId}' AND group_id = '${groupId}' AND status = 'approved'`
+  })
+
+  const result = {
+    isMember: !membershipError && membership !== null,
+    playerId,
+    status: membership?.status || 'not found'
+  }
+
+  console.log('=== Final Membership Result ===', result)
+
+  return result
+}

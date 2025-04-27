@@ -37,6 +37,8 @@ export async function getPlayerByPhone(phone: string) {
     .from('players')
     .select('id, phone, name')
     .eq('phone', phone)
+    .order('status', { ascending: true })
+    .limit(1)
     .single()
 }
 
