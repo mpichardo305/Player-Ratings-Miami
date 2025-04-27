@@ -16,6 +16,7 @@ import ReturningPlayerNewGroup from '@/app/components/ReturningPlayerNewGroup';
 import { GroupProvider } from '@/app/context/GroupContext'
 import { usePlayerName } from '@/app/hooks/usePlayerName'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { checkPlayerMembership } from '@/app/db/checkUserQueries'
 
 interface Invite {
   id: string
@@ -140,7 +141,21 @@ export default function InviteRegistration() {
       
       const inviteData = (await validateInvite(token)).data as Invite
       setInvite(inviteData)
-
+      // NEW: if they’re already in that group, stop and send home
+      const res = await fetch('/api/checkMembership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: sanitizedPhone,
+          groupId: inviteData.group_id
+        })
+      })
+      const { isMember } = await res.json()
+      if (isMember) {
+        router.replace('/')
+        return
+      }
+  
       // 2. Look up existing player by phone
       const { data: existingPlayer, error: lookupErr } = await getPlayerByPhone(sanitizedPhone)
       if (lookupErr) throw lookupErr
