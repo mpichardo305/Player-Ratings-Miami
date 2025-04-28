@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { Toaster, useToast } from "@/components/ui/toaster"
-import { handleAuthRedirect } from '../utils/authUtils';
+import { getStoredPlayerId, handleAuthRedirect } from '../utils/authUtils';
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { set } from 'lodash'
 
@@ -54,7 +54,7 @@ export default function PendingApproval() {
 
     // Get refresh count from local storage on initial load
     useEffect(() => {
-      const playerId = localStorage.getItem('storedPlayerId')
+      const playerId  = getStoredPlayerId();
       setPlayerId(playerId)
     }, [])
 
@@ -82,6 +82,7 @@ export default function PendingApproval() {
     };
     try {
       console.log(`Checking membership for phone: ${phoneNumber} and group: ${groupId}`)
+      
       const result = await checkPlayerMembershipById(playerId, groupId)
       console.log('Membership check result:', result)
       

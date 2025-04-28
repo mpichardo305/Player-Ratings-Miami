@@ -61,6 +61,13 @@ export const getGroupId = (): string | null => {
   // Remove any extra quotes that might be present
   return groupId.replace(/^["'](.*)["']$/, '$1');
 };
+
+export const getStoredPlayerId = (): string | null => {
+  const playerId = safeLocalStorage.getItem('storedPlayerId');
+  if (!playerId) return null;
+  // Remove any extra quotes that might be present
+  return playerId.replace(/['"]/g, '');
+};
 // Add this helper function to safely store the group ID
 export const setGroupId = (groupId: string): void => {
   if (!groupId) return;

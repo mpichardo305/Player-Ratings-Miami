@@ -141,8 +141,25 @@ export default function InviteRegistration() {
         return;
       }
       
-      const inviteData = (await validateInvite(token)).data as Invite
+      // Get the invite ID from the database using the token
+      const { data: inviteRecord, error: inviteError } = await supabase
+      .from('invites')
+      .select('id')
+      .eq('token', token)
+      .maybeSingle();
+
+      if (inviteError || !inviteRecord) {
+        console.error('Failed to fetch invite ID:', inviteError);
+        throw new Error('Could not find invite record');
+      }
+
+      const inviteData = {
+        ...result.data as Invite,
+        id: inviteRecord.id // Add the invite ID from the database
+      };
+      console.log('Invite data:', inviteData)
       setInvite(inviteData)
+
       // NEW: if they’re already in that group, stop and send home
       const res = await fetch('/api/checkMembership', {
         method: 'POST',
@@ -168,24 +185,23 @@ export default function InviteRegistration() {
         // returning user → brand‑new UUID
         const playerIdPair = await genPlayerId()
         playerIdToUse = playerIdPair.uuid
-         // Store the new player ID
+         // Insert the new "player" row
+        const { data: newPlayer, error: newErr } = await createInitialPlayer(
+        playerIdToUse,
+        sanitizedPhone,
+        existingPlayer?.name,
+        newUserId
+      )
+      if (newErr) throw newErr
+      console.log('🆕 Created newPlayer:', newPlayer)
+        // Link it to the invite
+      await updateInviteWithPlayer(inviteData.id, newPlayer.id)
+      console.log(`🔗 Linked invite ${inviteData.id} → player ${newPlayer.id}`)
+      
       } else {
         // first‑time invite → use the seeded invite player_id
         playerIdToUse = inviteData.player_id
       }
-
-      // 4. Insert the new "player" row
-      const { data: newPlayer, error: newErr } = await createInitialPlayer(
-        playerIdToUse,
-        sanitizedPhone,
-        existingPlayer?.name
-      )
-      if (newErr) throw newErr
-      console.log('🆕 Created newPlayer:', newPlayer)
-
-      // 5. Link it to the invite
-      await updateInviteWithPlayer(inviteData.id, newPlayer.id)
-      console.log(`🔗 Linked invite ${inviteData.id} → player ${newPlayer.id}`)
 
       setStoredPlayerId(playerIdToUse)
       setIsReturning(!!existingPlayer)
@@ -201,8 +217,20 @@ export default function InviteRegistration() {
     try {
       // Use server actions instead of direct queries
       if (!phoneNumber) throw new Error('Phone number is required');
+      const { error: updateErr } = await supabase
+          .from('players')
+          .update({ 
+            name: name,
+            phone: sanitizedPhone,
+            user_id: userId,
+            status: 'pending'
+          })
+          .eq('id', storedPlayerId)
+    
+        if (updateErr) throw updateErr
+      console.log('📝 Updated first-time player info')
       await markInviteAsUsed(invite.id);
-      await createGroupMembership(invite.player_id, invite.group_id);
+      await createGroupMembership(invite.player_id, invite.group_id); // can also use storedPlayerId here
       setPendingGroupId(invite.group_id);
 
       console.log('Registration complete, redirecting to pending approval...');
@@ -216,25 +244,25 @@ export default function InviteRegistration() {
     if (!invite || !phoneNumber) return
     
     try {
-      // 1. First get the existing player info by phone
-      const { data: existingPlayer } = await getPlayerByPhone(sanitizedPhone)
+      // // 1. First get the existing player info by phone
+      // const { data: existingPlayer } = await getPlayerByPhone(sanitizedPhone)
       
-      if (existingPlayer?.name) {
-        // 2. Update the current player record with the name from existing player
-        await supabase
-          .from('players')
-          .update({ 
-            name: existingPlayer.name,
-            phone: sanitizedPhone  // ensure phone is set
-          })
-          .eq('id', invite.player_id)
+      // if (existingPlayer?.name) {
+      //   // 2. Update the current player record with the name from existing player
+      //   await supabase
+      //     .from('players')
+      //     .update({ 
+      //       name: existingPlayer.name,
+      //       phone: sanitizedPhone  // ensure phone is set
+      //     })
+      //     .eq('id', invite.player_id)
 
-        console.log('📝 Existing player, Updated player name:', existingPlayer.name)
-      }
+      //   console.log('📝 Existing player, Updated player name:', existingPlayer.name)
+      // }
 
       // 3. Mark invite as used and create group membership
       await markInviteAsUsed(invite.id)
-      await createGroupMembership(invite.player_id, invite.group_id)
+      await createGroupMembership(storedPlayerId, invite.group_id)
       setPendingGroupId(invite.group_id);
 
       await router.replace('/pending-approval')
