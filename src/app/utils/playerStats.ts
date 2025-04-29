@@ -70,6 +70,18 @@ interface GameWithPlayer {
   }[];  // Note the array type here
 }
 
+interface GamePlayerWithGames {
+  game_id: string;
+  player_id: string;
+  games: {
+    date: string;
+    start_time: string;
+  };
+  players: {
+    name: string;
+  };
+}
+
 export async function getPlayerWinRatios(groupId: string): Promise<PlayerWinRatio[] | null> {
   const groupPlayers = await fetchGroupPlayers(groupId);
   if (groupPlayers.length === 0) {
@@ -227,79 +239,68 @@ try{
   return null;
 }
 }
-
-export async function getStreakLeader(groupId: string): Promise<PlayerStats | null> {
-  const groupPlayers = await fetchGroupPlayers(groupId);
-    if (groupPlayers.length === 0) {
-      console.log('No players found in group:', groupId);
-      return null;
-    }
-
-    const playerIds = groupPlayers.map(player => player.id);
-    const { data: gamePlayers, error: playersError } = await supabase
-    .from('game_players')
-    .select(`
-      game_id,
-      player_id,
-      games!inner (
-        date,
-        start_time
-      ),
-      players (
-        name
-      )
-    `)
-    .in('player_id', playerIds)
-    .eq('games.group_id', groupId)
-    .order('created_at')
-    .limit(1000) as { data: any[] | null; error: any };
-
-  if (playersError || !gamePlayers || gamePlayers.length === 0) {
-    console.error('Error fetching games for streak:', playersError);
-    return null;
+function computeStrictStreak(orderedGameIds: string[], playedSet: Set<string>): number {
+  let streak = 0;
+  for (const gid of orderedGameIds) {
+      if (playedSet.has(gid)) streak++;
+      else break;
   }
-
- // 1) Build a map of all group games → Date
- const gameMap = new Map<string, Date>();
- gamePlayers.forEach(curr => {
-   if (!curr.games?.date || !curr.games?.start_time) return;
-   gameMap.set(
-     curr.game_id,
-     new Date(`${curr.games.date} ${curr.games.start_time}`)
-   );
- });
-
- // 2) Sort game IDs descending (newest first)
- const allGames = Array.from(gameMap.entries())
-   .sort(([, a], [, b]) => b.getTime() - a.getTime())
-   .map(([gameId]) => gameId);
-
- // 3) Build per‐player participation sets
- const participation = new Map<string, Set<string>>();
- gamePlayers.forEach(curr => {
-   const set = participation.get(curr.player_id) || new Set<string>();
-   set.add(curr.game_id);
-   participation.set(curr.player_id, set);
- });
-
- // 4) For each group player, count consecutive games from newest → until a miss
- let maxStreak = { player_id: '', name: '', value: 0 };
- groupPlayers.forEach(({ id, name }) => {
-   const played = participation.get(id) || new Set<string>();
-   let streak = 0;
-   for (const gid of allGames) {
-     if (played.has(gid)) streak++;
-     else break;
-   }
-   console.log(`Current streak for ${name}: ${streak}`); // log each player's streak
-   if (streak > maxStreak.value) {
-     maxStreak = { player_id: id, name, value: streak };
-   }
- });
-
- console.log('Final streak leader:', maxStreak);
- return maxStreak.player_id ? maxStreak : null;
+  return streak;
 }
+export async function getStreakLeader(groupId: string): Promise<PlayerStats | null> {
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (!groupPlayers.length) return null;
+
+    const playerIds = groupPlayers.map(p => p.id);
+    const { data: gpRows } = await supabase
+      .from('game_players')
+      .select(`
+        game_id,
+        player_id,
+        games!inner(date, start_time),
+        players(name)
+      `)
+      .in('player_id', playerIds)
+      .eq('games.group_id', groupId)
+      .limit(1000) as { data: GamePlayerWithGames[] | null };
+
+    if (!gpRows?.length) return null;
+
+    // build a map of game_id → Date
+    const gameMap = new Map<string, Date>();
+    gpRows?.forEach(r => {
+      if (r.games?.date && r.games.start_time) {
+        gameMap.set(r.game_id, new Date(`${r.games.date} ${r.games.start_time}`));
+      }
+    });
+
+    // sort descending by timestamp
+    const allGames = Array.from(gameMap.entries())
+      .sort(([, a], [, b]) => b.getTime() - a.getTime())
+      .map(([id]) => id);
+
+    // build each player’s played‐set
+    const participation = new Map<string, Set<string>>();
+    gpRows.forEach(r => {
+      const set = participation.get(r.player_id) || new Set<string>();
+      set.add(r.game_id);
+      participation.set(r.player_id, set);
+    });
+
+    // now use the helper
+    let maxStreak: PlayerStats = { player_id: '', name: '', value: 0 };
+    groupPlayers.forEach(({ id, name }) => {
+      const playedSet = participation.get(id) || new Set();
+      const streak = computeStrictStreak(allGames, playedSet);
+      console.log(`Strict streak for ${name}: ${streak}`);
+      if (streak > maxStreak.value) {
+        maxStreak = { player_id: id, name, value: streak };
+      }
+    });
+
+    return maxStreak.player_id ? maxStreak : null;
+}
+
 export async function getMostImproved(groupId: string): Promise<PlayerStats | null> {
   const groupPlayers = await fetchGroupPlayers(groupId);
   if (groupPlayers.length === 0) {
@@ -580,14 +581,14 @@ export async function getPlayerStats(playerId: string, groupId: string): Promise
       const improvement = Number((lastThreeAvg - firstThreeAvg).toFixed(1));
 
       // Get recent games in chronological order
-      const { data: recentGames, error: gamesError } = await supabase
+      const { data: recentGames, error: recentGamesError } = await supabase
         .from('game_players')
         .select('game_outcome')
         .eq('player_id', playerId)
         .order('created_at', { ascending: false });
 
-      if (gamesError) {
-        console.error('Error fetching recent games:', gamesError);
+      if (recentGamesError) {
+        console.error('Error fetching recent games:', recentGamesError);
         return null;
       }
 
@@ -601,38 +602,56 @@ export async function getPlayerStats(playerId: string, groupId: string): Promise
         }
       }
       let strictCurrentStreak = 0;
-      const { data: groupGames, error: gamesError2 } = await supabase
-        .from('games')
-        .select('id, date, start_time')
-        .eq('group_id', groupId);
 
-      if (!gamesError2 && groupGames?.length) {
-        // sort descending by combined date+time
-        const sortedGames = groupGames
-          .map(g => ({
-            id: g.id,
-            datetime: new Date(`${g.date} ${g.start_time}`)
-          }))
-          .sort((a, b) => b.datetime.getTime() - a.datetime.getTime());
-
-        const gameIds = sortedGames.map(g => g.id);
-        const { data: gpData, error: gpError } = await supabase
+      // Match the exact query from getStreakLeader
+      const groupPlayers = await fetchGroupPlayers(groupId);
+      if (!groupPlayers.length) {
+        strictCurrentStreak = 0; // Or handle the case where there are no group players
+      } else {
+        const playerIds = groupPlayers.map(p => p.id);
+        const { data: gpRows } = await supabase
           .from('game_players')
-          .select('game_id')
-          .eq('player_id', playerId)
-          .in('game_id', gameIds);
+          .select(`
+            game_id,
+            player_id,
+            games!inner(date, start_time),
+            players(name)
+          `)
+          .in('player_id', playerIds)
+          .eq('games.group_id', groupId)
+          .limit(1000) as { data: GamePlayerWithGames[] | null };
 
-        const playedSet = new Set<string>(
-          !gpError && gpData
-            ? gpData.map(r => r.game_id)
-            : []
-        );
+        if (!gpRows?.length) {
+          strictCurrentStreak = 0; // Or handle the case where there are no game players
+        } else {
+          // build a map of game_id -> Date
+          const gameMap = new Map<string, Date>();
+          gpRows?.forEach(r => {
+            if (r.games?.date && r.games.start_time) {
+              gameMap.set(r.game_id, new Date(`${r.games.date} ${r.games.start_time}`));
+            }
+          });
 
-        for (const gid of gameIds) {
-          if (playedSet.has(gid)) strictCurrentStreak++;
-          else break;
+          // sort descending by timestamp
+          const allGames = Array.from(gameMap.entries())
+            .sort(([, a], [, b]) => b.getTime() - a.getTime())
+            .map(([id]) => id);
+
+          // build each player’s played-set
+          const participation = new Map<string, Set<string>>();
+          gpRows.forEach(r => {
+            const set = participation.get(r.player_id) || new Set<string>();
+            set.add(r.game_id);
+            participation.set(r.player_id, set);
+          });
+
+          // Calculate strictCurrentStreak for the specific player
+          const playedSet = participation.get(playerId) || new Set();
+          strictCurrentStreak = computeStrictStreak(allGames, playedSet);
+          console.log(`Strict Current Streak for player ${playerId}: ${strictCurrentStreak}`);
         }
       }
+
       // Return stats array with win streak
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
