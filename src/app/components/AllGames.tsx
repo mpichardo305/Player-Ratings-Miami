@@ -45,15 +45,15 @@ export default function AllGames() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("past");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const router = useRouter();
-  const { currentGroup, isCurrentGroupAdmin, setCurrentGroup } = useGroup();
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(() => currentGroup?.playerId || null);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(() => currentGroup);
+  const { currentGroup, isCurrentGroupAdmin } = useGroup();
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
+    () => currentGroup?.playerId || null
+  );  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const groupId   = selectedGroup?.id   ?? currentGroup?.id;
   const groupName = selectedGroup?.name ?? currentGroup?.name;
-  const [session, setSession] = useState<Session | null>(null)
-  const [isInitialized, setIsInitialized] = useState(false);
-  const startTimeRef = useRef(performance.now());
-
+    const [session, setSession] = useState<Session | null>(null)
+    const [isInitialized, setIsInitialized] = useState(false);
+    const startTimeRef = useRef(performance.now());
   
   useEffect(() => {
     async function initializeComponent() {
@@ -102,27 +102,14 @@ export default function AllGames() {
     initializeComponent()
   }, []) // Remove supabase.auth dependency
   const handleGroupChange = (group: Group) => {
-    if (
-           !isInitialized ||
-           !group?.id ||
-           group.id === selectedGroup?.id
-         ) {
-           return
-         }    
-    setSelectedGroup(group);
-    setCurrentGroup({
-      id:           group.id,
-      name:         group.name,
-      isAdmin:      group.isAdmin,
-      isMember:     currentGroup.isMember,
-      memberStatus: currentGroup.memberStatus,
-      playerId:     currentPlayerId!, // you know it’s set by now
-    })
     console.log('Group change triggered:', {
       previous: selectedGroup,
       new: group,
       currentGroup
     });
+    
+    if (group?.id) {
+      setSelectedGroup(group);
       // Optionally cache the selection
       if (session?.user?.id) {
         const cached = localStorage.getItem(`membership_${session.user.id}`);
@@ -133,13 +120,14 @@ export default function AllGames() {
             lastSelectedGroup: group
           }));
         }
+      }
     }
   };
   useEffect(() => {
     const fetchGames = async () => {
       const startTime = performance.now()
       try {
-        if (!session?.user?.id || !isInitialized || !currentPlayerId) {
+        if (!session?.user?.id || !isInitialized) {
           console.log('Waiting for initialization...', {
             hasSession: !!session?.user?.id,
             isInitialized
@@ -177,20 +165,26 @@ export default function AllGames() {
         setPreviousGames(data.previousGames || []);
         setLoading(false);
         const endTime = performance.now();
-        const loadTime = endTime - startTime; // Calculate load time
-        console.log(`AllGames component loaded in ${loadTime}ms`); // Log after everything else
-
+        const loadTime = endTime - startTime;
+        console.log(`AllGames component loaded in ${loadTime}ms`);
       } catch (error) {
         console.error("Error fetching games:", error);
         setLoading(false);
         const endTime = performance.now();
-        const loadTime = endTime - startTime; // Calculate load time
-        console.log(`AllGames component loaded in ${loadTime}ms`); // Log after everything else
+        const loadTime = endTime - startTime;
+        console.log(`AllGames component loaded in ${loadTime}ms`);
       }
     };
 
     fetchGames();
-  }, [groupId, currentPlayerId, isInitialized]);
+  }, [
+    session,
+    selectedGroup,
+    isInitialized,
+    currentGroup,
+    currentPlayerId,
+    groupId
+  ]); // Make sure all these dependencies are included. It calls things to run twice, but removing risks breaking component
 
   useEffect(() => {
     console.log('Current group:', { id: groupId, name: groupName });
