@@ -22,12 +22,12 @@ export default function Home() {
   const { groupName } = useGroupName(groupId || '')
   const ranRef = useRef(false)
   const startTimeRef = useRef(performance.now());
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession()
-      setUser(session.user.id);
+      setUser(session?.user?.id);
       if (!session) {
         if (window.location.pathname !== '/') {
           saveRedirectUrl(window.location.pathname);
