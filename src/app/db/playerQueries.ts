@@ -9,7 +9,7 @@ export async function createInitialPlayer(playerId: string, phoneNumber: string 
     .insert({
       status: 'pending',
       phone: phoneNumber,
-      user_id: null,
+      user_id: user_id,
       id: playerId,
       name: name
     })

@@ -44,6 +44,7 @@ export default function InviteRegistration() {
   const [inviteStatus, setInviteStatus] = useState<string>('');
   const [pendingGroupId, setPendingGroupId] = useLocalStorage<string>('pendingGroupId', '');
   const [storedPlayerId, setStoredPlayerId] = useLocalStorage<string>('storedPlayerId', '');
+  const [sanitizedPhone, setSanitizedPhone] = useState<string>('');
 
   const { toast } = useToast()
 
@@ -116,17 +117,23 @@ export default function InviteRegistration() {
   }, [nextPage, toast])
 
   const { phoneNumber } = usePhoneNumber();
-  const sanitizedPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : '';
   const { playerName, isLoading: nameLoading, error: nameError } = usePlayerName(invite?.player_id)
 
   const handleSignupSuccess = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const newUserId = session?.user?.id;
+      const { data: { user }, error: userErr } = await supabase.auth.getUser()
+      console.log('👤 User data:', user.id)
+      const newUserId = user.id;
       if (!newUserId) {
         throw new Error('No user ID found in session');
       }
       setUserId(newUserId);
+      const metaPhoneRaw = user.user_metadata?.phone_number || '';
+      console.log('📞 Meta phone number:', metaPhoneRaw);
+      const cleanPhone = (phone: string) => phone.replace(/^\+/, '').replace(/\D/g, '');
+      const phoneToUse = metaPhoneRaw || phoneNumber || '';
+      const cleanedPhone = cleanPhone(phoneToUse);
+      setSanitizedPhone(cleanedPhone);
 
       const result = await validateInvite(token);
       if (result.status !== 'valid') {
@@ -176,7 +183,13 @@ export default function InviteRegistration() {
       }
   
       // 2. Look up existing player by phone
-      const { data: existingPlayer, error: lookupErr } = await getPlayerByPhone(sanitizedPhone)
+      const { data: existingPlayer, error: lookupErr } = await getPlayerByPhone(cleanedPhone)
+      console.log('📱 Phone lookup results:', {
+        phone: cleanedPhone,
+        existingPlayer,
+        error: lookupErr,
+        isExisting: !!existingPlayer
+      })
       if (lookupErr) throw lookupErr
 
       // 3. Decide which ID to use
@@ -188,7 +201,7 @@ export default function InviteRegistration() {
          // Insert the new "player" row
         const { data: newPlayer, error: newErr } = await createInitialPlayer(
         playerIdToUse,
-        sanitizedPhone,
+        cleanedPhone,
         existingPlayer?.name,
         newUserId
       )
@@ -244,23 +257,7 @@ export default function InviteRegistration() {
     if (!invite || !phoneNumber) return
     
     try {
-      // // 1. First get the existing player info by phone
-      // const { data: existingPlayer } = await getPlayerByPhone(sanitizedPhone)
-      
-      // if (existingPlayer?.name) {
-      //   // 2. Update the current player record with the name from existing player
-      //   await supabase
-      //     .from('players')
-      //     .update({ 
-      //       name: existingPlayer.name,
-      //       phone: sanitizedPhone  // ensure phone is set
-      //     })
-      //     .eq('id', invite.player_id)
-
-      //   console.log('📝 Existing player, Updated player name:', existingPlayer.name)
-      // }
-
-      // 3. Mark invite as used and create group membership
+      // Mark invite as used and create group membership
       await markInviteAsUsed(invite.id)
       await createGroupMembership(storedPlayerId, invite.group_id)
       setPendingGroupId(invite.group_id);
