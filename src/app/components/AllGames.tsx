@@ -45,14 +45,13 @@ export default function AllGames() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("past");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const router = useRouter();
-  const { currentGroup, isCurrentGroupAdmin } = useGroup();
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
-    () => currentGroup?.playerId || null
-  );  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const { currentGroup, isCurrentGroupAdmin, setCurrentGroup } = useGroup();
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(() => currentGroup?.playerId || null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(() => currentGroup);
   const groupId   = selectedGroup?.id   ?? currentGroup?.id;
   const groupName = selectedGroup?.name ?? currentGroup?.name;
-    const [session, setSession] = useState<Session | null>(null)
-    const [isInitialized, setIsInitialized] = useState(false);
+  const [session, setSession] = useState<Session | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false);
   
   useEffect(() => {
     async function initializeComponent() {
@@ -101,14 +100,27 @@ export default function AllGames() {
     initializeComponent()
   }, []) // Remove supabase.auth dependency
   const handleGroupChange = (group: Group) => {
+    if (
+           !isInitialized ||
+           !group?.id ||
+           group.id === selectedGroup?.id
+         ) {
+           return
+         }    
+    setSelectedGroup(group);
+    setCurrentGroup({
+      id:           group.id,
+      name:         group.name,
+      isAdmin:      group.isAdmin,
+      isMember:     currentGroup.isMember,
+      memberStatus: currentGroup.memberStatus,
+      playerId:     currentPlayerId!, // you know it’s set by now
+    })
     console.log('Group change triggered:', {
       previous: selectedGroup,
       new: group,
       currentGroup
     });
-    
-    if (group?.id) {
-      setSelectedGroup(group);
       // Optionally cache the selection
       if (session?.user?.id) {
         const cached = localStorage.getItem(`membership_${session.user.id}`);
@@ -119,13 +131,12 @@ export default function AllGames() {
             lastSelectedGroup: group
           }));
         }
-      }
     }
   };
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        if (!session?.user?.id || !isInitialized) {
+        if (!session?.user?.id || !isInitialized || !currentPlayerId) {
           console.log('Waiting for initialization...', {
             hasSession: !!session?.user?.id,
             isInitialized
@@ -170,14 +181,7 @@ export default function AllGames() {
     };
 
     fetchGames();
-  }, [
-    session,
-    selectedGroup,
-    isInitialized,
-    currentGroup,
-    currentPlayerId,
-    groupId
-  ]); // Make sure all these dependencies are included
+  }, [groupId, currentPlayerId]); // Make sure all these dependencies are included
 
   useEffect(() => {
     console.log('Current group:', { id: groupId, name: groupName });

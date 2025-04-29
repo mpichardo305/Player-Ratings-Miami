@@ -99,7 +99,7 @@ export default function MobileMenu() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start space-x-2 text-[1.05rem] text-white hover:bg-transparent hover:text-destructive"
+              className="w-full justify-start space-x-2 text-[1.05rem] text-white hover:bg-transparent hover:text-destructive mt-4"
               onClick={handleLogout}
             >
               <ArrowLeftStartOnRectangleIcon className="h-[1.05rem] w-[1.05rem]" />

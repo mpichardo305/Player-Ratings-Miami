@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import WaitingListPage from './components/WaitingListPage'
 import AllGames from './components/AllGames'
@@ -13,22 +13,20 @@ import { useGroupName } from './hooks/useGroupName'
 
 export default function Home() {
   const { phoneNumber } = usePhoneNumber()
-  const { updateGroupMembership, setCurrentGroup, isCurrentGroupAdmin } = useGroup()
+  const { updateGroupMembership, setCurrentGroup, isCurrentGroupAdmin, currentGroup } = useGroup()
   const [isLoading, setIsLoading] = useState(true)
   const [isMember, setIsMember] = useState(false)
-  const [checkedMembership, setCheckedMembership] = useState(false)
+  // const [checkedMembership, setCheckedMembership] = useState(false)
   const router = useRouter()
   const groupId = getGroupId();
   // Move the useGroupName hook to the component level
   const { groupName } = useGroupName(groupId || '')
-
+  const ranRef = useRef(false)
+  
   useEffect(() => {
+    if (!phoneNumber || ranRef.current) return
+        ranRef.current = true
     async function checkAuth() {
-      // Skip if we've already checked membership
-      if (checkedMembership) {
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
@@ -78,7 +76,6 @@ export default function Home() {
           if (!resolvedGroupId) {
             console.log('Could not resolve group context');
             setIsLoading(false);
-            setCheckedMembership(true); // Mark as checked even if failed
             return;
           }
           console.log('Group context resolved, new group ID:', resolvedGroupId);
@@ -120,9 +117,6 @@ export default function Home() {
           setCurrentGroup(finalGroupData);
         }
 
-        // Mark membership as checked after successful check
-        setCheckedMembership(true);
-
         // Update cache
         if (session?.user?.id) {
           setMembershipCache(session.user.id, {
@@ -133,14 +127,13 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Error checking membership:', error);
-        setCheckedMembership(true); // Mark as checked even if error
       } finally {
         setIsLoading(false);
       }
     }
     
     checkAuth();
-  }, [phoneNumber, router, updateGroupMembership, setCurrentGroup, isCurrentGroupAdmin, checkedMembership, groupName]); // Add checkedMembership and groupName to deps
+  }, [phoneNumber]); 
 
   // Show loading state
   if (isLoading) {

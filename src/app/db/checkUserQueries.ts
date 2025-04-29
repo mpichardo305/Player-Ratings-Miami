@@ -37,35 +37,25 @@ export async function checkPlayerMembership(phoneNumber: string, groupId: string
       .eq('player_id', player.id)
       .eq('group_id', groupId)
       .eq('status', 'approved')
-      .single()
+      .maybeSingle()
 
-    console.log('Checking membership for player:', {
-      playerId: player.id,
-      membership,
-      membershipError
-    })
+    console.log('Checking membership for player:', { playerId: player.id, membership, membershipError })
 
-    // If we find an approved membership, return it
-    if (!membershipError && membership) {
-      const result = {
-        isMember: true,
-        playerId: player.id,
-        status: membership.status
-      }
-      console.log('=== Found Approved Membership ===', result)
-      return result
+    if (membership) {
+      console.log('=== Found Approved Membership ===', { playerId: player.id, status: membership.status })
+      return { isMember: true, playerId: player.id, status: membership.status }
     }
   }
 
-  // If we get here, no approved membership was found
-  const result = {
-    isMember: false,
-    playerId: players[0].id, // Use first player ID for reference
-    status: 'not found'
+  // fallback: any active player record counts as membership
+  const active = players.find((p) => p.status === 'active')
+  if (active) {
+    console.log('=== Fallback to active player record ===', active.id)
+    return { isMember: true, playerId: active.id, status: 'active' }
   }
-  
-  console.log('=== No Approved Membership Found ===', result)
-  return result
+
+  console.log('=== No Approved Membership Found ===', { playerId: players[0].id })
+  return { isMember: false, playerId: players[0].id, status: 'not found' }
 }
 
 export async function checkPlayerMembershipById(playerId: string, groupId: string): Promise<PlayerMembershipResult> {
