@@ -114,6 +114,7 @@ export function cacheMembershipStatus(userId: string, isMember: boolean) {
 // Set membership status in cache
 export function setMembershipCache(userId: string, membershipData: MembershipCache): void {
   try {
+    console.log("🍪 setMembershipCache()", userId, membershipData);
     safeLocalStorage.setItem(`membership_${userId}`, JSON.stringify(membershipData));
   } catch (error) {
     console.error('Error setting membership cache:', error);

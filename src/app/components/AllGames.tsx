@@ -184,7 +184,7 @@ export default function AllGames() {
     currentGroup,
     currentPlayerId,
     groupId
-  ]); // Make sure all these dependencies are included. It calls things to run twice, but removing risks breaking component
+  ]); // Make sure all these dependencies are included. It calls things to run twice, but removing risks breaking
 
   useEffect(() => {
     console.log('Current group:', { id: groupId, name: groupName });
