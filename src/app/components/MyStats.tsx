@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface PlayerGameStats {
   winRatios: number;
   gamesPlayed: number;
-  currentStreak: number;
+  strictCurrentStreak: number;
   initialAverage: number;
   latestAverage: number;
   improvement: number;
@@ -74,7 +74,7 @@ const MyStats: React.FC<MyStatsProps> = ({ groupId }) => {
           winRatios: playerStats[6].value,      // Win Ratio is now at index 6
           gamesPlayed: playerStats[0].value,     // Games Played
           totalWins: playerStats[1].value,       // Total Wins
-          currentStreak: playerStats[2].value,   // Current Streak
+          strictCurrentStreak: playerStats[2].value,   // Current Streak
           initialAverage: playerStats[3].value,  // Initial Average
           latestAverage: playerStats[4].value,   // Latest Average
           improvement: playerStats[5].value,     // Rating Improvement
@@ -116,10 +116,15 @@ const MyStats: React.FC<MyStatsProps> = ({ groupId }) => {
       description: "Most recent three games average"
     },
     {
-      title: "Play Streak",
-      value: stats?.currentStreak ?? 0,
-      description: "Consecutive games played"
-    },
+      title: "Consecutive Game Streak",
+      value: stats?.strictCurrentStreak ?? 0,
+      description: "Total number of consecutive participated games"
+    }
+    // {
+    //   title: "Total Games Played",
+    //   value: stats?.gamesPlayed ?? 0,
+    //   description: "Total number of participated games"
+    // },
   ];
 
   return (

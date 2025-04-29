@@ -259,55 +259,47 @@ export async function getStreakLeader(groupId: string): Promise<PlayerStats | nu
     return null;
   }
 
-  // Group games by player
-  const playerGames = gamePlayers.reduce((acc, curr) => {
-    if (!curr.players?.name || !curr.games?.date) {
-      console.log('Skipping player with missing data:', curr);
-      return acc;
-    }
+ // 1) Build a map of all group games → Date
+ const gameMap = new Map<string, Date>();
+ gamePlayers.forEach(curr => {
+   if (!curr.games?.date || !curr.games?.start_time) return;
+   gameMap.set(
+     curr.game_id,
+     new Date(`${curr.games.date} ${curr.games.start_time}`)
+   );
+ });
 
-    const player = acc.get(curr.player_id) || {
-      games: [],
-      name: curr.players.name
-    };
+ // 2) Sort game IDs descending (newest first)
+ const allGames = Array.from(gameMap.entries())
+   .sort(([, a], [, b]) => b.getTime() - a.getTime())
+   .map(([gameId]) => gameId);
 
-    player.games.push(new Date(`${curr.games.date} ${curr.games.start_time}`));
-    acc.set(curr.player_id, player);
-    return acc;
-  }, new Map<string, { games: Date[], name: string }>());
+ // 3) Build per‐player participation sets
+ const participation = new Map<string, Set<string>>();
+ gamePlayers.forEach(curr => {
+   const set = participation.get(curr.player_id) || new Set<string>();
+   set.add(curr.game_id);
+   participation.set(curr.player_id, set);
+ });
 
-  let maxStreak = { player_id: '', name: '', value: 0 };
+ // 4) For each group player, count consecutive games from newest → until a miss
+ let maxStreak = { player_id: '', name: '', value: 0 };
+ groupPlayers.forEach(({ id, name }) => {
+   const played = participation.get(id) || new Set<string>();
+   let streak = 0;
+   for (const gid of allGames) {
+     if (played.has(gid)) streak++;
+     else break;
+   }
+   console.log(`Current streak for ${name}: ${streak}`); // log each player's streak
+   if (streak > maxStreak.value) {
+     maxStreak = { player_id: id, name, value: streak };
+   }
+ });
 
-  // Calculate streaks for each player
-  playerGames.forEach((player: { games: any[]; name: any; }, playerId: any) => {
-    // Sort games by date ascending
-    player.games.sort((a, b) => b.getTime() - a.getTime());
-    
-    let currentStreak = 1;
-    for (let i = 1; i < player.games.length; i++) {
-      const daysDiff = Math.abs((player.games[i].getTime() - player.games[i-1].getTime()) / (1000 * 60 * 60 * 24));
-      if (daysDiff <= 7) {
-        currentStreak++;
-      } else {
-        break;
-      }
-    }
-
-    console.log(`Player ${player.name}: ${currentStreak} consecutive games streak`); // Debug log
-
-    if (currentStreak > maxStreak.value) {
-      maxStreak = {
-        player_id: playerId,
-        name: player.name,
-        value: currentStreak
-      };
-    }
-  });
-
-  console.log('Final streak leader:', maxStreak); // Debug log
-  return maxStreak.player_id ? maxStreak : null;
+ console.log('Final streak leader:', maxStreak);
+ return maxStreak.player_id ? maxStreak : null;
 }
-
 export async function getMostImproved(groupId: string): Promise<PlayerStats | null> {
   const groupPlayers = await fetchGroupPlayers(groupId);
   if (groupPlayers.length === 0) {
@@ -608,24 +600,57 @@ export async function getPlayerStats(playerId: string, groupId: string): Promise
           break;
         }
       }
+      let strictCurrentStreak = 0;
+      const { data: groupGames, error: gamesError2 } = await supabase
+        .from('games')
+        .select('id, date, start_time')
+        .eq('group_id', groupId);
 
+      if (!gamesError2 && groupGames?.length) {
+        // sort descending by combined date+time
+        const sortedGames = groupGames
+          .map(g => ({
+            id: g.id,
+            datetime: new Date(`${g.date} ${g.start_time}`)
+          }))
+          .sort((a, b) => b.datetime.getTime() - a.datetime.getTime());
+
+        const gameIds = sortedGames.map(g => g.id);
+        const { data: gpData, error: gpError } = await supabase
+          .from('game_players')
+          .select('game_id')
+          .eq('player_id', playerId)
+          .in('game_id', gameIds);
+
+        const playedSet = new Set<string>(
+          !gpError && gpData
+            ? gpData.map(r => r.game_id)
+            : []
+        );
+
+        for (const gid of gameIds) {
+          if (playedSet.has(gid)) strictCurrentStreak++;
+          else break;
+        }
+      }
       // Return stats array with win streak
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
         { player_id: playerId, name: "Total Wins", value: totalWins },
-        { player_id: playerId, name: "Current Streak", value: gamesPlayed },
+        { player_id: playerId, name: "Games Played", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: Number(firstThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Latest 3-Game Average", value: Number(lastThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Rating Improvement", value: improvement },
         { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) },
-        { player_id: playerId, name: "Win Streak", value: winStreak }
+        { player_id: playerId, name: "Win Streak", value: winStreak },
+        { player_id: playerId, name: "Strict Current Streak", value: strictCurrentStreak }
       ];
     } else {
       // Return stats for players with less than 3 games
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
         { player_id: playerId, name: "Total Wins", value: totalWins },
-        { player_id: playerId, name: "Current Streak", value: gamesPlayed },
+        { player_id: playerId, name: "Total Streak", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: 0 },
         { player_id: playerId, name: "Latest 3-Game Average", value: 0 },
         { player_id: playerId, name: "Rating Improvement", value: 0 },
@@ -744,4 +769,3 @@ async function fetchPlayerName(playerId: string): Promise<string | null> {
 
   return data.name;
 }
-
