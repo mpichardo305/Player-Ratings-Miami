@@ -16,14 +16,14 @@ export default function Home() {
   const { updateGroupMembership, setCurrentGroup, isCurrentGroupAdmin, currentGroup } = useGroup()
   const [isLoading, setIsLoading] = useState(true)
   const [isMember, setIsMember] = useState(false)
-  // const [checkedMembership, setCheckedMembership] = useState(false)
   const router = useRouter()
   const groupId = getGroupId();
-  // Move the useGroupName hook to the component level
   const { groupName } = useGroupName(groupId || '')
   const ranRef = useRef(false)
+  const startTimeRef = useRef(performance.now());
   
   useEffect(() => {
+    const startTime = startTimeRef.current;
     if (!phoneNumber || ranRef.current) return
         ranRef.current = true
     async function checkAuth() {
@@ -129,6 +129,9 @@ export default function Home() {
         console.error('Error checking membership:', error);
       } finally {
         setIsLoading(false);
+        const endTime = performance.now();
+        const loadTime = endTime - startTime;
+        console.log(`Home component loaded in ${loadTime}ms`);
       }
     }
     

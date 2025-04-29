@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { formatTimeOnly, formatDatePreserveDay } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
 import { useGroup } from "../context/GroupContext"
@@ -52,6 +52,8 @@ export default function AllGames() {
   const groupName = selectedGroup?.name ?? currentGroup?.name;
   const [session, setSession] = useState<Session | null>(null)
   const [isInitialized, setIsInitialized] = useState(false);
+  const startTimeRef = useRef(performance.now());
+
   
   useEffect(() => {
     async function initializeComponent() {
@@ -135,6 +137,7 @@ export default function AllGames() {
   };
   useEffect(() => {
     const fetchGames = async () => {
+      const startTime = performance.now()
       try {
         if (!session?.user?.id || !isInitialized || !currentPlayerId) {
           console.log('Waiting for initialization...', {
@@ -173,15 +176,21 @@ export default function AllGames() {
         setUpcomingGames(data.upcomingGames || []);
         setPreviousGames(data.previousGames || []);
         setLoading(false);
+        const endTime = performance.now();
+        const loadTime = endTime - startTime; // Calculate load time
+        console.log(`AllGames component loaded in ${loadTime}ms`); // Log after everything else
 
       } catch (error) {
         console.error("Error fetching games:", error);
         setLoading(false);
+        const endTime = performance.now();
+        const loadTime = endTime - startTime; // Calculate load time
+        console.log(`AllGames component loaded in ${loadTime}ms`); // Log after everything else
       }
     };
 
     fetchGames();
-  }, [groupId, currentPlayerId]); // Make sure all these dependencies are included
+  }, [groupId, currentPlayerId, isInitialized]);
 
   useEffect(() => {
     console.log('Current group:', { id: groupId, name: groupName });
