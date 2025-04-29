@@ -76,7 +76,8 @@ export async function getPlayerWinRatios(groupId: string): Promise<PlayerWinRati
     console.log('No players found in group:', groupId);
     return null;
   }
-  const groupPlayerNames = groupPlayers.map(player => player.name);
+  const playerIds = groupPlayers.map(player => player.id);
+  // const groupPlayerNames = groupPlayers.map(player => player.name);
    const { data, error } = await supabase
     .from('game_players')
     .select(`
@@ -97,10 +98,9 @@ export async function getPlayerWinRatios(groupId: string): Promise<PlayerWinRati
 
   const playerStats = data.reduce((acc, player) => {
     const { player_id, game_outcome, players } = player;
-    if (!groupPlayerNames.includes(acc.players?.name)) {
-      // Skip players not in the group
-      return acc;
-    }
+    if (!playerIds.includes(player_id)) {
+           return acc;
+         }
     if (!acc[player_id]) {
       acc[player_id] = {
         totalGames: 0,
@@ -314,8 +314,7 @@ export async function getMostImproved(groupId: string): Promise<PlayerStats | nu
     console.log('No players found in group:', groupId);
     return null;
   }
-
-  const groupPlayerNames = groupPlayers.map(player => player.name);
+  const playerIds = groupPlayers.map(player => player.id);
   const { data: gameRatings, error: ratingsError } = await supabase
   .from('game_ratings')
   .select(`
@@ -333,10 +332,14 @@ export async function getMostImproved(groupId: string): Promise<PlayerStats | nu
     return null;
   }
 
-  // Group ratings by player
+  // Group ratings by player and compute average per playerId
   const playerStats = gameRatings.reduce((acc, curr) => {
-    if (!curr.players?.name || !groupPlayerNames.includes(curr.players.name)) {
-      // Skip ratings for players not in the group or with missing player data
+    if (!curr.players?.name) {
+      console.log('Skipping rating with missing player name:', curr);
+      return acc;
+    }
+    if (!playerIds.includes(curr.player_id)) {
+      console.log(`Skipping rating for non‐group player ${curr.player_id}:`, curr);
       return acc;
     }
 
@@ -423,8 +426,7 @@ export async function getBestPlayer(groupId: string): Promise<PlayerStats | null
     console.log('No players found in group:', groupId);
     return null;
   }
-
-  const groupPlayerNames = groupPlayers.map(player => player.name);
+  const playerIds = groupPlayers.map(player => player.id);
   const { data: gameRatings, error: ratingsError } = await supabase
     .from('game_ratings')
     .select(`
@@ -441,69 +443,55 @@ export async function getBestPlayer(groupId: string): Promise<PlayerStats | null
     console.error('Error fetching ratings:', ratingsError);
     return null;
   }
-
-  if (ratingsError || !gameRatings || gameRatings.length === 0) {
-    console.error('Error fetching ratings:', ratingsError);
-    return null;
-  }
-
-  // Group ratings by player and calculate averages
+  // Group ratings by player and compute average per playerId
   const playerStats = gameRatings.reduce((acc, curr) => {
-    if (!curr.players?.name || !groupPlayerNames.includes(curr.players.name)) {
-      // Skip ratings for players not in the group or with missing player data
+    if (!curr.players?.name) {
+      console.log('Skipping rating with missing player name:', curr);
+      return acc;
+    }
+    if (!playerIds.includes(curr.player_id)) {
+      console.log(`Skipping rating for non‐group player ${curr.player_id}:`, curr);
       return acc;
     }
 
-    const playerId = curr.player_id;
-    const player = acc.get(playerId) || {
+    const pid = curr.player_id;
+    const player = acc.get(pid) || {
       name: curr.players.name,
-      ratings: new Map<string, number>(), // Map of game_id to rating
-      uniqueGames: new Set<string>()      // Set of unique game_ids
+      ratings: new Map<string, number>(),
+      uniqueGames: new Set<string>()
     };
 
-    // Only store one rating per game
     player.ratings.set(curr.game_id, curr.rating);
     player.uniqueGames.add(curr.game_id);
-    acc.set(playerId, player);
+    acc.set(pid, player);
     return acc;
-  }, new Map<string, { 
-    name: string; 
-    ratings: Map<string, number>; 
-    uniqueGames: Set<string>;
-  }>());
+  }, new Map<string, { name: string; ratings: Map<string, number>; uniqueGames: Set<string> }>());
+
+  console.log('After grouping, playerStats.size =', playerStats.size);
+  console.log('Players in stats:', Array.from(playerStats.keys()));
 
   let bestPlayer: PlayerStats | null = null;
   let highestAverage = 0;
 
-  console.log(`Found ${gameRatings.length} ratings for group ${groupId}`);
+  playerStats.forEach((stats, pid) => {
+    console.log(`Calculating avg for player ${pid} (${stats.name}), games=${stats.uniqueGames.size}`);
+    if (stats.uniqueGames.size < 3) {
+      console.log(`  → skip ${pid}, less than 3 unique games`);
+      return;
+    }
+    const ratingsArr = Array.from(stats.ratings.values());
+    const avg = ratingsArr.reduce((sum, r) => sum + r, 0) / ratingsArr.length;
+    console.log(`  → avg = ${avg.toFixed(2)}`);
 
-  playerStats.forEach((stats, playerId) => {
-    // Check if player has played at least 3 unique games
-    if (stats.uniqueGames.size >= 3) {
-      // Calculate average using ratings from unique games
-      const ratingsArray = Array.from(stats.ratings.values());
-      const average = ratingsArray.reduce((sum, rating) => sum + rating, 0) / ratingsArray.length;
-      
-      console.log(`Player ${stats.name}:`, {
-        uniqueGames: stats.uniqueGames.size,
-        gamesRated: ratingsArray.length,
-        averageRating: average.toFixed(1)
-      });
-
-      if (average > highestAverage) {
-        highestAverage = average;
-        bestPlayer = {
-          player_id: playerId,
-          name: stats.name,
-          value: Number(average.toFixed(1))
-        };
-      }
+    if (avg > highestAverage) {
+      highestAverage = avg;
+      bestPlayer = { player_id: pid, name: stats.name, value: Number(avg.toFixed(1)) };
+      console.log(`  → new best:`, bestPlayer);
     }
   });
 
-  console.log('\nBest Player for group', groupId, ':', bestPlayer);
+  console.log('\nFinal bestPlayer for group', groupId, ':', bestPlayer);
   return bestPlayer;
-  
 }
 
 export async function getPlayerStats(playerId: string, groupId: string): Promise<PlayerStats[] | null> {
@@ -517,8 +505,7 @@ export async function getPlayerStats(playerId: string, groupId: string): Promise
       console.log('No players found in group:', groupId);
       return null;
     }
-    // const playerIds = groupPlayers.map(player => player.id);
-    const groupPlayerNames = groupPlayers.map(player => player.name);
+    const playerIds = groupPlayers.map(player => player.id);
     // Get game ratings data
     const { data: gameRatings, error: ratingsError } = await supabase
       .from('game_ratings')
@@ -552,9 +539,14 @@ export async function getPlayerStats(playerId: string, groupId: string): Promise
     // Calculate total wins
     const totalWins = gameOutcomes?.filter(game => game.game_outcome === 'win').length || 0;
 
-    // Group ratings by player
+    // Group ratings by player and compute average per playerId
     const playerStats = gameRatings.reduce((acc, curr) => {
-      if (!curr.players?.name || !groupPlayerNames.includes(curr.players.name)) {
+      if (!curr.players?.name) {
+        console.log('Skipping rating with missing player name:', curr);
+        return acc;
+      }
+      if (!playerIds.includes(curr.player_id)) {
+        console.log(`Skipping rating for non‐group player ${curr.player_id}:`, curr);
         return acc;
       }
 
