@@ -24,7 +24,7 @@ export default function Home() {
   
   useEffect(() => {
     const startTime = startTimeRef.current;
-    if (!phoneNumber || ranRef.current) return
+    if (ranRef.current) return
         ranRef.current = true
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession()
