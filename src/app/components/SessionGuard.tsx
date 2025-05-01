@@ -19,8 +19,8 @@ export default function SessionGuard({ children, fallback }: SessionGuardProps) 
   const gameId = searchParams.get('gameId');
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { setCurrentGroup } = useGroup();
-  const { groupName } = useGroupName('groupid');
+  const { currentGroup, setCurrentGroup } = useGroup();
+  const { groupName } = useGroupName(currentGroup?.id);
 
   useEffect(() => {
     const checkSession = async () => {

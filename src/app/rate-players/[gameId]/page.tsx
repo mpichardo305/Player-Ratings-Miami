@@ -32,17 +32,8 @@ function RatePlayersContent() {
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showScoreCheck, setShowScoreCheck] = useState(false);
   const session = useSession();
   const { currentGroup, isCurrentGroupAdmin } = useGroup();
-
-  // Update effect to use isCurrentGroupAdmin
-  useEffect(() => {
-    if (isCurrentGroupAdmin) {
-      setShowScoreCheck(true);
-    }
-  }, [isCurrentGroupAdmin]);
-
   // Redirect to login if session is not available
   useEffect(() => {
     if (!session) {
@@ -152,12 +143,14 @@ function RatePlayersContent() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <ScoreCheckModal 
-        isOpen={showScoreCheck}
-        onClose={() => setShowScoreCheck(false)}
-        onNo={handleNoScore}
-        gameId={gameId} // Pass the current game ID
-      />
+        {isCurrentGroupAdmin && (
+          <ScoreCheckModal 
+            isOpen={isCurrentGroupAdmin}
+            onClose={() => {}}
+            onNo={handleNoScore}
+            gameId={gameId} // Pass the current game ID
+          />
+        )}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Rate Players</h1>
         <p className="text-muted-foreground">
