@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 // Keep your branch's Group interface with isAdmin
 export interface Group {
@@ -86,7 +87,8 @@ const mergeGroups = (adminGroups: Group[], memberGroups: Group[]): Group[] => {
 export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = false }: GroupSelectorProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const { selectedGroupId, setSelectedGroupId, setCurrentGroup } = useGroup();
-  
+  const [localPendingGroupId, setLocalPendingGroupId] = useState<string | null>(null);
+
   // Update useGroupAdmin to use playerId
   const { isAdmin: isGroupAdmin, loading: isAdminLoading } = useGroupAdmin(
     playerId ?? '', // Use playerId as in main
@@ -96,6 +98,9 @@ export default function GroupSelector({ playerId, onGroupSelect, hideEditIcon = 
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingGroupId, setPendingGroupId] = useLocalStorage<string>('pendingGroupId', '');
+  
+
   const fetchGroups = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -204,14 +209,30 @@ const handleNameEdit = useCallback(async () => {
     const loadGroups = async () => {
       await fetchGroups();
       if (!isMounted) return;
+      if (pendingGroupId) {
+        setLocalPendingGroupId(pendingGroupId);
+      }
+
+      if (localPendingGroupId) {
+        const newGroup = groups.find(group => group.id === localPendingGroupId);
+        if (newGroup) {
+          setSelectedGroupId(newGroup.id);
+          setCurrentGroup(newGroup);
+          onGroupSelect(newGroup);
+          setLocalPendingGroupId(null);
+        }
+      }
     };
     loadGroups();
-    window.addEventListener('membershipApproved', fetchGroups);
+    const handleMembershipApproved = () => {
+      loadGroups(); 
+    };
+    window.addEventListener('membershipApproved', handleMembershipApproved);
     return () => {
-      window.removeEventListener('membershipApproved', fetchGroups);
+      window.removeEventListener('membershipApproved', handleMembershipApproved);
       isMounted = false;
     }
-  }, [fetchGroups, playerId]);
+  }, [fetchGroups, playerId, pendingGroupId]);
   
   return (
     <div className="space-y-4">
