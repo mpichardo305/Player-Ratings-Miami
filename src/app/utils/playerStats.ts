@@ -5,6 +5,7 @@ interface PlayerStats {
   player_id: string;
   name: string;
   value: number;
+  gamesPlayed?: number;
 }
 
 export type BestPlayer = {
@@ -503,11 +504,16 @@ export async function getHighestWinRatio(groupId: string): Promise<PlayerStats |
     // Find the player with the highest win ratio
     let highestWinRatioPlayer: PlayerStats | null = null;
     for (const player of filteredWinRatios) {
-      if (!highestWinRatioPlayer || player.win_ratio > highestWinRatioPlayer.value) {
+      const gamesPlayed = await getPlayerGamesPlayed(player.player_id, groupId); // Fetch games played count
+
+      if (!highestWinRatioPlayer ||
+          player.win_ratio > highestWinRatioPlayer.value ||
+          (player.win_ratio === highestWinRatioPlayer.value && gamesPlayed > (highestWinRatioPlayer as any).gamesPlayed)) { // Tiebreaker logic
         highestWinRatioPlayer = {
           player_id: player.player_id,
           name: player.name,
-          value: player.win_ratio
+          value: player.win_ratio,
+          gamesPlayed: gamesPlayed // Store games played for tiebreaker
         };
       }
     }
@@ -518,6 +524,20 @@ export async function getHighestWinRatio(groupId: string): Promise<PlayerStats |
   } catch (error) {
     console.error('Error calculating highest win ratio:', error);
     return null;
+  }
+}
+
+// Helper function to get the number of games played by a player
+async function getPlayerGamesPlayed(playerId: string, groupId: string): Promise<number> {
+  try {
+    const playerStats = await getPlayerStats(playerId, groupId);
+    if (!playerStats) return 0;
+
+    const gamesPlayedStat = playerStats.find(stat => stat.name === "Games Played");
+    return gamesPlayedStat ? gamesPlayedStat.value : 0;
+  } catch (error) {
+    console.error('Error fetching player games played:', error);
+    return 0;
   }
 }
 export async function getPlayerStats(playerId: string, groupId: string): Promise<PlayerStats[] | null> {
