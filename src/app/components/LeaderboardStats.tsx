@@ -1,13 +1,13 @@
 'use client';
 import React, { useEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, MoveRight, Flame, TrendingUp, Repeat } from "lucide-react";
+import { Trophy, MoveRight, Flame, Repeat, Percent, TrendingUp } from "lucide-react";
 
 type MetricData = {
   title: string;
   value: string;
   description: string;
-  iconType: 'trophy' | 'flame' | 'moveRight' | 'trendingUp' | 'repeat';
+  iconType: 'trophy' | 'flame' | 'moveRight' | 'trendingUp' | 'repeat' | 'percent';
 };
 
 type MetricCard = {
@@ -34,6 +34,8 @@ const getIconForType = (iconType: MetricData['iconType']): React.JSX.Element => 
       return <TrendingUp className="w-5 h-5 text-green-500" />;
     case 'repeat':
       return <Repeat className="w-5 h-5 text-orange-500" />;
+    case 'percent':
+      return <Percent className="w-5 h-5 text-purple-500" />;
   }
 };
 
@@ -138,8 +140,9 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({
         bestPlayer: getBestPlayerMetric,
         longestWinStreak: getLongestWinStreakPlayer,
         mostGames: getMostGamesPlayedPlayer,
-        mostImproved: getMostImprovedPlayer,
-        streakLeader: getStreakLeaderPlayer
+        // mostImproved: getMostImprovedPlayer, // REMOVED
+        highestWinRatio: getHighestWinRatioPlayer,
+        streakLeader: getStreakLeaderPlayer,
       };
 
       // Check cache first for all metrics
@@ -160,9 +163,10 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({
       const results = await Promise.all([
         measureTime('Best Player', getBestPlayerMetric),
         measureTime('Longest Win Streak', getLongestWinStreakPlayer),
+        measureTime('Highest Win Ratio', getHighestWinRatioPlayer),
+        measureTime('Streak Leader', getStreakLeaderPlayer),
         measureTime('Most Games Played', getMostGamesPlayedPlayer),
-        measureTime('Most Improved', getMostImprovedPlayer),
-        measureTime('Streak Leader', getStreakLeaderPlayer)
+        // measureTime('Most Improved', getMostImprovedPlayer), // REMOVED
       ]);
 
       console.log('All metrics calculated');
@@ -175,7 +179,21 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({
         return [];
       }
   
-      return filteredResults;
+      // Define the desired order
+      const metricOrder = [
+        'Best Player',
+        'Longest Win Streak',
+        'Highest Win Ratio',
+        'Consecutive Games Streak Leader',
+        'Most Games Played',
+      ];
+
+      // Sort the metrics based on the defined order
+      const sortedMetrics = metricOrder.map(title => {
+        return filteredResults.find(metric => metric.title === title) || null;
+      }).filter((metric): metric is MetricCard => metric !== null);
+
+      return sortedMetrics;
     } catch (error) {
       console.error('Error calculating metrics:', error);
       return [];
@@ -348,6 +366,37 @@ const LeaderboardStats: React.FC<LeaderboardStatsProps> = ({
       return convertToMetricCard(metricData);
     } catch (error) {
       console.error('Error fetching longest win streak:', error);
+      return null;
+    }
+  };
+
+  const getHighestWinRatioPlayer = async () => {
+    try {
+      const cached = getCachedMetric('highestWinRatio', groupId);
+      if (cached) {
+        console.log(`Using cached highest win ratio for group ${groupId}:`, cached);
+        return convertToMetricCard(cached);
+      }
+
+      const response = await fetch(`/api/stats/highest-win-ratio?groupId=${groupId}`);
+      const highestWinRatio = await response.json();
+
+      if (!highestWinRatio) {
+        console.log(`No highest win ratio found for group ${groupId}`);
+        return null;
+      }
+
+      const metricData: MetricData = {
+        title: "Highest Win Ratio",
+        value: highestWinRatio.name,
+        description: `${highestWinRatio.value.toFixed(1)}%`,
+        iconType: 'percent'
+      };
+
+      cacheMetric('highestWinRatio', groupId, metricData);
+      return convertToMetricCard(metricData);
+    } catch (error) {
+      console.error('Error fetching highest win ratio:', error);
       return null;
     }
   };
