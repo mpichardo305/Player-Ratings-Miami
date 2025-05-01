@@ -10,6 +10,7 @@ import { checkPlayerMembership } from './db/checkUserQueries'
 import { getMembershipFromCache, setMembershipCache, clearMembershipCache, getGroupId, saveRedirectUrl, resolveGroupContext } from './utils/authUtils'
 import { useGroup } from './context/GroupContext'
 import { useGroupName } from './hooks/useGroupName'
+import { redirect } from 'next/navigation'
 
 export default function Home() {
   const { phoneNumber } = usePhoneNumber()
@@ -27,15 +28,15 @@ export default function Home() {
   useEffect(() => {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user?.id);
       if (!session) {
         if (window.location.pathname !== '/') {
           saveRedirectUrl(window.location.pathname);
         }
-        router.push('/login')
-        return
+        setIsLoading(false)
+        setDependenciesLoaded(true)
+        redirect('/login')
       }
-
+      setUser(session?.user?.id);
       console.log('Session found, checking membership for user:', session.user.id);
 
       // Check if URL has force refresh parameter
