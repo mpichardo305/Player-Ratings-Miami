@@ -20,7 +20,7 @@ interface GameResult {
   created_at: string;
   game_outcome: string;
 }
-// Add this interface to properly type the Supabase response
+
 interface GamePlayerResponse {
   game_id: string;
   player_id: string;
@@ -38,20 +38,11 @@ interface GameRatingResponse {
   };
 }
 
-interface PlayerWinRatio
- {
+interface PlayerWinRatio {
   player_id: string;
   name: string;
-  win_ratio: number; 
-}
-
-interface GameWithPlayer {
-  player_id: string;
-  created_at: string;
-  game_outcome: string;
-  players: {
-    name: string;
-  }[];  // Note the array type here
+  win_ratio: number;
+  totalGames: number;    // ← new
 }
 
 interface GamePlayerWithGames {
@@ -90,55 +81,21 @@ export async function getPlayerWinRatios(groupId: string): Promise<PlayerWinRati
   console.log('\n--- Player Win Ratio Calculations ---');
   console.log('Total game records fetched:', data.length);
 
-  const playerStats = data.reduce((acc, player) => {
-    const { player_id, game_outcome, player_name } = player;
-
-    if (!playerIds.includes(player_id)) {
-      return acc;
-    }
-
-    if (!acc[player_id]) {
-      acc[player_id] = {
-        totalGames: 0,
-        wins: 0,
-        name: player_name || '', // Access the name correctly
-        player_id: player_id
-      };
-    }
-
-    acc[player_id].totalGames += 1;
-    if (game_outcome === 'win') {
-      acc[player_id].wins += 1;
-    }
-
+  const rawStats = data.reduce((acc, { player_id, game_outcome, player_name }) => {
+    if (!playerIds.includes(player_id)) return acc;
+    const s = acc[player_id] ?? { totalGames: 0, wins: 0, name: player_name || '', player_id };
+    s.totalGames++;
+    if (game_outcome === 'win') s.wins++;
+    acc[player_id] = s;
     return acc;
-  }, {} as Record<string, { totalGames: number; wins: number; name: string, player_id: string }>);
+  }, {} as Record<string, { totalGames: number; wins: number; name: string; player_id: string }>);
 
-  console.log('\nRaw player statistics:');
-  Object.entries(playerStats).forEach(([playerId, stats]) => {
-    console.log(`Player: ${stats.name}`);
-    console.log(`  Total Games: ${stats.totalGames}`);
-    console.log(`  Wins: ${stats.wins}`);
-  });
-
-  const playerWinRatios = Object.entries(playerStats).map(([playerId, stats]) => {
-    const winRatio = stats.totalGames > 0 ? (stats.wins / stats.totalGames) * 100 : 0;
-    console.log(`\nCalculating win ratio for ${stats.name}:`);
-    console.log(`  ${stats.wins} wins / ${stats.totalGames} total games = ${winRatio.toFixed(2)}%`);
-
-    return {
-      player_id: stats.player_id, // Use the player_id from the stats
-      name: stats.name,
-      win_ratio: Number(winRatio.toFixed(2))
-    };
-  });
-
-  console.log('\nFinal win ratios:');
-  playerWinRatios.forEach(player => {
-    console.log(`${player.name}: ${player.win_ratio}%`);
-  });
-
-  return playerWinRatios;
+  return Object.values(rawStats).map(s => ({
+    player_id: s.player_id,
+    name: s.name,
+    win_ratio: Number(((s.wins / s.totalGames) * 100).toFixed(2)),
+    totalGames: s.totalGames      // ← carry forward
+  }));
 }
 
 export async function getGameData() {
@@ -475,56 +432,30 @@ export async function getBestPlayer(groupId: string): Promise<BestPlayer | null>
   }
 }
 export async function getHighestWinRatio(groupId: string): Promise<PlayerStats | null> {
-  try {
-    const winRatios = await getPlayerWinRatios(groupId);
+  const winRatios = await getPlayerWinRatios(groupId);
+  if (!winRatios?.length) return null;
 
-    if (!winRatios || winRatios.length === 0) {
-      console.log('No win ratios found for group:', groupId);
-      return null;
+  // only those with ≥3 games
+  const candidates = winRatios.filter(p => p.totalGames >= 3);
+  if (!candidates.length) return null;
+
+  // reduce to the best by win_ratio, tie‑break by totalGames
+  const best = candidates.reduce((bestSoFar, curr) => {
+    if (
+      curr.win_ratio > bestSoFar.win_ratio ||
+      (curr.win_ratio === bestSoFar.win_ratio && curr.totalGames > bestSoFar.totalGames)
+    ) {
+      return curr;
     }
+    return bestSoFar;
+  }, candidates[0]);
 
-    // Filter players with at least 3 games
-    const validPlayersPromises = winRatios.map(player => {
-      return getPlayerStats(player.player_id, groupId)
-        .then(stats => {
-          if (!stats) return false;
-          const gamesPlayedStat = stats.find(stat => stat.name === "Games Played");
-          return gamesPlayedStat ? gamesPlayedStat.value >= 3 : false;
-        });
-    });
-
-    const resolvedValidPlayers = await Promise.all(validPlayersPromises);
-    const filteredWinRatios = winRatios.filter((_, index) => resolvedValidPlayers[index]);
-
-    if (filteredWinRatios.length === 0) {
-      console.log('No players with at least 3 games found in group:', groupId);
-      return null;
-    }
-
-    // Find the player with the highest win ratio
-    let highestWinRatioPlayer: PlayerStats | null = null;
-    for (const player of filteredWinRatios) {
-      const gamesPlayed = await getPlayerGamesPlayed(player.player_id, groupId); // Fetch games played count
-
-      if (!highestWinRatioPlayer ||
-          player.win_ratio > highestWinRatioPlayer.value ||
-          (player.win_ratio === highestWinRatioPlayer.value && gamesPlayed > (highestWinRatioPlayer as any).gamesPlayed)) { // Tiebreaker logic
-        highestWinRatioPlayer = {
-          player_id: player.player_id,
-          name: player.name,
-          value: player.win_ratio,
-          gamesPlayed: gamesPlayed // Store games played for tiebreaker
-        };
-      }
-    }
-
-    console.log(`Highest win ratio for group ${groupId}:`, highestWinRatioPlayer);
-    return highestWinRatioPlayer;
-
-  } catch (error) {
-    console.error('Error calculating highest win ratio:', error);
-    return null;
-  }
+  return {
+    player_id: best.player_id,
+    name: best.name,
+    value: best.win_ratio,
+    gamesPlayed: best.totalGames
+  };
 }
 
 // Helper function to get the number of games played by a player
