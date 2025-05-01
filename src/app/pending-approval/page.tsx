@@ -94,6 +94,7 @@ export default function PendingApproval() {
       // Redirect if approved, otherwise show message
       if (result.isMember) {
         console.log("User approved, redirecting to home")
+        window.dispatchEvent(new Event('membershipApproved'));
         handleLoginSuccess()
       } else {
         console.log("User not yet approved, showing message")
