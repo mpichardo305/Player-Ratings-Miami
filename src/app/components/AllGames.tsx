@@ -51,9 +51,9 @@ export default function AllGames() {
   );  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const groupId   = selectedGroup?.id   ?? currentGroup?.id;
   const groupName = selectedGroup?.name ?? currentGroup?.name;
-    const [session, setSession] = useState<Session | null>(null)
-    const [isInitialized, setIsInitialized] = useState(false);
-    const startTimeRef = useRef(performance.now());
+  const [session, setSession] = useState<Session | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false);
+  const startTimeRef = useRef(performance.now());
   
   useEffect(() => {
     async function initializeComponent() {
@@ -149,6 +149,11 @@ export default function AllGames() {
           return;
         }
 
+        if (!groupId) {
+          console.log('No group ID available, skipping API call.');
+          return;
+        }
+
         const url = `/api/get-games?playerId=${currentPlayerId}` +
                     (groupId ? `&groupId=${groupId}` : "");
         console.log('Fetching games from:', url);
@@ -176,7 +181,9 @@ export default function AllGames() {
       }
     };
 
-    fetchGames();
+    if (groupId) {
+      fetchGames();
+    }
   }, [
     session,
     selectedGroup,

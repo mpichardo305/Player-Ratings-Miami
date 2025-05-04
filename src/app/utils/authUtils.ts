@@ -212,6 +212,7 @@ export async function resolveGroupContext(
   
   // First try pending group
   const pendingGroupId = getGroupId();
+  if (pendingGroupId) {
   const { data: groupData } = await supabase
     .from('groups')
     .select('name')
@@ -229,6 +230,7 @@ export async function resolveGroupContext(
     });
     return pendingGroupId;
   }
+}
 
   // Then try last active group
   const lastActiveStr = safeLocalStorage.getItem(LAST_ACTIVE_GROUP_KEY);
