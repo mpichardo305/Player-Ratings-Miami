@@ -51,8 +51,7 @@ function RatePlayersPage() {
 
 async function fetchGameDetails(gameId: string): Promise<Game | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    const response = await fetch(`${baseUrl}/api/games/${gameId}`);
+    const response = await fetch(`/api/games/${gameId}`); // Use relative URL
     if (!response.ok) {
       throw new Error('Failed to fetch game details');
     }
