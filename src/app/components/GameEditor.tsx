@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import styles from '../CreateGame.module.css';
 import PlayerSelection from './PlayerSelection';
 import GameOperationSuccess from './GameOperationSuccess';
@@ -14,11 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from 'lucide-react';
+import { useGroup } from '@/app/context/GroupContext';
+import { Calendar as CalendarIcon } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from '@/components/ui/calendar';
 
 // Shared constants
 const FIELD_OPTIONS = ['KSP', 'Tropical','Killian', 'Revo'];
 const TIME_OPTIONS = ['9:00 AM', '10:00 AM', '11:00 AM', '7:00 PM', '8:00 PM', '9:00 PM'];
-const GROUP_ID = '299af152-1d95-4ca2-84ba-43328284c38e';
 
 type GameEditorMode = 'create' | 'edit' | 'manage-players';
 
@@ -40,6 +41,7 @@ interface Game {
 
 export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
   const router = useRouter();
+  const { currentGroup } = useGroup();
   const [step, setStep] = useState(mode === 'manage-players' ? 2 : 1);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedField, setSelectedField] = useState<string>('');
@@ -285,7 +287,7 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
           start_time: selectedTime,
           created_at: new Date(),
           updated_at: new Date(),
-          group_id: GROUP_ID,
+          group_id: currentGroup?.id || '', // Replace hardcoded GROUP_ID
         }
       : {
           ...game!,
@@ -349,19 +351,27 @@ export const GameEditor = ({ mode, gameId }: GameEditorProps) => {
 
             <div className="space-y-2">
               <Label className="text-foreground">Date</Label>
-              <Card className="bg-secondary">
-                <CardContent className="p-2">
-                  <DatePicker
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={`w-full justify-start text-left bg-secondary ${
+                      !selectedDate ? "text-muted-foreground" : ""
+                    }`}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
                     selected={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    dateFormat="MMMM d, yyyy"
-                    placeholderText="Select date"
-                    className="bg-secondary text-secondaryForeground w-full"
-                    calendarClassName="bg-card border-primary"
-                    dayClassName={() => "text-foreground"}
+                    onSelect={setSelectedDate}
+                    initialFocus
                   />
-                </CardContent>
-              </Card>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

@@ -1,36 +1,26 @@
+import { fetchGroupPlayers } from "./playerDb";
 import { supabase } from "./supabaseClient";
 
 interface PlayerStats {
   player_id: string;
   name: string;
   value: number;
+  gamesPlayed?: number;
 }
 
-interface GamePlayer {
+export type BestPlayer = {
   player_id: string;
-  games_played: number;
-  games: {
-    date: string;
-    start_time: string;
-  };
-  players: {
-    name: string;
-  };
-}
+  name: string;
+  value: number;
+  gamesPlayed: number;
+};
 
-interface GameRating {
+interface GameResult {
   player_id: string;
-  rating: number;
-  games: {
-    date: string;
-    start_time: string;
-  };
-  players: {
-    name: string;
-  } | null;
+  created_at: string;
+  game_outcome: string;
 }
 
-// Add this interface to properly type the Supabase response
 interface GamePlayerResponse {
   game_id: string;
   player_id: string;
@@ -48,31 +38,39 @@ interface GameRatingResponse {
   };
 }
 
-interface PlayerWinRatio
- {
+interface PlayerWinRatio {
   player_id: string;
   name: string;
-  win_ratio: number; 
+  win_ratio: number;
+  totalGames: number;    // ← new
 }
 
-interface GameWithPlayer {
+interface GamePlayerWithGames {
+  game_id: string;
   player_id: string;
-  created_at: string;
-  game_outcome: string;
+  games: {
+    date: string;
+    start_time: string;
+  };
   players: {
     name: string;
-  }[];  // Note the array type here
+  };
 }
 
-export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
+export async function getPlayerWinRatios(groupId: string): Promise<PlayerWinRatio[] | null> {
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
+    return null;
+  }
+  const playerIds = groupPlayers.map(player => player.id);
+
   const { data, error } = await supabase
     .from('game_players')
     .select(`
       player_id,
       game_outcome,
-      players (
-        name
-      )
+      player_name
     `);
 
   if (error || !data) {
@@ -83,50 +81,21 @@ export async function getPlayerWinRatios(): Promise<PlayerWinRatio[] | null> {
   console.log('\n--- Player Win Ratio Calculations ---');
   console.log('Total game records fetched:', data.length);
 
-  const playerStats = data.reduce((acc, player) => {
-    const { player_id, game_outcome, players } = player;
-
-    if (!acc[player_id]) {
-      acc[player_id] = {
-        totalGames: 0,
-        wins: 0,
-        name: players?.[0]?.name || ''
-      };
-    }
-
-    acc[player_id].totalGames += 1;
-    if (game_outcome === 'win') {
-      acc[player_id].wins += 1;
-    }
-
+  const rawStats = data.reduce((acc, { player_id, game_outcome, player_name }) => {
+    if (!playerIds.includes(player_id)) return acc;
+    const s = acc[player_id] ?? { totalGames: 0, wins: 0, name: player_name || '', player_id };
+    s.totalGames++;
+    if (game_outcome === 'win') s.wins++;
+    acc[player_id] = s;
     return acc;
-  }, {} as Record<string, { totalGames: number; wins: number; name: string }>);
+  }, {} as Record<string, { totalGames: number; wins: number; name: string; player_id: string }>);
 
-  console.log('\nRaw player statistics:');
-  Object.entries(playerStats).forEach(([playerId, stats]) => {
-    console.log(`Player: ${stats.name}`);
-    console.log(`  Total Games: ${stats.totalGames}`);
-    console.log(`  Wins: ${stats.wins}`);
-  });
-
-  const playerWinRatios = Object.entries(playerStats).map(([playerId, stats]) => {
-    const winRatio = stats.totalGames > 0 ? (stats.wins / stats.totalGames) * 100 : 0;
-    console.log(`\nCalculating win ratio for ${stats.name}:`);
-    console.log(`  ${stats.wins} wins / ${stats.totalGames} total games = ${winRatio.toFixed(2)}%`);
-    
-    return {
-      player_id: playerId,
-      name: stats.name,
-      win_ratio: Number(winRatio.toFixed(2))
-    };
-  });
-
-  console.log('\nFinal win ratios:');
-  playerWinRatios.forEach(player => {
-    console.log(`${player.name}: ${player.win_ratio}%`);
-  });
-
-  return playerWinRatios;
+  return Object.values(rawStats).map(s => ({
+    player_id: s.player_id,
+    name: s.name,
+    win_ratio: Number(((s.wins / s.totalGames) * 100).toFixed(2)),
+    totalGames: s.totalGames      // ← carry forward
+  }));
 }
 
 export async function getGameData() {
@@ -145,16 +114,29 @@ export async function getGameData() {
   return games;
 }
 
-export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
+export async function getMostGamesPlayed(groupId: string): Promise<PlayerStats | null> {
+try{
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
+    return null;
+  }
+  const playerIds = groupPlayers.map(player => player.id);
   const { data: gamePlayers, error: playersError } = await supabase
-    .from('game_players')
-    .select(`
-      game_id,
-      player_id,
-      players (
-        name
-      )
-    `)
+  .from('game_players')
+  .select(`
+    game_id,
+    player_id,
+    games!inner (
+      id,
+      group_id
+    ),
+    players!inner (
+      name
+    )
+  `)
+  .in('player_id', playerIds)
+  .eq('games.group_id', groupId)
     .limit(1000) as { data: GamePlayerResponse[] | null; error: any };
 
   if (playersError || !gamePlayers || gamePlayers.length === 0) {
@@ -185,106 +167,114 @@ export async function getMostGamesPlayed(): Promise<PlayerStats | null> {
 
   const [playerId, playerData] = entries.sort((a, b) => b[1].count - a[1].count)[0];
 
-  return {
+  const result = {
     player_id: playerId,
     name: playerData.name,
     value: playerData.count
   };
+
+  console.log(`Most games played in group ${groupId}:`, result);
+  return result;
+
+} catch (error) {
+  console.error(`Error calculating most games played for group ${groupId}:`, error);
+  return null;
+}
+}
+function computeStrictStreak(orderedGameIds: string[], playedSet: Set<string>): number {
+  let streak = 0;
+  for (const gid of orderedGameIds) {
+      if (playedSet.has(gid)) streak++;
+      else break;
+  }
+  return streak;
+}
+export async function getStreakLeader(groupId: string): Promise<PlayerStats | null> {
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (!groupPlayers.length) return null;
+
+    const playerIds = groupPlayers.map(p => p.id);
+    const { data: gpRows } = await supabase
+      .from('game_players')
+      .select(`
+        game_id,
+        player_id,
+        games!inner(date, start_time),
+        players(name)
+      `)
+      .in('player_id', playerIds)
+      .eq('games.group_id', groupId)
+      .limit(1000) as { data: GamePlayerWithGames[] | null };
+
+    if (!gpRows?.length) return null;
+
+    // build a map of game_id → Date
+    const gameMap = new Map<string, Date>();
+    gpRows?.forEach(r => {
+      if (r.games?.date && r.games.start_time) {
+        gameMap.set(r.game_id, new Date(`${r.games.date} ${r.games.start_time}`));
+      }
+    });
+
+    // sort descending by timestamp
+    const allGames = Array.from(gameMap.entries())
+      .sort(([, a], [, b]) => b.getTime() - a.getTime())
+      .map(([id]) => id);
+
+    // build each player’s played‐set
+    const participation = new Map<string, Set<string>>();
+    gpRows.forEach(r => {
+      const set = participation.get(r.player_id) || new Set<string>();
+      set.add(r.game_id);
+      participation.set(r.player_id, set);
+    });
+
+    // now use the helper
+    let maxStreak: PlayerStats = { player_id: '', name: '', value: 0 };
+    groupPlayers.forEach(({ id, name }) => {
+      const playedSet = participation.get(id) || new Set();
+      const streak = computeStrictStreak(allGames, playedSet);
+      console.log(`Strict streak for ${name}: ${streak}`);
+      if (streak > maxStreak.value) {
+        maxStreak = { player_id: id, name, value: streak };
+      }
+    });
+
+    return maxStreak.player_id ? maxStreak : null;
 }
 
-
-export async function getStreakLeader(): Promise<PlayerStats | null> {
-  const { data: gamePlayers, error: playersError } = await supabase
-    .from('game_players')
-    .select(`
-      game_id,
-      player_id,
-      games!inner (
-        date,
-        start_time
-      ),
-      players (
-        name
-      )
-    `)
-    .limit(1000) as { data: any[] | null; error: any };
-
-  if (playersError || !gamePlayers || gamePlayers.length === 0) {
-    console.error('Error fetching games for streak:', playersError);
+export async function getMostImproved(groupId: string): Promise<PlayerStats | null> {
+  const groupPlayers = await fetchGroupPlayers(groupId);
+  if (groupPlayers.length === 0) {
+    console.log('No players found in group:', groupId);
     return null;
   }
-
-  // Group games by player
-  const playerGames = gamePlayers.reduce((acc, curr) => {
-    if (!curr.players?.name || !curr.games?.date) {
-      console.log('Skipping player with missing data:', curr);
-      return acc;
-    }
-
-    const player = acc.get(curr.player_id) || {
-      games: [],
-      name: curr.players.name
-    };
-
-    player.games.push(new Date(`${curr.games.date} ${curr.games.start_time}`));
-    acc.set(curr.player_id, player);
-    return acc;
-  }, new Map<string, { games: Date[], name: string }>());
-
-  let maxStreak = { player_id: '', name: '', value: 0 };
-
-  // Calculate streaks for each player
-  playerGames.forEach((player: { games: any[]; name: any; }, playerId: any) => {
-    // Sort games by date ascending
-    player.games.sort((a, b) => b.getTime() - a.getTime());
-    
-    let currentStreak = 1;
-    for (let i = 1; i < player.games.length; i++) {
-      const daysDiff = Math.abs((player.games[i].getTime() - player.games[i-1].getTime()) / (1000 * 60 * 60 * 24));
-      if (daysDiff <= 7) {
-        currentStreak++;
-      } else {
-        break;
-      }
-    }
-
-    console.log(`Player ${player.name}: ${currentStreak} game streak`); // Debug log
-
-    if (currentStreak > maxStreak.value) {
-      maxStreak = {
-        player_id: playerId,
-        name: player.name,
-        value: currentStreak
-      };
-    }
-  });
-
-  console.log('Final streak leader:', maxStreak); // Debug log
-  return maxStreak.player_id ? maxStreak : null;
-}
-
-export async function getMostImproved(): Promise<PlayerStats | null> {
+  const playerIds = groupPlayers.map(player => player.id);
   const { data: gameRatings, error: ratingsError } = await supabase
-    .from('game_ratings')
-    .select(`
-      player_id,
-      rating,
-      game_id,
-      players (
-        name
-      )
-    `)
-    .limit(1000) as { data: GameRatingResponse[] | null; error: any };
+  .from('game_ratings')
+  .select(`
+    player_id,
+    rating,
+    game_id,
+    players (
+      name
+    )
+  `)
+  .limit(1000) as { data: GameRatingResponse[] | null; error: any };
 
   if (ratingsError || !gameRatings || gameRatings.length === 0) {
     console.error('Error fetching ratings:', ratingsError);
     return null;
   }
 
-  // Group ratings by player
+  // Group ratings by player and compute average per playerId
   const playerStats = gameRatings.reduce((acc, curr) => {
     if (!curr.players?.name) {
-      console.log('Skipping rating with missing player data:', curr);
+      console.log('Skipping rating with missing player name:', curr);
+      return acc;
+    }
+    if (!playerIds.includes(curr.player_id)) {
+      console.log(`Skipping rating for non‐group player ${curr.player_id}:`, curr);
       return acc;
     }
 
@@ -365,88 +355,134 @@ export async function getMostImproved(): Promise<PlayerStats | null> {
   return maxImprovement.player_id ? maxImprovement : null;
 }
 
-export async function getBestPlayer(): Promise<PlayerStats | null> {
-  const { data: gameRatings, error: ratingsError } = await supabase
-    .from('game_ratings')
-    .select(`
-      player_id,
-      rating,
-      game_id,
-      players (
-        name
-      )
-    `)
-    .limit(1000) as { data: GameRatingResponse[] | null; error: any };
+export async function getBestPlayer(groupId: string): Promise<BestPlayer | null> {
+  try {
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (groupPlayers.length === 0) {
+      console.log('No players found in group:', groupId);
+      return null;
+    }
+    const playerIds = groupPlayers.map(player => player.id);
+    const { data: gameRatings, error: ratingsError } = await supabase
+      .from('game_ratings')
+      .select(`
+        player_id,
+        rating,
+        game_id,
+        players (
+          name
+        )
+      `)
+      .limit(1000) as { data: GameRatingResponse[] | null; error: any };
 
-  if (ratingsError || !gameRatings || gameRatings.length === 0) {
-    console.error('Error fetching ratings:', ratingsError);
+    if (ratingsError || !gameRatings || gameRatings.length === 0) {
+      console.error('Error fetching ratings:', ratingsError);
+      return null;
+    }
+    // Group ratings by player and compute average per playerId
+    const playerStats = gameRatings.reduce((acc, curr) => {
+      if (!curr.players?.name) {
+        console.log('Skipping rating with missing player name:', curr);
+        return acc;
+      }
+      if (!playerIds.includes(curr.player_id)) {
+        console.log(`Skipping rating for non‐group player ${curr.player_id}:`, curr);
+        return acc;
+      }
+
+      const pid = curr.player_id;
+      const player = acc.get(pid) || {
+        name: curr.players.name,
+        ratings: new Map<string, number>(),
+        uniqueGames: new Set<string>()
+      };
+
+      player.ratings.set(curr.game_id, curr.rating);
+      player.uniqueGames.add(curr.game_id);
+      acc.set(pid, player);
+      return acc;
+    }, new Map<string, { name: string; ratings: Map<string, number>; uniqueGames: Set<string> }>());
+
+    console.log('After grouping, playerStats.size =', playerStats.size);
+    console.log('Players in stats:', Array.from(playerStats.keys()));
+
+    let bestPlayer: BestPlayer | null = null;
+
+    playerStats.forEach((playerData, playerId) => {
+      if (playerData.uniqueGames.size >= 3) {
+        const ratingsArray = Array.from(playerData.ratings.values());
+        const avg = ratingsArray.reduce((sum, rating) => sum + rating, 0) / ratingsArray.length;
+
+        if (bestPlayer === null || avg > bestPlayer.value || (avg === bestPlayer.value && playerData.uniqueGames.size > bestPlayer.gamesPlayed)) {
+          bestPlayer = {
+            player_id: playerId,
+            name: playerData.name,
+            value: Number(avg.toFixed(1)),
+            gamesPlayed: playerData.uniqueGames.size // Store the number of games
+          };
+        }
+      }
+    });
+
+    return bestPlayer;
+
+  } catch (error) {
+    console.error('Error calculating best player:', error);
     return null;
   }
+}
+export async function getHighestWinRatio(groupId: string): Promise<PlayerStats | null> {
+  const winRatios = await getPlayerWinRatios(groupId);
+  if (!winRatios?.length) return null;
 
-  // Group ratings by player and calculate averages
-  const playerStats = gameRatings.reduce((acc, curr) => {
-    if (!curr.players?.name) {
-      console.log('Skipping player with missing data:', curr);
-      return acc;
+  // only those with ≥3 games
+  const candidates = winRatios.filter(p => p.totalGames >= 3);
+  if (!candidates.length) return null;
+
+  // reduce to the best by win_ratio, tie‑break by totalGames
+  const best = candidates.reduce((bestSoFar, curr) => {
+    if (
+      curr.win_ratio > bestSoFar.win_ratio ||
+      (curr.win_ratio === bestSoFar.win_ratio && curr.totalGames > bestSoFar.totalGames)
+    ) {
+      return curr;
     }
+    return bestSoFar;
+  }, candidates[0]);
 
-    const playerId = curr.player_id;
-    const player = acc.get(playerId) || {
-      name: curr.players.name,
-      ratings: new Map<string, number>(), // Map of game_id to rating
-      uniqueGames: new Set<string>()      // Set of unique game_ids
-    };
-
-    // Only store one rating per game
-    player.ratings.set(curr.game_id, curr.rating);
-    player.uniqueGames.add(curr.game_id);
-    acc.set(playerId, player);
-    return acc;
-  }, new Map<string, { 
-    name: string; 
-    ratings: Map<string, number>; 
-    uniqueGames: Set<string>;
-  }>());
-
-  let bestPlayer: PlayerStats | null = null;
-  let highestAverage = 0;
-
-  console.log('\n--- Player Rating Averages ---');
-  playerStats.forEach((stats, playerId) => {
-    // Check if player has played at least 3 unique games
-    if (stats.uniqueGames.size >= 3) {
-      // Calculate average using ratings from unique games
-      const ratingsArray = Array.from(stats.ratings.values());
-      const average = ratingsArray.reduce((sum, rating) => sum + rating, 0) / ratingsArray.length;
-      
-      console.log(`Player ${stats.name}:`, {
-        uniqueGames: stats.uniqueGames.size,
-        gamesRated: ratingsArray.length,
-        averageRating: average.toFixed(1)
-      });
-
-      if (average > highestAverage) {
-        highestAverage = average;
-        bestPlayer = {
-          player_id: playerId,
-          name: stats.name,
-          value: Number(average.toFixed(1))
-        };
-      }
-    }
-  });
-
-  console.log('\nBest Player:', bestPlayer);
-  return bestPlayer;
+  return {
+    player_id: best.player_id,
+    name: best.name,
+    value: best.win_ratio,
+    gamesPlayed: best.totalGames
+  };
 }
 
-export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | null> {
+// Helper function to get the number of games played by a player
+async function getPlayerGamesPlayed(playerId: string, groupId: string): Promise<number> {
+  try {
+    const playerStats = await getPlayerStats(playerId, groupId);
+    if (!playerStats) return 0;
+
+    const gamesPlayedStat = playerStats.find(stat => stat.name === "Games Played");
+    return gamesPlayedStat ? gamesPlayedStat.value : 0;
+  } catch (error) {
+    console.error('Error fetching player games played:', error);
+    return 0;
+  }
+}
+export async function getPlayerStats(playerId: string, groupId: string): Promise<PlayerStats[] | null> {
   try {
     // Get win ratio data for the player
-    const winRatios = await getPlayerWinRatios();
+    const winRatios = await getPlayerWinRatios(groupId);
     const winRatioData = winRatios?.find(p => p.player_id === playerId);
     const playerWinRatio = winRatioData?.win_ratio || 0;
-
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (groupPlayers.length === 0) {
+      console.log('No players found in group:', groupId);
+      return null;
+    }
+    const playerIds = groupPlayers.map(player => player.id);
     // Get game ratings data
     const { data: gameRatings, error: ratingsError } = await supabase
       .from('game_ratings')
@@ -480,10 +516,14 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
     // Calculate total wins
     const totalWins = gameOutcomes?.filter(game => game.game_outcome === 'win').length || 0;
 
-    // Group ratings by player
+    // Group ratings by player and compute average per playerId
     const playerStats = gameRatings.reduce((acc, curr) => {
       if (!curr.players?.name) {
-        console.log('Skipping rating with missing player data:', curr);
+        console.log('Skipping rating with missing player name:', curr);
+        return acc;
+      }
+      if (!playerIds.includes(curr.player_id)) {
+        console.log(`Skipping rating for non‐group player ${curr.player_id}:`, curr);
         return acc;
       }
 
@@ -525,14 +565,14 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
       const improvement = Number((lastThreeAvg - firstThreeAvg).toFixed(1));
 
       // Get recent games in chronological order
-      const { data: recentGames, error: gamesError } = await supabase
+      const { data: recentGames, error: recentGamesError } = await supabase
         .from('game_players')
         .select('game_outcome')
         .eq('player_id', playerId)
         .order('created_at', { ascending: false });
 
-      if (gamesError) {
-        console.error('Error fetching recent games:', gamesError);
+      if (recentGamesError) {
+        console.error('Error fetching recent games:', recentGamesError);
         return null;
       }
 
@@ -545,24 +585,75 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
           break;
         }
       }
+      let strictCurrentStreak = 0;
+
+      // Match the exact query from getStreakLeader
+      const groupPlayers = await fetchGroupPlayers(groupId);
+      if (!groupPlayers.length) {
+        strictCurrentStreak = 0; // Or handle the case where there are no group players
+      } else {
+        const playerIds = groupPlayers.map(p => p.id);
+        const { data: gpRows } = await supabase
+          .from('game_players')
+          .select(`
+            game_id,
+            player_id,
+            games!inner(date, start_time),
+            players(name)
+          `)
+          .in('player_id', playerIds)
+          .eq('games.group_id', groupId)
+          .limit(1000) as { data: GamePlayerWithGames[] | null };
+
+        if (!gpRows?.length) {
+          strictCurrentStreak = 0; // Or handle the case where there are no game players
+        } else {
+          // build a map of game_id -> Date
+          const gameMap = new Map<string, Date>();
+          gpRows?.forEach(r => {
+            if (r.games?.date && r.games.start_time) {
+              gameMap.set(r.game_id, new Date(`${r.games.date} ${r.games.start_time}`));
+            }
+          });
+
+          // sort descending by timestamp
+          const allGames = Array.from(gameMap.entries())
+            .sort(([, a], [, b]) => b.getTime() - a.getTime())
+            .map(([id]) => id);
+
+          // build each player’s played-set
+          const participation = new Map<string, Set<string>>();
+          gpRows.forEach(r => {
+            const set = participation.get(r.player_id) || new Set<string>();
+            set.add(r.game_id);
+            participation.set(r.player_id, set);
+          });
+
+          // Calculate strictCurrentStreak for the specific player
+          const playedSet = participation.get(playerId) || new Set();
+          strictCurrentStreak = computeStrictStreak(allGames, playedSet);
+          console.log(`Strict Current Streak for player ${playerId}: ${strictCurrentStreak}`);
+        }
+      }
 
       // Return stats array with win streak
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
         { player_id: playerId, name: "Total Wins", value: totalWins },
-        { player_id: playerId, name: "Current Streak", value: gamesPlayed },
+        { player_id: playerId, name: "Games Played", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: Number(firstThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Latest 3-Game Average", value: Number(lastThreeAvg.toFixed(1)) },
         { player_id: playerId, name: "Rating Improvement", value: improvement },
         { player_id: playerId, name: "Win Ratio", value: Number(playerWinRatio.toFixed(1)) },
-        { player_id: playerId, name: "Win Streak", value: winStreak }
+        { player_id: playerId, name: "Win Streak", value: winStreak },
+        { player_id: playerId, name: "Strict Current Streak", value: strictCurrentStreak }
       ];
     } else {
       // Return stats for players with less than 3 games
       return [
         { player_id: playerId, name: "Games Played", value: gamesPlayed },
         { player_id: playerId, name: "Total Wins", value: totalWins },
-        { player_id: playerId, name: "Current Streak", value: gamesPlayed },
+        { player_id: playerId, name: "Total Streak", value: gamesPlayed },
         { player_id: playerId, name: "Initial 3-Game Average", value: 0 },
         { player_id: playerId, name: "Latest 3-Game Average", value: 0 },
         { player_id: playerId, name: "Rating Improvement", value: 0 },
@@ -577,17 +668,22 @@ export async function getPlayerStats(playerId: string): Promise<PlayerStats[] | 
   }
 }
 
-export async function getLongestWinStreak(): Promise<PlayerStats | null> {
+export async function getLongestWinStreak(groupId: string): Promise<PlayerStats | null> {
   try {
+    console.log('Calculating longest win streak for group:', groupId);
+    const groupPlayers = await fetchGroupPlayers(groupId);
+    if (groupPlayers.length === 0) {
+      console.log('No players found in group:', groupId);
+      return null;
+    }
+
+    const playerIds = groupPlayers.map(player => player.id);
     const { data: games, error } = await supabase
-      .from('game_players')
+    .from('game_players')
       .select(`
         player_id,
         created_at,
-        game_outcome,
-        players!inner (
-          name
-        )
+        game_outcome
       `)
       .order('player_id')
       .order('created_at')
@@ -599,45 +695,38 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
       return null;
     }
 
-    // Add debug logging for the raw data
-    console.log('\n--- Debug: First few games ---');
-    console.log(JSON.stringify(games.slice(0, 2), null, 2));
+    // Debug logging for verification
+    console.log(`Found ${games.length} games for group ${groupId}`);
 
-    // Group games by player
     const playerGames = games.reduce((acc, game) => {
       const playerId = game.player_id;
-      const playerName = game.players[0]?.name;
-
-      // Initialize the player entry if it doesn't exist
-      if (!acc[playerId]) {
-        acc[playerId] = {
-          name: playerName || 'Unknown Player',
-          games: []
-        };
-        // Debug logging only when creating new player entry
-        console.log('\n--- Debug: New Player Game Data ---');
-        console.log('Player ID:', playerId);
-        console.log('Players object:', JSON.stringify(game.players, null, 2));
-      }
       
-      // Always push the game to the player's games array
+      // Skip if player is not in the group
+      if (!playerIds.includes(playerId)) {
+      return acc;
+      }
+    
+      if (!acc[playerId]) {
+      acc[playerId] = {
+        games: [] as GameResult[]
+      };
+      }
+    
       acc[playerId].games.push(game);
       return acc;
-    }, {} as Record<string, { name: string; games: typeof games }>);
+    }, {} as Record<string, { games: GameResult[] }>);
 
-    let maxStreak = { player_id: '', name: '', value: 0 };
+    let maxStreak = { player_id: '', value: 0 };
 
     // Calculate streaks for each player
     for (const [playerId, data] of Object.entries(playerGames)) {
       let currentStreak = 0;
       let maxPlayerStreak = 0;
       
-      // Sort games by created_at
       const sortedGames = data.games.sort((a, b) => 
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
-      // Calculate streaks
       sortedGames.forEach(game => {
         if (game.game_outcome === 'win') {
           currentStreak++;
@@ -647,26 +736,23 @@ export async function getLongestWinStreak(): Promise<PlayerStats | null> {
         }
       });
 
-      // Update max streak if this player has a higher streak
       if (maxPlayerStreak > maxStreak.value) {
-        const playerName = await fetchPlayerName(playerId);
-        if (playerName) { // Only update if we successfully got the name
-          maxStreak = {
-            player_id: playerId,
-            name: playerName,
-            value: maxPlayerStreak
-          };
-        } else {
-          console.warn(`Could not fetch name for player ${playerId}, skipping streak update`);
-        }
+        maxStreak = {
+          player_id: playerId,
+          value: maxPlayerStreak
+        };
       }
     }
 
-    console.log('Longest win streak found:', maxStreak);
-    return maxStreak.value > 0 ? maxStreak : null;
+    const name = await fetchPlayerName(maxStreak.player_id);
+    console.log(`Longest win streak for group ${groupId}:`, maxStreak);
+    return maxStreak.value > 0 && name ? {
+      ...maxStreak,
+      name
+    } : null;
 
   } catch (error) {
-    console.error('Error calculating longest win streak:', error);
+    console.error(`Error calculating longest win streak for group ${groupId}:`, error);
     return null;
   }
 }

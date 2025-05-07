@@ -1,5 +1,5 @@
 "use client";
-
+// This components allows non-admins to request new players to join the group but was never fully developed.
 import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { GroupContext } from "@/app/context/GroupContext"; 
@@ -23,12 +23,12 @@ console.log(selectedGroupId);
       setMessage("Player name is required.");
       return;
     }
-
+// consider adding groupId as something that comes in...make it similar to approve-player api
     try {
       const response = await fetch("/api/add-player", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, groupId: '299af152-1d95-4ca2-84ba-43328284c38e', phone }),
+        body: JSON.stringify({ name, groupId: selectedGroupId, phone }),
       });
       
       if (response.ok) {

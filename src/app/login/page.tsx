@@ -1,15 +1,26 @@
 'use client'
+export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import dynamicImport from 'next/dynamic'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/app/utils/supabaseClient'
 import PhoneAuth from '../components/PhoneAuth'
 import { usePhoneNumber } from '../hooks/usePhoneNumber'
 import { checkPlayerMembership } from '../db/checkUserQueries'
-import InviteRegistration from '../invite/[token]/page'
-import { getMembershipFromCache, cacheMembershipStatus, GROUP_ID, handleAuthRedirect } from '../utils/authUtils'
-
+const InviteRegistration = dynamicImport(
+  () => import('../invite/[token]/page'),
+  { ssr: false }
+)
+import { 
+  getMembershipFromCache, 
+  cacheMembershipStatus, 
+  handleAuthRedirect, 
+  resolveGroupContext,
+  setLastActiveGroup 
+} from '../utils/authUtils'
+import { useGroup } from '../context/GroupContext'
 
 export default function LoginPage() {
   const { phoneNumber } = usePhoneNumber()
@@ -23,13 +34,13 @@ export default function LoginPage() {
   const router = useRouter()
   const params = useParams()
   const token = params?.token as string
+  const { setCurrentGroup } = useGroup();
+  
+  const hasAuthCookie = typeof window !== 'undefined' &&
+  document.cookie.includes('supabase-auth-token');
 
   // Handle authentication state
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session)
@@ -111,7 +122,11 @@ export default function LoginPage() {
       // If session and phone, check membership
       if (session && phoneNumber) {
         try {
-          const result = await checkPlayerMembership(phoneNumber, GROUP_ID)
+          const groupId = await resolveGroupContext(phoneNumber, setCurrentGroup);
+          if (!groupId) {
+            throw new Error('No group ID found');
+          }
+          const result = await checkPlayerMembership(phoneNumber, groupId)
           
           setIsMember(result.isMember)
           setMembershipChecked(true)
@@ -139,10 +154,26 @@ export default function LoginPage() {
     checkMembership()
   }, [phoneNumber, session, token, isRefreshing, router])
 
+  useEffect(() => {
+    const handleLogin = async () => {
+      if (!phoneNumber) return;
+      const groupId = await resolveGroupContext(phoneNumber, setCurrentGroup);
+      if (groupId) {
+        setLastActiveGroup(groupId);
+        handleAuthRedirect(router);
+      } else {
+        router.push('/pending-approval');
+      }
+    };
+
+    if (phoneNumber) handleLogin();
+  }, [phoneNumber]);
+
   // Show content when verification is complete or we have cached data
-  const showContent = (token && !session) || 
-                     (!session && document.cookie.indexOf('supabase-auth-token') === -1) || 
-                     (session && (membershipChecked || prevVerified))
+  const showContent =
+    (token && !session) ||
+    (!session && !hasAuthCookie) ||
+    (session && (membershipChecked || prevVerified))
 
   if (!showContent) {
     return (

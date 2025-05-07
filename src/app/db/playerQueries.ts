@@ -2,15 +2,16 @@
 
 import { createClient } from '@/app/utils/supabase/server'
 
-export async function createInitialPlayer(playerId: string, phoneNumber: string | null) {
+export async function createInitialPlayer(playerId: string, phoneNumber: string | null, name?:string, user_id?:string) {
   const supabase = createClient()
   return await supabase
     .from('players')
     .insert({
       status: 'pending',
       phone: phoneNumber,
-      user_id: null,
-      id: playerId
+      user_id: user_id,
+      id: playerId,
+      name: name
     })
     .select()
     .single()
@@ -28,5 +29,16 @@ export async function updatePlayerName(playerId: string, playerName: string, use
     .eq('id', playerId)
     .select()
     .single()
+}
+
+export async function getPlayerByPhone(phone: string) {
+  const supabase = createClient()
+  return await supabase
+    .from('players')
+    .select('id, phone, name')
+    .eq('phone', phone)
+    .order('status', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 }
 

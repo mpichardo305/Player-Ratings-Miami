@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/app/hooks/useSession";
 import { getUserPlayerId } from "../utils/playerDb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,19 +11,38 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface PlayerGameStats {
   winRatios: number;
   gamesPlayed: number;
-  currentStreak: number;
+  strictCurrentStreak: number;
   initialAverage: number;
   latestAverage: number;
   improvement: number;
   totalWins: number;  
   winStreak: number;  
 }
+type MyStatsProps = {
+  groupId: string;
+};
 
-export default function MyStats() {
+// Add a function to clear cache for a specific group
+const clearGroupCache = (groupId: string) => {
+  if (!groupId) return; // Don't clear if no groupId
+
+  console.log(`Clearing cache for group ${groupId}`);
+  const keys = Object.keys(localStorage);
+  keys.forEach(key => {
+    if (key.includes(`metric_${groupId}_`)) {
+      console.log(`Removing cache key: ${key}`);
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+const MyStats: React.FC<MyStatsProps> = ({ groupId }) => {
   const session = useSession();
   const [playerId, setPlayerId] = useState<string>("");
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [stats, setStats] = useState<PlayerGameStats | null>(null);
+  const previousGroupId = useRef<string>(groupId);
 
   useEffect(() => {
     async function fetchPlayerId() {
@@ -36,31 +55,40 @@ export default function MyStats() {
     }
     fetchPlayerId();
   }, [session?.user?.id]);
+  
+  useEffect(() => {
+    return () => {
+      if (previousGroupId.current) {
+        clearGroupCache(previousGroupId.current);
+      }
+    };
+  }, []); // Empty dependency array for cleanup
 
   useEffect(() => {
     async function fetchPlayerStats() {
-      if (playerId) {
-        const playerStats = await getPlayerStats(playerId);
-        if (playerStats) {
-          setStats({
-            winRatios: playerStats[6].value,      // Win Ratio is now at index 6
-            gamesPlayed: playerStats[0].value,     // Games Played
-            totalWins: playerStats[1].value,       // Total Wins
-            currentStreak: playerStats[2].value,   // Current Streak
-            initialAverage: playerStats[3].value,  // Initial Average
-            latestAverage: playerStats[4].value,   // Latest Average
-            improvement: playerStats[5].value,     // Rating Improvement
-            winStreak: playerStats[7].value        // Win Streak (new)
-          });
-        }
+      if (!playerId) return;
+      setIsLoadingStats(true);
+      const playerStats = await getPlayerStats(playerId, groupId);
+      if (playerStats) {
+        setStats({
+          winRatios: playerStats[6].value,      // Win Ratio is now at index 6
+          gamesPlayed: playerStats[0].value,     // Games Played
+          totalWins: playerStats[1].value,       // Total Wins
+          strictCurrentStreak: playerStats[8].value,   // Strict Current Streak
+          initialAverage: playerStats[3].value,  // Initial Average
+          latestAverage: playerStats[4].value,   // Latest Average
+          improvement: playerStats[5].value,     // Rating Improvement
+          winStreak: playerStats[7].value        // Win Streak (new)
+        });
       }
+      setIsLoadingStats(false);
     }
     
     fetchPlayerStats();
-  }, [playerId]);
+  }, [playerId, groupId]);
 
   // Add loading state UI
-  if (isLoadingPlayer || !playerId) {
+  if (isLoadingPlayer || !playerId || isLoadingStats) {
     return (
       <Card>
         <CardContent className="pt-6 flex justify-center items-center">
@@ -88,10 +116,15 @@ export default function MyStats() {
       description: "Most recent three games average"
     },
     {
-      title: "Play Streak",
-      value: stats?.currentStreak ?? 0,
-      description: "Consecutive games played"
-    },
+      title: "Consecutive Game Streak",
+      value: stats?.strictCurrentStreak ?? 0,
+      description: "Total number of consecutive participated games"
+    }
+    // {
+    //   title: "Total Games Played",
+    //   value: stats?.gamesPlayed ?? 0,
+    //   description: "Total number of participated games"
+    // },
   ];
 
   return (
@@ -123,3 +156,4 @@ export default function MyStats() {
     </div>
   );
 }
+export default MyStats;

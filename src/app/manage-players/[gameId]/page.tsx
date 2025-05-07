@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import GameEditor from '@/app/components/GameEditor';
 import { useState, useEffect } from 'react';
 import { useSession } from "@/app/hooks/useSession";
-import { useGroupAdmin } from '@/app/hooks/useGroupAdmin';
+import { useGroup } from '@/app/context/GroupContext';
 
 export default function ManagePlayersPage() {
   const params = useParams();
@@ -12,17 +12,17 @@ export default function ManagePlayersPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
   const session = useSession();
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', process.env.NEXT_PUBLIC_GROUP_ID ?? '');
+  const { isCurrentGroupAdmin } = useGroup();
   const router = useRouter();
 
   useEffect(() => {
-    if (!initialLoad && adminCheckComplete && !isGroupAdmin) {
+    if (!initialLoad && adminCheckComplete && !isCurrentGroupAdmin) {
       console.log("Redirecting to view mode - not an admin");
       router.push(`/game/${gameId}?mode=view`);
     }
     setInitialLoad(false);
     setAdminCheckComplete(true);
-  }, [initialLoad, adminCheckComplete, isGroupAdmin, gameId, router]);
+  }, [initialLoad, adminCheckComplete, isCurrentGroupAdmin, gameId, router]);
 
   return <GameEditor mode="manage-players" gameId={gameId} />;
 }

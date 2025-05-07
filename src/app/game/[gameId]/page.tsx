@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/app/hooks/useSession";
-import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
-import { formatDateOnly, formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
+
+import { useGroup } from "@/app/context/GroupContext";
 import { hasGameEnded } from "@/app/utils/gameUtils";
 import GameEditor from "@/app/components/GameEditor";
-import { supabase } from "@/app/utils/supabaseClient";
+
 import { Player, fetchGamePlayers } from "@/app/utils/playerDb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import RatersList from '@/app/components/RatersList';
 import {checkTimeSinceGameStarted} from "@/app/utils/gameUtils";
 import { GameDetailsCard } from '@/app/components/GameDetailsCard';
-import { useGroupName } from '@/app/hooks/useGroupName';
 
 type Game = {
   id: string;
@@ -47,8 +46,7 @@ export default function GamePage() {
   const [editingWindowClosed, setEditingWindowClosed] = useState(false);
   const [ratersLoading, setRatersLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const { groupName, loading: groupNameLoading } = useGroupName(game?.group_id ?? '');
+  const { currentGroup, isCurrentGroupAdmin } = useGroup();
   
   // Fetch game data
   useEffect(() => {
@@ -95,23 +93,20 @@ export default function GamePage() {
     }
   }, [gameId]);
 
-  // Check if user is admin for this game's group
-  const {loading: isAdminLoading, isAdmin} = useGroupAdmin(session?.user?.id ?? '', game?.group_id ?? '');
-
   // Track when admin check completes
   useEffect(() => {
-    if (!isAdminLoading && game?.group_id) {
+    if (game?.group_id) {
       setAdminCheckComplete(true);
     }
-  }, [isAdminLoading, game?.group_id]);
+  }, [game?.group_id]);
 
   // Redirect only after initial load and admin check are complete
   useEffect(() => {
-    if (!initialLoad && adminCheckComplete && mode === 'edit' && !isAdmin) {
+    if (!initialLoad && adminCheckComplete && mode === 'edit' && !isCurrentGroupAdmin) {
       console.log("Redirecting to view mode - not an admin");
       router.push(`/game/${gameId}?mode=view`);
     }
-  }, [initialLoad, adminCheckComplete, isAdmin, mode, gameId, router]);
+  }, [initialLoad, adminCheckComplete, isCurrentGroupAdmin, mode, gameId, router]);
 
   // Check if game has ended whenever game data changes
   useEffect(() => {
@@ -136,7 +131,7 @@ export default function GamePage() {
     checkGameStatus();
   }, [gameId]);
 
-  if (loading || isAdminLoading || groupNameLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -146,7 +141,7 @@ export default function GamePage() {
     );
   }
 
-  if (error && (mode !== 'edit' || !isAdmin)) {
+  if (error && (mode !== 'edit' || !isCurrentGroupAdmin)) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="text-red-500 text-center p-8">{error}</div>
@@ -163,7 +158,7 @@ export default function GamePage() {
   }
 
   // Prevent unauthorized edit access
-  if (mode === 'edit' && !isAdmin) {
+  if (mode === 'edit' && !isCurrentGroupAdmin) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="text-red-500 text-center p-8">
@@ -190,7 +185,7 @@ export default function GamePage() {
             fieldName={game.field_name}
             date={game.date}
             startTime={game.start_time}
-            groupName={groupName}
+            groupName={currentGroup?.name} 
           />
 
           {/* Player Roster */}
@@ -221,7 +216,7 @@ export default function GamePage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-          {isGameEnded && isAdmin && (
+          {isGameEnded && isCurrentGroupAdmin && (
           <Button 
             className="bg-green-500 text-white hover:bg-green-600"
             onClick={() => router.push(`/game/${gameId}/score?mode=edit`)}
@@ -229,7 +224,7 @@ export default function GamePage() {
             Submit Score
           </Button>
             )}
-            {isGameEnded && !isAdmin && (
+            {isGameEnded && !isCurrentGroupAdmin && (
           <Button 
             className="bg-green-500 text-white hover:bg-green-600"
             onClick={() => router.push(`/rate-players/${gameId}`)}
@@ -237,7 +232,7 @@ export default function GamePage() {
             Rate Players
           </Button>
             )}
-            {isAdmin && (
+            {isCurrentGroupAdmin && (
           <>
             <Button
               variant="secondary"
@@ -272,7 +267,7 @@ export default function GamePage() {
       >
         Back
       </Button>
-      {showRaters && isAdmin && gameFinished && (
+      {showRaters && isCurrentGroupAdmin && gameFinished && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="relative w-full max-w-lg bg-card rounded-lg">
         <div className="flex justify-end gap-2 absolute right-2 top-2">

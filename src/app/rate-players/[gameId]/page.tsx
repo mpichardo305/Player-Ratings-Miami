@@ -1,199 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import UnratedPlayersList from '@/app/components/UnratedPlayersList';
-import SessionGuard from '@/app/components/SessionGuard';
-import { supabase } from '@/app/utils/supabaseClient';
-import { hasGameEnded } from '@/app/utils/gameUtils';
-import { formatDatePreserveDay, formatTimeOnly } from "@/app/utils/dateUtils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScoreCheckModal } from '@/app/components/ScoreCheckModal';
-import { useGroupAdmin } from '@/app/hooks/useGroupAdmin';
-import { useSession } from "@/app/hooks/useSession";
-import { useGroupName } from "@/app/hooks/useGroupName";
-import { GameDetailsCard } from "@/app/components/GameDetailsCard";
-
+import { RatePlayersClient } from "@/app/components/RatePlayersClient";
+import { Loader2 } from "lucide-react";
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 type Game = {
   id: string;
   date: string;
   start_time: string;
-  field_name?: string;  // Changed from fieldName to field_name to match API response
+  field_name?: string;
 };
 
-function RatePlayersContent() {
+function RatePlayersPage() {
   const params = useParams();
-  const router = useRouter();
-  const gameId = params.gameId as string;
-  
-  const [userId, setUserId] = useState<string | null>(null);
-  const [playerId, setPlayerId] = useState<string | null>(null);
+  const { gameId } = params;
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showScoreCheck, setShowScoreCheck] = useState(false);
-  const session = useSession();
-  const [groupId, setGroupId] = useState<string>('');
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', groupId);
-  const { groupName, loading: groupNameLoading } = useGroupName(groupId);
 
-  // Add effect to show score check modal when admin is determined
   useEffect(() => {
-    if (isGroupAdmin) {
-      setShowScoreCheck(true);
-    }
-  }, [isGroupAdmin]);
-
-  // Get the current user ID and corresponding player ID from Supabase
-  useEffect(() => {
-    const getUserAndPlayerId = async () => {
+    async function loadGame() {
       try {
-        // Get user ID
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          setUserId(userData.user.id);
-          
-          // Get player ID for this user
-          const { data: playerData, error: playerError } = await supabase
-            .from('players')
-            .select('id')
-            .eq('user_id', userData.user.id)
-            .single();
-
-          if (playerError) {
-            console.error('Error fetching player:', playerError);
-            return;
-          }
-
-          if (playerData) {
-            console.log('Found player ID:', playerData.id);
-            setPlayerId(playerData.id);
-          }
-        }
+        const fetchedGame = await fetchGameDetails(gameId as string);
+        setGame(fetchedGame);
       } catch (error) {
-        console.error('Error in getUserAndPlayerId:', error);
-      }
-    };
-      
-    getUserAndPlayerId();
-  }, []);
-
-  // Fetch game data to verify it has ended
-  useEffect(() => {
-    const fetchGame = async () => {
-      try {
-        const response = await fetch(`/api/games/${gameId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch game details');
-        }
-        
-        const data = await response.json();
-        console.log('Game data from API:', data);
-        
-        // Set the game data from the API response
-        setGame(data);
-        setGroupId(data.group_id);
-        
-        // Check if game has ended
-        if (!hasGameEnded(data.date, data.start_time)) {
-          setError('This game has not ended yet. You can only rate players after the game has finished.');
-        }
-      } catch (error) {
-        console.error('Error fetching game:', error);
-        setError('Failed to load game details');
+        console.error("Error fetching game details:", error);
       } finally {
         setLoading(false);
       }
-    };
-
-    if (gameId) {
-      fetchGame();
     }
+
+    loadGame();
   }, [gameId]);
 
-  const handleNoScore = () => {
-    router.push(`/game/${gameId}/score?mode=edit`);
-  };
-
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <span className="text-sm ml-2">Loading ratings...</span>
-        
-      </div>
-    );
+    return  <div className="flex justify-center items-center h-screen">
+    <Loader2 className="h-8 w-8 animate-spin" />
+    <span className="ml-2">Loading teams...</span>
+  </div>;
   }
 
-  if (error) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card className="bg-muted border-muted-foreground/50">
-          <CardContent className="pt-6">
-            <p>{error}</p>
-            <Button
-              onClick={() => router.push(`/game/${gameId}`)}
-              variant="ghost"
-              className="border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
-            >
-              Back
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!game) {
+    return <div>Error: Could not load game details.</div>;
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <ScoreCheckModal 
-        isOpen={showScoreCheck}
-        onClose={() => setShowScoreCheck(false)}
-        onNo={handleNoScore}
-        gameId={gameId} // Pass the current game ID
-      />
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Rate Players</h1>
-        <p className="text-muted-foreground">
-          Rate the players who participated in this game
-        </p>
-      </div>
-      
-      {game && (
-        <GameDetailsCard
-          fieldName={game.field_name ?? ''}
-          date={game.date.toString()}
-          startTime={game.start_time}
-          groupName={groupName}
-        />
-      )}
-      
-      {userId && playerId && (
-        <UnratedPlayersList 
-          playerId={playerId}
-          gameId={gameId}
-        />
-        )}
-      
-      <div className="flex justify-start">
-        <Button
-          onClick={() => router.push(`/game/${gameId}`)}
-          variant="ghost"
-          className="border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-primary-foreground"
-        >
-          Back
-        </Button>
-      </div>
-    </div>
+    <RatePlayersClient game={game} gameId={gameId as string} />
   );
 }
 
-export default function RatePlayersPage() {
-  return (
-    <SessionGuard>
-      <RatePlayersContent />
-    </SessionGuard>
-  );
+async function fetchGameDetails(gameId: string): Promise<Game | null> {
+  try {
+    const response = await fetch(`/api/games/${gameId}`); // Use relative URL
+    if (!response.ok) {
+      throw new Error('Failed to fetch game details');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching game:', error);
+    return null;
+  }
 }
+
+export default RatePlayersPage;

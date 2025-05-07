@@ -10,7 +10,7 @@ import { Loader2, EyeIcon } from "lucide-react";
 import { fetchGamePlayers } from "@/app/utils/playerDb";
 import { Label } from "@/components/ui/label";
 import { useSession } from "../hooks/useSession";
-import { useGroupAdmin } from "../hooks/useGroupAdmin";
+import { useGroup } from "../context/GroupContext";
 import { Group } from "./GroupSelector";
 
 type Player = {
@@ -34,9 +34,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
   const [isHomeComplete, setIsHomeComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
-  const session = useSession();
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const isGroupAdmin = useGroupAdmin(session?.user?.id ?? '', selectedGroup?.id ?? '');
+  const { isCurrentGroupAdmin } = useGroup();
   const router = useRouter();
 
   useEffect(() => {
@@ -229,7 +227,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
               >
                 Back
               </Button>
-              {isGroupAdmin && (
+              {isCurrentGroupAdmin && (
                 <Button 
                   className="flex-1" 
                   onClick={handleSubmit}
@@ -343,7 +341,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                             id={`home-${player.id}`}
                             checked={true}
                             onCheckedChange={() => handlePlayerSelection(player.id, "home")}
-                            disabled={!isGroupAdmin || (isHomeComplete && !isEditing)}
+                            disabled={!isCurrentGroupAdmin || (isHomeComplete && !isEditing)}
                           />
                           <label htmlFor={`home-${player.id}`}>{player.name}</label>
                         </div>
@@ -377,7 +375,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                   </>
                 )}
 
-                {!isHomeComplete && isGroupAdmin && (  // Only show Next button to admins
+                {!isHomeComplete && isCurrentGroupAdmin && (  // Only show Next button to admins
                   <>
                   <Button 
                     className="w-full mt-4" 
@@ -420,7 +418,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                             id={`away-${player.id}`}
                             checked={true}
                             onCheckedChange={() => handlePlayerSelection(player.id, "away")}
-                            disabled={!isGroupAdmin || (!isEditing && isHomeComplete)}
+                            disabled={!isCurrentGroupAdmin || (!isEditing && isHomeComplete)}
                           />
                         </div>
                       </div>
@@ -441,7 +439,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
                               id={`away-${player.id}`}
                               checked={false}
                               onCheckedChange={() => handlePlayerSelection(player.id, "away")}
-                              disabled={!isGroupAdmin || (!isEditing && isHomeComplete)}
+                              disabled={!isCurrentGroupAdmin || (!isEditing && isHomeComplete)}
                             />
                           </div>
                         </div>
@@ -451,7 +449,7 @@ export default function AssignTeams({ gameId, mode = false }: AssignTeamsProps) 
               </TabsContent>
             </Tabs>
 
-            {isHomeComplete && isGroupAdmin && (
+            {isHomeComplete && isCurrentGroupAdmin && (
               <div className="flex space-x-4 mt-6">
                 <Button 
                   variant="outline" 

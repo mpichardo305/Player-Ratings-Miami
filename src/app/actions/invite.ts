@@ -11,7 +11,7 @@ interface PlayerIdPair {
   readableId: string;
 }
 
-function genPlayerId(): PlayerIdPair {
+export async function genPlayerId(): Promise<PlayerIdPair> {
   const uuid = uuidv4();
   const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const idLength = 4;
@@ -42,7 +42,7 @@ export async function validateInvite(token: string) {
 // Create Invite with Player
 export async function createInvite(groupId: string) {
   const token = uuidv4();
-  const { uuid: playerId } = genPlayerId();
+  const { uuid: playerId } = await genPlayerId();
 
   try {
     console.log('Creating player and invite with:', { token, groupId, playerId });

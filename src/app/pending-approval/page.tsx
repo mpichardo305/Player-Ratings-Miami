@@ -5,18 +5,20 @@ import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Session } from '@supabase/supabase-js'
 import { usePhoneNumber } from '../hooks/usePhoneNumber'
-import { checkPlayerMembership } from '../db/checkUserQueries'
-import { GROUP_ID } from '../utils/authUtils'
+import { checkPlayerMembershipById } from '../db/checkUserQueries'
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { Toaster, useToast } from "@/components/ui/toaster"
-import { handleAuthRedirect } from '../utils/authUtils';
+import { getStoredPlayerId, handleAuthRedirect } from '../utils/authUtils';
+import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { set } from 'lodash'
 
 export default function PendingApproval() {
   const supabase = createClientComponentClient()
   const [session, setSession] = useState<Session | null>(null)
   const { phoneNumber, isLoading: phoneLoading } = usePhoneNumber()
+  const [playerId, setPlayerId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [checkingApproval, setCheckingApproval] = useState(false)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -24,7 +26,7 @@ export default function PendingApproval() {
   const router = useRouter()
   const [showLogin, setShowLogin] = useState(false)
   const { toast } = useToast()
-
+  const [groupId] = useLocalStorage<string>('pendingGroupId', '')
   // Get session data when component mounts
   useEffect(() => {
     async function getSession() {
@@ -50,20 +52,26 @@ export default function PendingApproval() {
     }
   }, [])
 
+    // Get refresh count from local storage on initial load
+    useEffect(() => {
+      const playerId  = getStoredPlayerId();
+      setPlayerId(playerId)
+    }, [])
+
   // Debug phone number from hook
   useEffect(() => {
     console.log('Phone number from hook:', phoneNumber)
-    console.log('Group ID:', GROUP_ID)
   }, [phoneNumber])
 
   const checkApprovalStatus = async () => {
     console.log("Starting approval check...")
     console.log("Session:", session)
+    console.log("Player Id:", playerId)
     console.log("Phone number:", phoneNumber)
 
 
     if (!phoneNumber) {
-      console.error("Phone number missing, cannot proceed with check")
+      console.error("Phone number or group ID missing, cannot proceed with check")
       setShowLogin(true);
       return;
     }
@@ -73,8 +81,9 @@ export default function PendingApproval() {
       handleAuthRedirect(router);
     };
     try {
-      console.log(`Checking membership for phone: ${phoneNumber} and group: ${GROUP_ID}`)
-      const result = await checkPlayerMembership(phoneNumber, GROUP_ID)
+      console.log(`Checking membership for phone: ${phoneNumber} and group: ${groupId}`)
+      
+      const result = await checkPlayerMembershipById(playerId, groupId)
       console.log('Membership check result:', result)
       
       // Increment and save refresh count
@@ -85,6 +94,7 @@ export default function PendingApproval() {
       // Redirect if approved, otherwise show message
       if (result.isMember) {
         console.log("User approved, redirecting to home")
+        window.dispatchEvent(new Event('membershipApproved'));
         handleLoginSuccess()
       } else {
         console.log("User not yet approved, showing message")

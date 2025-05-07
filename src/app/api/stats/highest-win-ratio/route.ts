@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLongestWinStreak } from '@/app/utils/playerStats';
+import { getHighestWinRatio } from '@/app/utils/playerStats';
 
 export const revalidate = 300; // 5 minutes
 
@@ -12,6 +12,6 @@ export async function GET(request: Request) {
     return new Response('Group ID is required', { status: 400 });
   }
 
-  const stats = await getLongestWinStreak(groupId);
+  const stats = await getHighestWinRatio(groupId);
   return new Response(JSON.stringify(stats));
 }

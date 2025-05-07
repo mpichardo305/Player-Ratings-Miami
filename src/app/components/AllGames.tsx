@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { formatTimeOnly, formatDatePreserveDay } from "@/app/utils/dateUtils";
 import { useSession } from "@/app/hooks/useSession";
-import { useGroupAdmin } from "@/app/hooks/useGroupAdmin";
+import { useGroup } from "../context/GroupContext"
 import { useRouter } from "next/navigation";
 import {
   PencilIcon,
@@ -23,6 +23,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { get } from "lodash";
+import { getUserPlayerId } from "../utils/playerDb";
+import GroupSelector, { Group } from "./GroupSelector";
+import { supabase } from "../utils/supabaseClient";
+import { Session } from "@supabase/auth-helpers-nextjs";
 
 type Game = {
   id: string;
@@ -40,31 +45,159 @@ export default function AllGames() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("past");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const router = useRouter();
-  const session = useSession();
-  const firstGroupId =
-    upcomingGames[0]?.group_id || previousGames[0]?.group_id;
-  const { isAdmin, loading: isAdminLoading } = useGroupAdmin(session?.user?.id ?? "", firstGroupId ?? "");
+  const { currentGroup, isCurrentGroupAdmin } = useGroup();
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(
+    () => currentGroup?.playerId || null
+  );  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const groupId   = selectedGroup?.id   ?? currentGroup?.id;
+  const groupName = selectedGroup?.name ?? currentGroup?.name;
+  const [session, setSession] = useState<Session | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false);
+  const startTimeRef = useRef(performance.now());
   
   useEffect(() => {
-    const fetchGames = async () => {
+    async function initializeComponent() {
       try {
-        const response = await fetch("/api/get-games");
-        if (!response.ok) {
-          throw new Error("Failed to fetch games");
+        const { data: { session: userSession } } = await supabase.auth.getSession()
+        setSession(userSession)
+        console.log('Session initialized:', userSession?.user?.id)
+
+        // Try to get player ID from different sources
+        let resolvedPlayerId = null;
+
+        // First try from group context
+        if (currentGroup?.playerId) {
+          console.log('Found player ID in group context:', currentGroup.playerId);
+          resolvedPlayerId = currentGroup.playerId;
         }
+
+        // Then try from cache if we don't have it yet
+        if (!resolvedPlayerId && userSession?.user?.id) {
+          const cached = localStorage.getItem(`membership_${userSession.user.id}`);
+          console.log('Checking cache for player ID:', cached);
+          
+          if (cached) {
+            const parsedCache = JSON.parse(cached);
+            if (parsedCache.playerId) {
+              console.log('Found player ID in cache:', parsedCache.playerId);
+              resolvedPlayerId = parsedCache.playerId;
+            }
+          }
+        }
+
+        // Set the player ID if we found it from any source
+        if (resolvedPlayerId) {
+          setCurrentPlayerId(resolvedPlayerId);
+        } else {
+          console.log('No player ID found in any source');
+        }
+      } catch (error) {
+        console.error('Initialization error:', error)
+      } finally {
+        setLoading(false)
+        setIsInitialized(true)
+      }
+    }
+    
+    initializeComponent()
+  }, []) // Remove supabase.auth dependency
+  const handleGroupChange = (group: Group) => {
+    console.log('Group change triggered:', {
+      previous: selectedGroup,
+      new: group,
+      currentGroup
+    });
+    
+    if (group?.id) {
+      setSelectedGroup(group);
+      // Optionally cache the selection
+      if (session?.user?.id) {
+        const cached = localStorage.getItem(`membership_${session.user.id}`);
+        if (cached) {
+          const parsedCache = JSON.parse(cached);
+          localStorage.setItem(`membership_${session.user.id}`, JSON.stringify({
+            ...parsedCache,
+            lastSelectedGroup: group
+          }));
+        }
+      }
+    }
+  };
+  useEffect(() => {
+    const fetchGames = async () => {
+      const startTime = performance.now()
+      try {
+        if (!session?.user?.id || !isInitialized) {
+          console.log('Waiting for initialization...', {
+            hasSession: !!session?.user?.id,
+            isInitialized
+          });
+          return;
+        }
+
+        console.log('Fetching games with state:', {
+          currentGroup,
+          selectedGroup,
+          groupId,
+          groupName,
+          currentPlayerId
+        });
+
+        // Add the actual API call
+        if (!currentPlayerId) {
+          console.error('No player ID available');
+          return;
+        }
+
+        if (!groupId) {
+          console.log('No group ID available, skipping API call.');
+          return;
+        }
+
+        const url = `/api/get-games?playerId=${currentPlayerId}` +
+                    (groupId ? `&groupId=${groupId}` : "");
+        console.log('Fetching games from:', url);
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('Games data received:', data);
+
         setUpcomingGames(data.upcomingGames || []);
         setPreviousGames(data.previousGames || []);
+        setLoading(false);
+        const endTime = performance.now();
+        const loadTime = endTime - startTime;
+        console.log(`AllGames component loaded in ${loadTime}ms`);
       } catch (error) {
         console.error("Error fetching games:", error);
-      } finally {
         setLoading(false);
+        const endTime = performance.now();
+        const loadTime = endTime - startTime;
+        console.log(`AllGames component loaded in ${loadTime}ms`);
       }
     };
-    fetchGames();
-  }, []);
 
-  if (loading || isAdminLoading) {
+    if (groupId) {
+      fetchGames();
+    }
+  }, [
+    session,
+    selectedGroup,
+    isInitialized,
+    currentGroup,
+    currentPlayerId,
+    groupId
+  ]); // Make sure all these dependencies are included. It calls things to run twice, but removing risks breaking
+
+  useEffect(() => {
+    console.log('Current group:', { id: groupId, name: groupName });
+  }, [groupId, groupName]);
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -175,7 +308,7 @@ export default function AllGames() {
               <StarIcon className="h-5 w-5" />
             </Button>
           )}
-          {isAdmin && activeTab === "upcoming" && (
+          {isCurrentGroupAdmin && activeTab === "upcoming" && (
             <>
               <Button 
                 variant={selectedAction === `edit-${game.id}` ? "default" : "ghost"} 
@@ -203,7 +336,17 @@ export default function AllGames() {
   return (
     <Card className="bg-card">
       <CardHeader>
-        <CardTitle className="text-foreground text-3xl">Games</CardTitle>
+       
+        <CardTitle className="text-foreground text-3xl">
+          Games
+        </CardTitle>
+        <CardTitle className="text-muted-foreground text-1xl">
+          <GroupSelector 
+            hideEditIcon 
+            playerId={currentPlayerId}
+            onGroupSelect={handleGroupChange}
+          />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="past" value={activeTab} onValueChange={(value) => setActiveTab(value as "upcoming" | "past")}>

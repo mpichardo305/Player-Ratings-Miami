@@ -1,19 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/app/utils/supabaseClient'
+
 import { NextResponse } from 'next/server';
-import { estDateTimeToUtc } from '@/app/utils/dateUtils';  // ← new import
+import { estDateTimeToUtc } from '@/app/utils/dateUtils';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Hardcoded values as requested
-    const playerId = '3e0a04fb-6e4b-41ee-899f-a7f1190b57f5';
-    const groupId = '299af152-1d95-4ca2-84ba-43328284c38e';
+    const { searchParams } = new URL(request.url);
+    const playerId = searchParams.get('playerId');
+    const groupId = searchParams.get('groupId'); 
 
-    // First get the groups this player can access
+    if (!playerId) {
+      return NextResponse.json({ error: 'Player ID is required' }, { status: 400 });
+    }
+
+    // First get all groups this player can access
+    const { data: memberGroups, error: memberError } = await supabase
+      .from('group_memberships')
+      .select('group_id')
+      .eq('player_id', playerId);
+
+    if (memberError) {
+      console.error('Error fetching member groups:', memberError);
+      return NextResponse.json({ error: 'Failed to fetch member groups' }, { status: 500 });
+    }
+
     const { data: adminGroups, error: adminError } = await supabase
       .from('group_admins')
       .select('group_id')
@@ -24,19 +35,31 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch admin groups' }, { status: 500 });
     }
 
-    // Extract group IDs from the results
-    const accessibleGroupIds = adminGroups.map(group => group.group_id);
+        // Extract group IDs from both admin and member groups
+        const accessibleGroupIds = [
+          ...adminGroups.map(group => group.group_id),
+          ...memberGroups.map(group => group.group_id)
+        ];
+
+            // Remove duplicates using Set
+      const uniqueGroupIds = [...new Set(accessibleGroupIds)];
     
-    // Add the specific group ID if not already included
-    if (!accessibleGroupIds.includes(groupId)) {
-      accessibleGroupIds.push(groupId);
-    }
+      // Build the games fetch query conditionally
+      let gamesQuery = supabase
+        .from('games')
+        .select('id, start_time, date, field_name, group_id');
+
+      if (groupId) {
+        // only this one group
+        gamesQuery = gamesQuery.eq('group_id', groupId);
+      } else {
+        // all groups the player can access
+        gamesQuery = gamesQuery.in('group_id', uniqueGroupIds);
+      }
+
 
     // Fetch ALL games for those groups
-    const { data: games, error } = await supabase
-      .from('games')
-      .select('id, start_time, date, field_name, group_id')
-      .in('group_id', accessibleGroupIds);
+    const { data: games, error } = await gamesQuery
 
     if (error) {
       console.error('Error fetching games:', error);
