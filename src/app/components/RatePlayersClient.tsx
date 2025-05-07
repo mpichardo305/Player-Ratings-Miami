@@ -65,16 +65,16 @@ export function RatePlayersClient({ game, gameId }: { game: Game | null, gameId:
             .from('players')
             .select('id')
             .eq('user_id', userData.user.id)
-            .single();
+            .limit(1); // ADDED: Limit the result to 1 row
 
           if (playerError) {
             console.error('Error fetching player:', playerError);
             return;
           }
 
-          if (playerData) {
-            console.log('Found player ID:', playerData.id);
-            setPlayerId(playerData.id);
+          if (playerData && playerData.length > 0) { // MODIFIED: Check if playerData is an array and has at least one element
+            console.log('Found player ID:', playerData[0].id);
+            setPlayerId(playerData[0].id);
           }
         }
       } catch (error) {
